@@ -12,6 +12,13 @@ public final class FieldSpec {
     public final List<String> validation;
     public final boolean unique;
     public final boolean nullable;
+    public final Integer min;
+    public final Integer max;
+    public final String format;
+    public final boolean encrypted;
+    public final List<String> enumValues;
+    public final String defaultValue;
+    public final String calculatedExpression;
 
     @JsonCreator
     public FieldSpec(
@@ -19,12 +26,26 @@ public final class FieldSpec {
             @JsonProperty("type") String type,
             @JsonProperty("validation") List<String> validation,
             @JsonProperty("unique") boolean unique,
-            @JsonProperty("nullable") boolean nullable
+            @JsonProperty("nullable") boolean nullable,
+            @JsonProperty("min") Integer min,
+            @JsonProperty("max") Integer max,
+            @JsonProperty("format") String format,
+            @JsonProperty("encrypted") boolean encrypted,
+            @JsonProperty("enumValues") List<String> enumValues,
+            @JsonProperty("defaultValue") String defaultValue,
+            @JsonProperty("calculatedExpression") String calculatedExpression
     ) {
         this.name = Objects.requireNonNull(name, "name");
         this.type = Objects.requireNonNull(type, "type");
         this.validation = List.copyOf(Objects.requireNonNull(validation, "validation"));
         this.unique = unique;
         this.nullable = nullable;
+        this.min = min;
+        this.max = max;
+        this.format = format;
+        this.encrypted = encrypted;
+        this.enumValues = List.copyOf(enumValues == null ? List.of() : enumValues);
+        this.defaultValue = defaultValue;
+        this.calculatedExpression = calculatedExpression;
     }
 }

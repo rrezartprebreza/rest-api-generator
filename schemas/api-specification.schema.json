@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://restapigen.dev/schemas/api-specification.schema.json",
+  "title": "REST API Generator Specification",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "projectName": {"type": "string", "minLength": 1},
+    "basePackage": {"type": "string", "pattern": "^[a-zA-Z_][a-zA-Z0-9_.]*$"},
+    "entities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "entity": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "name": {"type": "string", "pattern": "^[A-Z][a-zA-Z0-9_]*$"},
+              "table": {"type": "string", "minLength": 1},
+              "idType": {"type": "string", "enum": ["Long", "UUID", "String"]},
+              "fields": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {"type": "string", "pattern": "^[a-z][a-zA-Z0-9_]*$"},
+                    "type": {"type": "string"},
+                    "validation": {"type": "array", "items": {"type": "string"}},
+                    "unique": {"type": "boolean"},
+                    "nullable": {"type": "boolean"},
+                    "min": {"type": ["integer", "null"]},
+                    "max": {"type": ["integer", "null"]},
+                    "format": {"type": ["string", "null"]},
+                    "encrypted": {"type": "boolean"},
+                    "enumValues": {"type": "array", "items": {"type": "string"}},
+                    "defaultValue": {"type": ["string", "null"]},
+                    "calculatedExpression": {"type": ["string", "null"]}
+                  },
+                  "required": [
+                    "name",
+                    "type",
+                    "validation",
+                    "unique",
+                    "nullable",
+                    "min",
+                    "max",
+                    "format",
+                    "encrypted",
+                    "enumValues",
+                    "defaultValue",
+                    "calculatedExpression"
+                  ]
+                }
+              }
+            },
+            "required": ["name", "table", "idType", "fields"]
+          },
+          "api": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "resourcePath": {"type": "string"},
+              "crud": {"type": "boolean"},
+              "pagination": {"type": "boolean"},
+              "sorting": {"type": "boolean"}
+            },
+            "required": ["resourcePath", "crud", "pagination", "sorting"]
+          },
+          "relationships": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "type": {"type": "string", "enum": ["OneToOne", "OneToMany", "ManyToOne", "ManyToMany"]},
+                "target": {"type": "string"},
+                "fieldName": {"type": "string"}
+              },
+              "required": ["type", "target", "fieldName"]
+            }
+          }
+        },
+        "required": ["entity", "api", "relationships"]
+      }
+    },
+    "suggestions": {
+      "type": "array",
+      "items": {"type": "string"}
+    }
+  },
+  "required": ["projectName", "basePackage", "entities", "suggestions"]
+}

@@ -1,12 +1,9 @@
 package io.restapigen.generator;
 
-import io.restapigen.domain.ApiSpec;
 import io.restapigen.domain.ApiSpecification;
 import io.restapigen.domain.EntityDefinition;
 import io.restapigen.domain.FieldSpec;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -88,5 +85,23 @@ class NaturalLanguageSpecGeneratorTest {
         assertEquals("Item", definition.entity.name);
         assertFalse(spec.suggestions.isEmpty());
         assertTrue(spec.suggestions.contains("Inventory"));
+    }
+
+    @Test
+    void parsesRelationships() {
+        String request = """
+                Create an API for Product with name, price
+                - belongs to Category
+                - has many Review
+                - has many Tag (many-to-many)
+                """;
+        ApiSpecification spec = new NaturalLanguageSpecGenerator().generate(request);
+
+        EntityDefinition definition = spec.entities.get(0);
+        assertEquals(3, definition.relationships.size());
+        assertEquals("ManyToOne", definition.relationships.get(0).type);
+        assertEquals("Category", definition.relationships.get(0).target);
+        assertEquals("OneToMany", definition.relationships.get(1).type);
+        assertEquals("ManyToMany", definition.relationships.get(2).type);
     }
 }

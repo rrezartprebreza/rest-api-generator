@@ -15,6 +15,8 @@ public final class RequestParsing {
     private static final Pattern WITH_FIELDS = Pattern.compile("(?i)\\bwith\\b\\s+([^\\n\\r.]+)");
     private static final Pattern INLINE_TYPED = Pattern.compile("(?i)\\b([a-z][a-z0-9_]*)\\s*\\(\\s*([A-Za-z][A-Za-z0-9]*)\\s*\\)");
     private static final Pattern SEGMENT_SPLIT = Pattern.compile("(?m)(?:\\r?\\n){2,}");
+    private static final Pattern BELONGS_TO = Pattern.compile("(?i)\\bbelongs\\s+to\\s+([A-Za-z][A-Za-z0-9_]*)\\b");
+    private static final Pattern HAS_MANY = Pattern.compile("(?i)\\bhas\\s+many\\s+([A-Za-z][A-Za-z0-9_]*)(?:\\s*\\(([^)]+)\\))?");
 
     private RequestParsing() {}
 
@@ -60,7 +62,19 @@ public final class RequestParsing {
             String name = bullet.group(1);
             String type = bullet.group(2);
             String tail = bullet.group(3) == null ? "" : bullet.group(3);
-            out.add(new ParsedField(name, type, containsNullable(tail), containsUnique(tail)));
+            out.add(new ParsedField(
+                    name,
+                    type,
+                    containsNullable(tail),
+                    containsUnique(tail),
+                    extractMin(tail),
+                    extractMax(tail),
+                    extractFormat(tail),
+                    containsEncrypted(tail),
+                    extractEnumValues(tail),
+                    extractDefault(tail),
+                    extractCalculated(tail)
+            ));
         }
 
         Matcher withFields = WITH_FIELDS.matcher(request);
@@ -80,7 +94,7 @@ public final class RequestParsing {
 
         Matcher inlineTyped = INLINE_TYPED.matcher(request);
         while (inlineTyped.find()) {
-            out.add(new ParsedField(inlineTyped.group(1), inlineTyped.group(2), false, false));
+            out.add(new ParsedField(inlineTyped.group(1), inlineTyped.group(2), false, false, null, null, null, false, List.of(), null, null));
         }
 
         return out;
@@ -94,6 +108,27 @@ public final class RequestParsing {
                 .map(String::trim)
                 .filter(segment -> !segment.isEmpty())
                 .toList();
+    }
+
+    public static List<ParsedRelationship> extractRelationships(String request) {
+        List<ParsedRelationship> out = new ArrayList<>();
+        if (request == null || request.isBlank()) {
+            return out;
+        }
+        Matcher belongsTo = BELONGS_TO.matcher(request);
+        while (belongsTo.find()) {
+            String target = belongsTo.group(1);
+            out.add(new ParsedRelationship("ManyToOne", target, target));
+        }
+
+        Matcher hasMany = HAS_MANY.matcher(request);
+        while (hasMany.find()) {
+            String target = hasMany.group(1);
+            String hint = hasMany.group(2) == null ? "" : hasMany.group(2).toLowerCase(Locale.ROOT);
+            String type = hint.contains("many-to-many") ? "ManyToMany" : "OneToMany";
+            out.add(new ParsedRelationship(type, target, target + "List"));
+        }
+        return out;
     }
 
     public static boolean containsDisableCrud(String lowerRequest) {
@@ -116,7 +151,20 @@ public final class RequestParsing {
                 || lowerRequest.contains("disable sorting");
     }
 
-    public record ParsedField(String name, String typeHint, boolean nullable, boolean unique) {}
+    public record ParsedField(
+            String name,
+            String typeHint,
+            boolean nullable,
+            boolean unique,
+            Integer min,
+            Integer max,
+            String format,
+            boolean encrypted,
+            List<String> enumValues,
+            String defaultValue,
+            String calculatedExpression
+    ) {}
+    public record ParsedRelationship(String type, String target, String fieldName) {}
 
     private static boolean looksLikeEntityToken(String token) {
         if (token == null || token.isBlank()) {
@@ -159,7 +207,19 @@ public final class RequestParsing {
             String name = parenType.group(1);
             String type = parenType.group(2);
             String tail = parenType.group(3) == null ? "" : parenType.group(3);
-            return new ParsedField(name, type, containsNullable(tail), containsUnique(tail));
+            return new ParsedField(
+                    name,
+                    type,
+                    containsNullable(tail),
+                    containsUnique(tail),
+                    extractMin(tail),
+                    extractMax(tail),
+                    extractFormat(tail),
+                    containsEncrypted(tail),
+                    extractEnumValues(tail),
+                    extractDefault(tail),
+                    extractCalculated(tail)
+            );
         }
 
         Matcher typed = Pattern.compile("(?i)^([A-Za-z][A-Za-z0-9_]*)\\s*(?::|-)\\s*([A-Za-z][A-Za-z0-9]*)\\s*(.*)$").matcher(cleaned);
@@ -167,7 +227,19 @@ public final class RequestParsing {
             String name = typed.group(1);
             String type = typed.group(2);
             String tail = typed.group(3) == null ? "" : typed.group(3);
-            return new ParsedField(name, type, containsNullable(tail), containsUnique(tail));
+            return new ParsedField(
+                    name,
+                    type,
+                    containsNullable(tail),
+                    containsUnique(tail),
+                    extractMin(tail),
+                    extractMax(tail),
+                    extractFormat(tail),
+                    containsEncrypted(tail),
+                    extractEnumValues(tail),
+                    extractDefault(tail),
+                    extractCalculated(tail)
+            );
         }
 
         String lower = cleaned.toLowerCase(Locale.ROOT);
@@ -178,7 +250,19 @@ public final class RequestParsing {
         if (nameOnly.isEmpty()) {
             return null;
         }
-        return new ParsedField(nameOnly, null, nullable, unique);
+        return new ParsedField(
+                nameOnly,
+                null,
+                nullable,
+                unique,
+                extractMin(cleaned),
+                extractMax(cleaned),
+                extractFormat(cleaned),
+                containsEncrypted(cleaned),
+                extractEnumValues(cleaned),
+                extractDefault(cleaned),
+                extractCalculated(cleaned)
+        );
     }
 
     private static boolean containsNullable(String text) {
@@ -189,5 +273,67 @@ public final class RequestParsing {
     private static boolean containsUnique(String text) {
         String lower = text == null ? "" : text.toLowerCase(Locale.ROOT);
         return lower.contains("unique") || lower.contains("must be unique");
+    }
+
+    private static boolean containsEncrypted(String text) {
+        String lower = text == null ? "" : text.toLowerCase(Locale.ROOT);
+        return lower.contains("encrypted");
+    }
+
+    private static Integer extractMin(String text) {
+        return extractInt(text, "(?i)\\bmin\\s*[:=]\\s*(\\d+)");
+    }
+
+    private static Integer extractMax(String text) {
+        return extractInt(text, "(?i)\\bmax\\s*[:=]\\s*(\\d+)");
+    }
+
+    private static String extractFormat(String text) {
+        Matcher matcher = Pattern.compile("(?i)\\bformat\\s*[:=]\\s*([A-Za-z0-9_-]+)").matcher(text == null ? "" : text);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        return null;
+    }
+
+    private static List<String> extractEnumValues(String text) {
+        Matcher matcher = Pattern.compile("(?i)\\benum\\s*[:=]\\s*([A-Za-z0-9_,\\s-]+)").matcher(text == null ? "" : text);
+        if (!matcher.find()) {
+            return List.of();
+        }
+        String[] parts = matcher.group(1).split(",");
+        List<String> out = new ArrayList<>();
+        for (String part : parts) {
+            String value = part.trim();
+            if (!value.isEmpty()) {
+                out.add(value.replaceAll("[^A-Za-z0-9_]", ""));
+            }
+        }
+        return out;
+    }
+
+    private static String extractDefault(String text) {
+        Matcher matcher = Pattern.compile("(?i)\\bdefault\\s*[:=]\\s*([A-Za-z0-9_\\-]+)").matcher(text == null ? "" : text);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        return null;
+    }
+
+    private static String extractCalculated(String text) {
+        Matcher matcher = Pattern.compile("(?i)\\bcalculated(?:\\s*[:=]\\s*([^,]+))?").matcher(text == null ? "" : text);
+        if (matcher.find()) {
+            String value = matcher.group(1);
+            return value == null ? "true" : value.trim();
+        }
+        return null;
+    }
+
+    private static Integer extractInt(String text, String pattern) {
+        Matcher matcher = Pattern.compile(pattern).matcher(text == null ? "" : text);
+        if (!matcher.find()) {
+            return null;
+        }
+        return Integer.parseInt(matcher.group(1));
     }
 }

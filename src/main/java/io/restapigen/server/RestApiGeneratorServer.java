@@ -6,8 +6,10 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import io.restapigen.codegen.CodeGenerator;
+import io.restapigen.core.config.GenerationConfig;
+import io.restapigen.core.parser.NaturalLanguagePromptParser;
+import io.restapigen.core.parser.PromptParser;
 import io.restapigen.domain.ApiSpecification;
-import io.restapigen.generator.NaturalLanguageSpecGenerator;
 import io.restapigen.generator.parser.SpecInputExtractor;
 
 import java.io.IOException;
@@ -18,15 +20,21 @@ import java.util.concurrent.Executors;
 public final class RestApiGeneratorServer implements AutoCloseable {
     private static final int DEFAULT_THREAD_POOL = 4;
     private final HttpServer server;
-    private final NaturalLanguageSpecGenerator generator;
+    private final PromptParser parser;
     private final CodeGenerator codeGenerator;
+    private final GenerationConfig config;
     private final ObjectMapper mapper;
 
     public RestApiGeneratorServer(int port) throws IOException {
+        this(port, GenerationConfig.defaults());
+    }
+
+    public RestApiGeneratorServer(int port, GenerationConfig config) throws IOException {
         this.server = HttpServer.create(new InetSocketAddress(port), 0);
         this.server.setExecutor(Executors.newFixedThreadPool(DEFAULT_THREAD_POOL));
-        this.generator = new NaturalLanguageSpecGenerator();
+        this.parser = new NaturalLanguagePromptParser();
         this.codeGenerator = new CodeGenerator();
+        this.config = config == null ? GenerationConfig.defaults() : config;
         this.mapper = new ObjectMapper().findAndRegisterModules();
         registerContexts();
     }
@@ -59,7 +67,7 @@ public final class RestApiGeneratorServer implements AutoCloseable {
                 return;
             }
             String userRequest = SpecInputExtractor.extractUserRequestOrWholeInput(prompt);
-            ApiSpecification spec = generator.generate(userRequest);
+            ApiSpecification spec = parser.parse(userRequest, config);
             byte[] payload = mapper.writeValueAsBytes(spec);
             respond(exchange, 200, payload, "application/json");
         }
@@ -98,7 +106,7 @@ public final class RestApiGeneratorServer implements AutoCloseable {
                 respond(exchange, 400, "invalid spec payload", "text/plain");
                 return;
             }
-            byte[] zip = codeGenerator.generateZip(spec);
+            byte[] zip = codeGenerator.generateZip(spec, config);
             respond(exchange, 200, zip, "application/zip");
         }
     }

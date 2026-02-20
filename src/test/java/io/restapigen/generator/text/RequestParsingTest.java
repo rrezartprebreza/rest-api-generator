@@ -14,4 +14,15 @@ class RequestParsingTest {
         assertEquals("authorName", fields.get(1).name());
         assertEquals("publishedDate", fields.get(2).name());
     }
+
+    @Test
+    void parsesRelationships() {
+        String request = "Create API for Product with name. Product belongs to Category and has many Review and has many Tag (many-to-many).";
+        var relations = RequestParsing.extractRelationships(request);
+        assertEquals(3, relations.size());
+        assertEquals("ManyToOne", relations.get(0).type());
+        assertEquals("Category", relations.get(0).target());
+        assertEquals("OneToMany", relations.get(1).type());
+        assertEquals("ManyToMany", relations.get(2).type());
+    }
 }

@@ -1,0 +1,17 @@
+name: "Domain-Driven Design"
+description: "DDD architecture with aggregates"
+version: "1.0.0"
+
+layering:
+  architecture: ddd
+  layers:
+    - domain
+    - application
+    - infrastructure
+    - presentation
+
+features:
+  aggregateRoots: true
+  valueObjects: true
+  domainEvents: true
+  specifications: true

@@ -1,0 +1,30 @@
+name: "Spring Boot 3 Standard"
+description: "Standard REST API with best practices"
+version: "1.0.0"
+springBootVersion: "3.2.1"
+
+includes:
+  - entity-generator
+  - dto-generator
+  - repository-generator
+  - service-generator
+  - controller-generator
+  - test-generator
+  - migration-generator
+  - documentation-generator
+
+defaults:
+  layering: layered
+  database: postgresql
+  validation: jakarta
+  documentation: springdoc
+  errorHandling: global-exception-handler
+  responseFormat: wrapped
+
+dependencies:
+  - spring-boot-starter-web
+  - spring-boot-starter-data-jpa
+  - spring-boot-starter-validation
+  - springdoc-openapi-starter-webmvc-ui
+  - lombok
+  - mapstruct

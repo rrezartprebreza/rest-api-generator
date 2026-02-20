@@ -1,0 +1,20 @@
+name: "Microservices Pattern"
+description: "Microservice-ready REST API"
+version: "1.0.0"
+
+includes:
+  - spring-boot-3-standard
+  - circuit-breaker-generator
+  - distributed-tracing-generator
+  - service-discovery-generator
+
+defaults:
+  includeHealthCheck: true
+  includeMetrics: true
+  includeDistributedTracing: true
+
+dependencies:
+  - spring-cloud-starter-netflix-eureka-client
+  - spring-cloud-starter-circuitbreaker-resilience4j
+  - spring-boot-starter-actuator
+  - micrometer-tracing-bridge-brave

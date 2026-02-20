@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://restapigen.dev/schemas/rest-api-generator-config.schema.json",
+  "title": "REST API Generator Config",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "basePackage": {"type": "string", "pattern": "^[a-zA-Z_][a-zA-Z0-9_.]*$"},
+        "springBootVersion": {"type": "string", "minLength": 1},
+        "javaVersion": {"type": "string", "enum": ["17", "21"]},
+        "templatePack": {"type": "string", "enum": ["spring-boot-3-standard", "microservices-pattern", "ddd-layered"]}
+      },
+      "required": ["name", "basePackage", "springBootVersion", "javaVersion", "templatePack"]
+    },
+    "standards": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "naming": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "entitySuffix": {"type": "string"},
+            "dtoSuffix": {"type": "string"},
+            "repositorySuffix": {"type": "string"},
+            "serviceSuffix": {"type": "string"},
+            "controllerSuffix": {"type": "string"}
+          }
+        },
+        "layering": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "architecture": {"type": "string", "enum": ["layered", "hexagonal", "ddd"]},
+            "includeServiceLayer": {"type": "boolean"},
+            "includeDtoMapper": {"type": "boolean"}
+          }
+        },
+        "database": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {"type": "string", "enum": ["postgresql", "mysql", "h2"]},
+            "namingStrategy": {"type": "string", "enum": ["snake_case", "camelCase"]},
+            "includeAuditing": {"type": "boolean"},
+            "migrationTool": {"type": "string", "enum": ["flyway", "liquibase", "none"]}
+          }
+        },
+        "validation": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "library": {"type": "string", "enum": ["jakarta", "hibernate-validator"]},
+            "includeCustomValidators": {"type": "boolean"}
+          }
+        },
+        "documentation": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "tool": {"type": "string", "enum": ["springdoc", "springfox", "none"]},
+            "includeExamples": {"type": "boolean"}
+          }
+        },
+        "testing": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "includeUnitTests": {"type": "boolean"},
+            "includeIntegrationTests": {"type": "boolean"},
+            "testFramework": {"type": "string", "enum": ["junit5"]},
+            "mockingLibrary": {"type": "string", "enum": ["mockito"]}
+          }
+        },
+        "security": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "type": {"type": "string", "enum": ["jwt", "oauth2", "basic", "none"]}
+          }
+        },
+        "errorHandling": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "strategy": {"type": "string", "enum": ["global-exception-handler"]},
+            "includeCustomExceptions": {"type": "boolean"},
+            "responseFormat": {"type": "string", "enum": ["rfc7807", "custom"]}
+          }
+        },
+        "responseFormat": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "wrapResponses": {"type": "boolean"},
+            "successWrapper": {"type": "string"},
+            "errorWrapper": {"type": "string"},
+            "includePagination": {"type": "boolean"}
+          }
+        }
+      }
+    },
+    "features": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "auditing": {"type": "boolean"},
+        "softDelete": {"type": "boolean"},
+        "versioning": {"type": "boolean"},
+        "caching": {"type": "boolean"}
+      }
+    },
+    "plugins": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "disabled": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "externalDirectories": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "externalClassNames": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        }
+      }
+    }
+  },
+  "required": ["project", "standards", "features", "plugins"]
+}

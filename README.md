@@ -1,74 +1,98 @@
-# REST API Spec Generator (JSON)
+# REST API Generator
 
-Generate consistent API specifications and starter scaffolding from plain English prompts. The tool is meant to be an immutable utility (think `start.spring.io + AI + your standards`): others don’t edit it, they run it to get JSON specs and zipped source that you can drop into your projects.
+Generate Spring Boot REST API scaffolding from natural language prompts.
 
-## Highlights
+This project is designed for teams: developers run the generator and receive a consistent ZIP scaffold that follows shared standards.
 
-- **Multi-entity prompts** – separate entity descriptions by blank lines (or another delimiter) and the generator returns each `EntityDefinition` it finds.
-- **Smart suggestions** – when the prompt lacks an entity name, the generator suggests names inferred from the request or project name.
-- **Two delivery modes** – CLI output for quick specs plus an HTTP service that returns JSON and ZIP artifacts.
+## What is implemented now
 
-## CLI usage
+- Plugin-based generation pipeline (`entity`, `dto`, `repository`, `service`, `controller`, `test`, `migration`, `docs`, `security` placeholder)
+- Multi-entity prompt parsing (separate entities with blank lines)
+- Relationship parsing (`belongs to`, `has many`, `many-to-many`)
+- Strict spec validation (relationship targets, field constraints, naming)
+- YAML configuration (`.rest-api-generator.yml`)
+- Template-pack support with starter packs and fallback resolution
+- HTTP API endpoints:
+  - `POST /generator/spec`
+  - `POST /generator/code`
 
-1. `./gradlew installDist`
-2. `./build/install/rest-api-generator/bin/rest-api-generator --user-request "Create an API for Product with name, price" --pretty`
+## Quick start
 
-Alternatives:
+1. Build/test:
 
-- `./gradlew -q run --args="--user-request \"Create an API for Book with title, authorName\" --pretty"`
-- `cat prompt.txt | ./build/install/rest-api-generator/bin/rest-api-generator`
-
-### Input modes
-
-- `--user-request "<text>"`: pass the natural-language request directly.  
-- `--input <path>`: file that contains the request or a prompt with a `USER REQUEST` section.  
-- stdin: pipe the prompt into the CLI.
-
-### Output
-
-- The CLI prints a single JSON `ApiSpecification` containing `projectName`, `basePackage`, an array of `entities` (each with field metadata), and a `suggestions` array if names had to be inferred.  
-- Use that JSON as a payload for downstream tools or save it for the HTTP workflow.
-
-## HTTP service
-
-Start the server:  
-`./gradlew run --args="--serve --port 8080"` (custom `--port` supported).
-
-### POST /generator/spec
-
-- Content-Type: `application/json`.  
-- Body example (single or multi-entity):  
-  ```
-  {"prompt":"Create an API for Product with name, price\n\nCreate an API for Employee with firstName, lastName"}
-  ```
-- Response: the same JSON spec the CLI produces, plus optional `suggestions` when no entity name was found.
-
-Save the response:
-
+```bash
+./gradlew clean test
 ```
+
+2. Start server:
+
+```bash
+./gradlew run --args="serve --port 8080"
+```
+
+3. Generate spec from prompt:
+
+```bash
 curl -X POST http://localhost:8080/generator/spec \
   -H "Content-Type: application/json" \
-  -d '{"prompt":"Create an API for Product with name, price\n\nCreate an API for Employee with firstName, lastName"}' \
+  -d '{"prompt":"Create an API for Product with name, price, stock\n\nCreate an API for Employee with firstName, lastName, email"}' \
   -o spec.json
 ```
 
-### POST /generator/code
+4. Generate ZIP from spec:
 
-- Content-Type: `application/json`.  
-- Body: the `spec.json` file returned earlier.  
-- Response: `application/zip` with README + scaffolding for every entity (`entity`, `dto`, `repository`, `controller`).
-
-Download and unzip:
-
-```
+```bash
 curl -X POST http://localhost:8080/generator/code \
   -H "Content-Type: application/json" \
   --data-binary @spec.json \
   -o scaffold.zip
 ```
 
-Files land under `src/main/java/<basePackage>/<entity|dto|repository|controller>` so you can drop them into your project, open them in an IDE, and add business logic instantly.
+The generator returns only the ZIP response artifact for generated code. It does not write generated source into this generator project's source tree.
 
-## Testing
+## CLI commands
 
-- `./gradlew clean test` (includes parser, generator, code gen, and ZIP verification).
+```bash
+./gradlew run --args="generate --prompt 'Create API for User with email, password' --pretty"
+./gradlew run --args="generate --file ./prompt.txt --pretty"
+./gradlew run --args="init --config .rest-api-generator.yml --template spring-boot-3-standard"
+./gradlew run --args="validate --config .rest-api-generator.yml"
+./gradlew run --args="templates list"
+./gradlew run --args="plugins list --config .rest-api-generator.yml"
+./gradlew run --args="serve --port 8080"
+```
+
+Legacy flags still work:
+- `--user-request`
+- `--input`
+- `--serve`
+- `--init-config`
+- `--validate-config`
+
+## Config and schema
+
+- Example config model: `src/main/java/io/restapigen/core/config/GenerationConfig.java`
+- Selected template pack can be set with `project.templatePack` or CLI `--template`.
+- Config JSON schema: `schemas/rest-api-generator-config.schema.json`
+- Spec JSON schema: `schemas/api-specification.schema.json`
+
+Plugin extension fields:
+- `plugins.externalDirectories`: directories scanned for plugin JARs (default `plugins`)
+- `plugins.externalClassNames`: explicit class names to instantiate as plugins
+
+## Template packs
+
+Pack descriptors:
+- `templates/packs/spring-boot-3-standard.yml`
+- `templates/packs/microservices-pattern.yml`
+- `templates/packs/ddd-layered.yml`
+
+Runtime templates:
+- `src/main/resources/templates/spring-boot-3-standard/`
+
+## Architecture and roadmap
+
+- Phase-1 implementation details: `docs/PHASE1-IMPLEMENTATION.md`
+- Phase-2 implementation details: `docs/PHASE2-IMPLEMENTATION.md`
+- Phase-3 implementation details: `docs/PHASE3-IMPLEMENTATION.md`
+- Enterprise blueprint and deliverables mapping: `docs/ENTERPRISE-BLUEPRINT.md`

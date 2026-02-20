@@ -5,6 +5,7 @@ import io.restapigen.domain.ApiSpec;
 import io.restapigen.domain.EntityDefinition;
 import io.restapigen.domain.EntitySpec;
 import io.restapigen.domain.FieldSpec;
+import io.restapigen.domain.RelationshipSpec;
 import io.restapigen.generator.EntityNameSuggester;
 import io.restapigen.generator.text.NameTransforms;
 import io.restapigen.generator.text.Pluralizer;
@@ -51,9 +52,10 @@ public final class NaturalLanguageSpecGenerator {
             }
 
             List<FieldSpec> fields = buildFields(segment);
+            List<RelationshipSpec> relationships = buildRelationships(segment);
             EntitySpec entity = new EntitySpec(entityName, defaultTableName(entityName), DEFAULT_ID_TYPE, fields);
             ApiSpec api = buildApi(segment, entityName);
-            definitions.add(new EntityDefinition(entity, api));
+            definitions.add(new EntityDefinition(entity, api, relationships));
         }
         return definitions;
     }
@@ -68,7 +70,7 @@ public final class NaturalLanguageSpecGenerator {
     private static EntityDefinition defaultEntityDefinition(String entityName) {
         EntitySpec entity = defaultEntity(entityName);
         ApiSpec api = defaultApiForEntity(entity);
-        return new EntityDefinition(entity, api);
+        return new EntityDefinition(entity, api, List.of());
     }
 
     private static EntitySpec defaultEntity(String entityName) {
@@ -100,25 +102,73 @@ public final class NaturalLanguageSpecGenerator {
             String type = TypeInference.normalizeType(parsed.typeHint(), camel);
             boolean nullable = parsed.nullable();
             boolean unique = parsed.unique();
-            List<String> validation = buildValidationTokens(camel, type, nullable);
+            Integer min = parsed.min();
+            Integer max = parsed.max();
+            String format = parsed.format();
+            boolean encrypted = parsed.encrypted();
+            List<String> enumValues = parsed.enumValues();
+            String defaultValue = parsed.defaultValue();
+            String calculatedExpression = parsed.calculatedExpression();
 
-            fields.add(new FieldSpec(camel, type, validation, unique, nullable));
+            List<String> validation = buildValidationTokens(camel, type, nullable, min, max, format);
+
+            fields.add(new FieldSpec(
+                    camel,
+                    type,
+                    validation,
+                    unique,
+                    nullable,
+                    min,
+                    max,
+                    format,
+                    encrypted,
+                    enumValues,
+                    defaultValue,
+                    calculatedExpression
+            ));
         }
         return fields;
     }
 
-    private static List<String> buildValidationTokens(String fieldName, String type, boolean nullable) {
+    private static List<RelationshipSpec> buildRelationships(String request) {
+        List<RequestParsing.ParsedRelationship> parsed = RequestParsing.extractRelationships(request);
+        List<RelationshipSpec> relationships = new ArrayList<>();
+        for (RequestParsing.ParsedRelationship relation : parsed) {
+            String target = NameTransforms.toPascalCase(relation.target());
+            String fieldName = NameTransforms.toCamelCase(relation.fieldName());
+            relationships.add(new RelationshipSpec(relation.type(), target, fieldName));
+        }
+        return List.copyOf(relationships);
+    }
+
+    private static List<String> buildValidationTokens(
+            String fieldName,
+            String type,
+            boolean nullable,
+            Integer min,
+            Integer max,
+            String format
+    ) {
         if (nullable) {
             return List.of();
         }
         List<String> validation = new ArrayList<>();
         if ("String".equals(type)) {
             validation.add("NotBlank");
-            if (fieldName.toLowerCase(Locale.ROOT).contains("email")) {
+            if ("email".equalsIgnoreCase(format) || fieldName.toLowerCase(Locale.ROOT).contains("email")) {
                 validation.add("Email");
             }
-            if (TypeInference.looksLikeNameField(fieldName)) {
+            if (min != null || max != null) {
+                validation.add("Size:" + (min == null ? 0 : min) + ":" + (max == null ? 255 : max));
+            } else if (TypeInference.looksLikeNameField(fieldName)) {
                 validation.add("Size:2:50");
+            }
+        } else if ("Integer".equals(type) || "Long".equals(type) || "BigDecimal".equals(type) || "Double".equals(type)) {
+            if (min != null) {
+                validation.add("Min:" + min);
+            }
+            if (max != null) {
+                validation.add("Max:" + max);
             }
         }
         return List.copyOf(validation);
