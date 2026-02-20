@@ -1,0 +1,34 @@
+Create a complete e-commerce API with:
+
+Category:
+- name (string, required, unique)
+- description (string, optional)
+
+Product:
+- name (string, required)
+- description (string)
+- price (decimal, required, min: 0)
+- stock (integer, required, min: 0)
+- status (enum: DRAFT, ACTIVE, ARCHIVED)
+- belongs to Category
+- has many Tag (many-to-many)
+
+Order:
+- orderNumber (string, unique)
+- totalAmount (decimal, min: 0)
+- status (enum: PENDING, CONFIRMED, SHIPPED, DELIVERED)
+- belongs to Customer
+- has many OrderItem
+
+OrderItem:
+- quantity (integer, min: 1)
+- unitPrice (decimal, min: 0)
+- subtotal (decimal, calculated: quantity * unitPrice)
+- belongs to Order
+- belongs to Product
+
+Customer:
+- email (string, required, unique, format: email)
+- firstName (string, required, min: 2, max: 50)
+- lastName (string, required, min: 2, max: 50)
+- has many Order

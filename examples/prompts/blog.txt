@@ -1,0 +1,25 @@
+Create a blog API with:
+
+User:
+- username (string, required, unique, min: 3, max: 20)
+- email (string, required, unique, format: email)
+- password (string, required, min: 8, encrypted)
+- bio (string, optional, max: 500)
+
+Post:
+- title (string, required, max: 200)
+- slug (string, required, unique)
+- content (string, required)
+- published (boolean)
+- belongs to User
+- has many Comment
+- has many Tag (many-to-many)
+
+Comment:
+- content (string, required, max: 1000)
+- belongs to User
+- belongs to Post
+
+Tag:
+- name (string, required, unique)
+- has many Post (many-to-many)

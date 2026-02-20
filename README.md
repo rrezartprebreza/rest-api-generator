@@ -50,6 +50,13 @@ curl -X POST http://localhost:8080/generator/code \
 
 The generator returns only the ZIP response artifact for generated code. It does not write generated source into this generator project's source tree.
 
+5. Try full example prompts:
+
+```bash
+./gradlew run --args="generate --file examples/prompts/ecommerce.txt --pretty"
+./gradlew run --args="generate --file examples/prompts/blog.txt --pretty"
+```
+
 ## CLI commands
 
 ```bash
@@ -95,4 +102,6 @@ Runtime templates:
 - Phase-1 implementation details: `docs/PHASE1-IMPLEMENTATION.md`
 - Phase-2 implementation details: `docs/PHASE2-IMPLEMENTATION.md`
 - Phase-3 implementation details: `docs/PHASE3-IMPLEMENTATION.md`
+- Phase-4 implementation details: `docs/PHASE4-IMPLEMENTATION.md`
+- Publish checklist: `docs/PUBLISH-CHECKLIST.md`
 - Enterprise blueprint and deliverables mapping: `docs/ENTERPRISE-BLUEPRINT.md`
