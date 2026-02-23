@@ -120,6 +120,20 @@ unzip -p scaffold.zip src/main/java/com/example/generated/dto/ProductDTO.java
 unzip -p scaffold.zip src/main/java/com/example/generated/error/GlobalExceptionHandler.java
 ```
 
+Run the generated project directly:
+
+```bash
+unzip scaffold.zip -d generated-api
+cd generated-api
+./gradlew bootRun
+```
+
+Test generated pagination/sorting endpoint:
+
+```bash
+curl "http://localhost:8080/api/products?page=0&size=10&sort=name,asc"
+```
+
 5. Try full example prompts:
 
 ```bash
