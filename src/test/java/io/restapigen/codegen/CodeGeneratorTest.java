@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CodeGeneratorTest {
@@ -94,6 +95,8 @@ class CodeGeneratorTest {
         assertTrue(service != null && service.contains("mapper.toEntity(dto)"));
         assertTrue(repository != null && repository.contains("extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product>"));
         assertTrue(mapper != null && mapper.contains("@Mapper(componentModel = \"spring\")"));
+        Map<String, String> zipFiles = readZipFiles(zip);
+        assertNoTemplatePlaceholdersInJavaSources(zipFiles);
     }
 
     @Test
@@ -127,6 +130,7 @@ class CodeGeneratorTest {
         assertTrue(migration != null);
         assertTrue(migration.contains("category_id BIGINT"));
         assertTrue(migration.contains("REFERENCES categories(id)"));
+        assertNoTemplatePlaceholdersInJavaSources(zipFiles);
     }
 
     @Test
@@ -166,6 +170,7 @@ class CodeGeneratorTest {
         assertTrue(productEntity.contains("@JoinColumn(name = \"category_id\")"));
         assertTrue(productEntity.contains("@ManyToMany"));
         assertTrue(productEntity.contains("@JoinTable(name = \"product_tag\""));
+        assertNoTemplatePlaceholdersInJavaSources(zipFiles);
     }
 
     @Test
@@ -200,6 +205,7 @@ class CodeGeneratorTest {
         Map<String, String> zipFiles = readZipFiles(zip);
         assertTrue(zipFiles.containsKey("CUSTOM_PLUGIN.txt"));
         assertTrue(zipFiles.get("CUSTOM_PLUGIN.txt").contains("loaded:products-api"));
+        assertNoTemplatePlaceholdersInJavaSources(zipFiles);
     }
 
     @Test
@@ -231,6 +237,7 @@ class CodeGeneratorTest {
         assertTrue(dto.contains("@DecimalMin(\"0\")"));
         assertTrue(dto.contains("@DecimalMax(\"500\")"));
         assertTrue(dto.contains("@Pattern(regexp = \"^(ACTIVE|INACTIVE)$\")"));
+        assertNoTemplatePlaceholdersInJavaSources(zipFiles);
     }
 
     @Test
@@ -275,6 +282,7 @@ class CodeGeneratorTest {
         assertTrue(generatedEnum.contains("public enum ProductStatus"));
         assertTrue(generatedEnum.contains("ACTIVE"));
         assertTrue(generatedEnum.contains("INACTIVE"));
+        assertNoTemplatePlaceholdersInJavaSources(zipFiles);
     }
 
     private String readAll(ZipInputStream zis) throws IOException {
@@ -297,5 +305,16 @@ class CodeGeneratorTest {
             }
         }
         return files;
+    }
+
+    private void assertNoTemplatePlaceholdersInJavaSources(Map<String, String> zipFiles) {
+        zipFiles.forEach((path, content) -> {
+            if (path.endsWith(".java")) {
+                assertFalse(
+                        content.contains("${"),
+                        () -> "Unresolved template placeholder found in " + path
+                );
+            }
+        });
     }
 }
