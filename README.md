@@ -4,6 +4,16 @@ Generate Spring Boot REST API scaffolding from natural language prompts.
 
 This project is designed for teams: developers run the generator and receive a consistent ZIP scaffold that follows shared standards.
 
+## What Developers Can Do
+
+- Write natural-language prompts for single or multi-entity APIs.
+- Define relationships like `belongs to`, `has many`, and `many-to-many`.
+- Generate a JSON specification (`/generator/spec`) and then a runnable ZIP scaffold (`/generator/code`).
+- Apply team standards via `.rest-api-generator.yml` (naming, layering, testing, database, migrations, plugins).
+- Choose template packs (`spring-boot-3-standard`, `microservices-pattern`, `ddd-layered`).
+- Extend generation with custom plugins (`plugins.externalDirectories`, `plugins.externalClassNames`).
+- Validate quality with strict spec checks and CI (`.github/workflows/ci.yml`).
+
 ## What is implemented now
 
 - Plugin-based generation pipeline (`entity`, `dto`, `repository`, `service`, `controller`, `test`, `migration`, `docs`, `security` placeholder)
