@@ -10,6 +10,7 @@ public final class BuiltInPlugins {
 
     public static List<GeneratorPlugin> all() {
         return List.of(
+                new ProjectScaffoldGeneratorPlugin(),
                 new ProjectReadmeGeneratorPlugin(),
                 new EntityGeneratorPlugin(),
                 new DtoGeneratorPlugin(),

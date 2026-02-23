@@ -17,6 +17,7 @@ This project is designed for teams: developers run the generator and receive a c
 ## What is implemented now
 
 - Plugin-based generation pipeline (`entity`, `dto`, `repository`, `service`, `controller`, `test`, `migration`, `docs`, `security` placeholder)
+- Project scaffold generation (`build.gradle`, `settings.gradle`, `application.yml`, Spring Boot main class)
 - Multi-entity prompt parsing (separate entities with blank lines)
 - Relationship parsing (`belongs to`, `has many`, `many-to-many`)
 - JPA relationship scaffolding in entities (`@ManyToOne`, `@OneToMany`, `@ManyToMany`, join table hints)

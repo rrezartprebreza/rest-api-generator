@@ -213,6 +213,7 @@ public record GenerationConfig(
     ) {
         public PluginsConfig {
             enabled = enabled == null ? List.of(
+                    "project-scaffold-generator",
                     "project-readme-generator",
                     "entity-generator",
                     "dto-generator",
@@ -233,6 +234,7 @@ public record GenerationConfig(
 
         static PluginsConfig defaults() {
             return new PluginsConfig(List.of(
+                    "project-scaffold-generator",
                     "project-readme-generator",
                     "entity-generator",
                     "dto-generator",

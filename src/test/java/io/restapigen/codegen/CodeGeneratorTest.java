@@ -70,6 +70,10 @@ class CodeGeneratorTest {
         }
 
         assertTrue(entries.contains("README.md"));
+        assertTrue(entries.contains("build.gradle"));
+        assertTrue(entries.contains("settings.gradle"));
+        assertTrue(entries.contains("src/main/resources/application.yml"));
+        assertTrue(entries.contains("src/main/java/com/example/generated/ProductsApiApplication.java"));
         assertTrue(entries.contains("src/main/java/com/example/generated/entity/Product.java"));
         assertTrue(entries.contains("src/main/java/com/example/generated/repository/ProductRepository.java"));
         assertTrue(entries.contains("src/main/java/com/example/generated/controller/ProductController.java"));
