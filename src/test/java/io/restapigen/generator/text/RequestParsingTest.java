@@ -36,4 +36,15 @@ class RequestParsingTest {
         assertTrue(fields.stream().anyMatch(field -> "email".equals(field.name()) && "email".equalsIgnoreCase(field.format())));
         assertTrue(fields.stream().anyMatch(field -> "status".equals(field.name()) && field.enumValues().size() == 2));
     }
+
+    @Test
+    void parsesAdvancedTypeHints() {
+        String request = "Create API for Product with: - tags (list<string>) - metadata (json) - active (boolean) - createdAt (timestamp)";
+        var fields = RequestParsing.extractFields(request);
+
+        assertTrue(fields.stream().anyMatch(field -> "tags".equals(field.name()) && "list<string>".equalsIgnoreCase(field.typeHint())));
+        assertTrue(fields.stream().anyMatch(field -> "metadata".equals(field.name()) && "json".equalsIgnoreCase(field.typeHint())));
+        assertTrue(fields.stream().anyMatch(field -> "active".equals(field.name()) && "boolean".equalsIgnoreCase(field.typeHint())));
+        assertTrue(fields.stream().anyMatch(field -> "createdAt".equals(field.name()) && "timestamp".equalsIgnoreCase(field.typeHint())));
+    }
 }

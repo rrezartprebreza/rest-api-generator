@@ -110,7 +110,7 @@ class NaturalLanguageSpecGeneratorTest {
         String request = """
                 Create an API for Product with:
                 - price (decimal, required, min 0, max 1000)
-                - status (string, enum: ACTIVE, INACTIVE)
+                - status (enum: ACTIVE, INACTIVE)
                 - ownerEmail (string, required, valid email)
                 """;
         ApiSpecification spec = new NaturalLanguageSpecGenerator().generate(request);
@@ -121,9 +121,36 @@ class NaturalLanguageSpecGeneratorTest {
         assertTrue(price.validation.contains("DecimalMax:1000"));
 
         FieldSpec status = definition.entity.fields.stream().filter(field -> "status".equals(field.name)).findFirst().orElseThrow();
-        assertTrue(status.validation.stream().anyMatch(token -> token.startsWith("OneOf:")));
+        assertEquals("ProductStatus", status.type);
+        assertEquals(2, status.enumValues.size());
+        assertTrue(status.validation.isEmpty());
 
         FieldSpec ownerEmail = definition.entity.fields.stream().filter(field -> "ownerEmail".equals(field.name)).findFirst().orElseThrow();
         assertTrue(ownerEmail.validation.contains("Email"));
+    }
+
+    @Test
+    void infersAdvancedFieldTypes() {
+        String request = """
+                Create an API for Product with:
+                - metadata (json)
+                - tags (list<string>)
+                - active (boolean)
+                - createdAt (timestamp)
+                """;
+        ApiSpecification spec = new NaturalLanguageSpecGenerator().generate(request);
+        EntityDefinition definition = spec.entities.get(0);
+
+        FieldSpec metadata = definition.entity.fields.stream().filter(field -> "metadata".equals(field.name)).findFirst().orElseThrow();
+        assertEquals("Map<String,Object>", metadata.type);
+
+        FieldSpec tags = definition.entity.fields.stream().filter(field -> "tags".equals(field.name)).findFirst().orElseThrow();
+        assertEquals("List<String>", tags.type);
+
+        FieldSpec active = definition.entity.fields.stream().filter(field -> "active".equals(field.name)).findFirst().orElseThrow();
+        assertEquals("Boolean", active.type);
+
+        FieldSpec createdAt = definition.entity.fields.stream().filter(field -> "createdAt".equals(field.name)).findFirst().orElseThrow();
+        assertEquals("LocalDateTime", createdAt.type);
     }
 }

@@ -229,6 +229,50 @@ class CodeGeneratorTest {
         assertTrue(dto.contains("@Pattern(regexp = \"^(ACTIVE|INACTIVE)$\")"));
     }
 
+    @Test
+    void generatesAdvancedFieldTypesAndEnums() throws IOException {
+        ApiSpecification spec = new ApiSpecification(
+                "products-api",
+                "com.example.generated",
+                List.of(new EntityDefinition(
+                        new EntitySpec("Product", "products", "Long", List.of(
+                                new FieldSpec("status", "ProductStatus", List.of(), false, false, null, null, null, false, List.of("ACTIVE", "INACTIVE"), null, null),
+                                new FieldSpec("metadata", "Map<String,Object>", List.of(), false, true, null, null, null, false, List.of(), null, null),
+                                new FieldSpec("tags", "List<String>", List.of(), false, true, null, null, null, false, List.of(), null, null),
+                                new FieldSpec("createdAt", "LocalDateTime", List.of(), false, false, null, null, null, false, List.of(), null, null)
+                        )),
+                        new ApiSpec("/api/products", true, true, true),
+                        List.of()
+                )),
+                List.of()
+        );
+
+        byte[] zip = new CodeGenerator().generateZip(spec);
+        Map<String, String> zipFiles = readZipFiles(zip);
+        String entity = zipFiles.get("src/main/java/com/example/generated/entity/Product.java");
+        String dto = zipFiles.get("src/main/java/com/example/generated/dto/ProductDTO.java");
+        String generatedEnum = zipFiles.get("src/main/java/com/example/generated/entity/ProductStatus.java");
+
+        assertTrue(entity != null);
+        assertTrue(entity.contains("@Enumerated(EnumType.STRING)"));
+        assertTrue(entity.contains("@ElementCollection"));
+        assertTrue(entity.contains("private Map<String,Object> metadata;"));
+        assertTrue(entity.contains("private List<String> tags;"));
+        assertTrue(entity.contains("private ProductStatus status;"));
+
+        assertTrue(dto != null);
+        assertTrue(dto.contains("import java.time.LocalDateTime;"));
+        assertTrue(dto.contains("import java.util.List;"));
+        assertTrue(dto.contains("import java.util.Map;"));
+        assertTrue(dto.contains("private Map<String,Object> metadata;"));
+        assertTrue(dto.contains("private List<String> tags;"));
+
+        assertTrue(generatedEnum != null);
+        assertTrue(generatedEnum.contains("public enum ProductStatus"));
+        assertTrue(generatedEnum.contains("ACTIVE"));
+        assertTrue(generatedEnum.contains("INACTIVE"));
+    }
+
     private String readAll(ZipInputStream zis) throws IOException {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         byte[] tmp = new byte[512];

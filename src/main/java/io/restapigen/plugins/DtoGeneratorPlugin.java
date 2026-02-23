@@ -10,6 +10,8 @@ import io.restapigen.domain.FieldSpec;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public final class DtoGeneratorPlugin implements GeneratorPlugin {
     @Override
@@ -31,6 +33,7 @@ public final class DtoGeneratorPlugin implements GeneratorPlugin {
         for (EntityDefinition definition : specification.entities) {
             String className = definition.entity.name + dtoSuffix;
             StringBuilder body = new StringBuilder();
+            Set<String> imports = TemplateSupport.collectImports(definition.entity.fields);
             for (FieldSpec field : definition.entity.fields) {
                 for (String validation : field.validation) {
                     body.append("    @").append(validationToAnnotation(validation)).append("\n");
@@ -44,6 +47,7 @@ public final class DtoGeneratorPlugin implements GeneratorPlugin {
                     Map.of(
                             "basePackage", basePackage,
                             "className", className,
+                            "imports", imports.stream().map(it -> "import " + it + ";").collect(Collectors.joining("\n")),
                             "fieldsBlock", body.toString(),
                             "constructorBlock", "",
                             "gettersBlock", ""

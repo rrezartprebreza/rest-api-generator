@@ -167,6 +167,15 @@ public final class MigrationGeneratorPlugin implements GeneratorPlugin {
     }
 
     private String toSqlType(String javaType) {
+        if (javaType == null || javaType.isBlank()) {
+            return "VARCHAR(255)";
+        }
+        if (javaType.startsWith("Map<")) {
+            return "TEXT";
+        }
+        if (javaType.startsWith("List<")) {
+            return "TEXT";
+        }
         return switch (javaType) {
             case "Long" -> "BIGINT";
             case "Integer" -> "INTEGER";

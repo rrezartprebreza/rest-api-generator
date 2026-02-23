@@ -12,7 +12,9 @@ final class TemplateSupport {
     private static final Map<String, String> TYPE_IMPORTS = Map.of(
             "BigDecimal", "java.math.BigDecimal",
             "LocalDate", "java.time.LocalDate",
-            "LocalDateTime", "java.time.LocalDateTime"
+            "LocalDateTime", "java.time.LocalDateTime",
+            "Map", "java.util.Map",
+            "List", "java.util.List"
     );
 
     private TemplateSupport() {
@@ -30,6 +32,11 @@ final class TemplateSupport {
         imports.add("jakarta.persistence.JoinTable");
         imports.add("jakarta.persistence.FetchType");
         imports.add("jakarta.persistence.CascadeType");
+        imports.add("jakarta.persistence.ElementCollection");
+        imports.add("jakarta.persistence.CollectionTable");
+        imports.add("jakarta.persistence.Column");
+        imports.add("jakarta.persistence.Enumerated");
+        imports.add("jakarta.persistence.EnumType");
 
         imports.addAll(collectImports(fields));
         if (hasCollectionRelationship(relationships)) {
@@ -42,7 +49,7 @@ final class TemplateSupport {
     static Set<String> collectImports(List<FieldSpec> fields) {
         Set<String> imports = new LinkedHashSet<>();
         for (FieldSpec field : fields) {
-            String target = TYPE_IMPORTS.get(field.type);
+            String target = TYPE_IMPORTS.get(rawType(field.type));
             if (target != null) {
                 imports.add(target);
             }
@@ -53,6 +60,13 @@ final class TemplateSupport {
     static String fieldsBlock(List<FieldSpec> fields) {
         StringBuilder out = new StringBuilder();
         for (FieldSpec field : fields) {
+            if (!field.enumValues.isEmpty()) {
+                out.append("    @Enumerated(EnumType.STRING)\n");
+            } else if (field.type.startsWith("List<")) {
+                out.append("    @ElementCollection\n");
+                out.append("    @CollectionTable(name = \"").append(toSnakeCase(field.name)).append("_items\")\n");
+                out.append("    @Column(name = \"value\")\n");
+            }
             out.append("    private ").append(field.type).append(" ").append(field.name).append(";\n");
         }
         if (!fields.isEmpty()) {
@@ -170,5 +184,16 @@ final class TemplateSupport {
         return input
                 .replaceAll("([a-z])([A-Z])", "$1_$2")
                 .toLowerCase();
+    }
+
+    private static String rawType(String typeName) {
+        if (typeName == null || typeName.isBlank()) {
+            return typeName;
+        }
+        int genericIndex = typeName.indexOf('<');
+        if (genericIndex > 0) {
+            return typeName.substring(0, genericIndex);
+        }
+        return typeName;
     }
 }

@@ -11,10 +11,10 @@ public final class RequestParsing {
     private static final Pattern ENTITY_EXPLICIT = Pattern.compile("(?im)^\\s*entity\\s*[:=]\\s*([A-Za-z][A-Za-z0-9_-]*)\\s*$");
     private static final Pattern ENTITY_API_FOR = Pattern.compile("(?i)\\bapi\\s+for\\s+(?:an?\\s+|the\\s+)?([A-Za-z][A-Za-z0-9_-]*)\\b");
     private static final Pattern ENTITY_MANAGE = Pattern.compile("(?i)\\bmanage\\s+(?:an?\\s+|the\\s+)?([A-Za-z][A-Za-z0-9_-]*)\\b");
-    private static final Pattern BULLET_FIELD = Pattern.compile("(?m)^\\s*[-*]\\s*([A-Za-z][A-Za-z0-9_]*)\\s*(?::|-)\\s*([A-Za-z][A-Za-z0-9]*)?\\s*(.*)$");
+    private static final Pattern BULLET_FIELD = Pattern.compile("(?m)^\\s*[-*]\\s*([A-Za-z][A-Za-z0-9_]*)\\s*(?::|-)\\s*([A-Za-z][A-Za-z0-9_<>\\[\\],]*)?\\s*(.*)$");
     private static final Pattern BULLET_FIELD_PAREN = Pattern.compile("(?m)^\\s*[-*]\\s*([A-Za-z][A-Za-z0-9_]*)\\s*\\(([^)\\n\\r]+)\\)\\s*([^\\n\\r]*)$");
     private static final Pattern WITH_FIELDS = Pattern.compile("(?i)\\bwith\\b\\s+([^\\n\\r.]+)");
-    private static final Pattern INLINE_TYPED = Pattern.compile("(?i)\\b([A-Za-z][A-Za-z0-9_]*)\\s*\\(\\s*([A-Za-z][A-Za-z0-9]*)\\s*\\)");
+    private static final Pattern INLINE_TYPED = Pattern.compile("(?i)\\b([A-Za-z][A-Za-z0-9_]*)\\s*\\(\\s*([A-Za-z][A-Za-z0-9_<>\\[\\],]*)\\s*\\)");
     private static final Pattern SEGMENT_SPLIT = Pattern.compile("(?m)(?:\\r?\\n){2,}");
     private static final Pattern BELONGS_TO = Pattern.compile("(?i)\\bbelongs\\s+to\\s+([A-Za-z][A-Za-z0-9_]*)\\b");
     private static final Pattern HAS_MANY = Pattern.compile("(?i)\\bhas\\s+many\\s+([A-Za-z][A-Za-z0-9_]*)(?:\\s*\\(([^)]+)\\))?");
@@ -224,7 +224,7 @@ public final class RequestParsing {
             return parseParenthesizedField(name, descriptor, tail);
         }
 
-        Matcher typed = Pattern.compile("(?i)^([A-Za-z][A-Za-z0-9_]*)\\s*(?::|-)\\s*([A-Za-z][A-Za-z0-9]*)\\s*(.*)$").matcher(cleaned);
+        Matcher typed = Pattern.compile("(?i)^([A-Za-z][A-Za-z0-9_]*)\\s*(?::|-)\\s*([A-Za-z][A-Za-z0-9_<>\\[\\],]*)\\s*(.*)$").matcher(cleaned);
         if (typed.find()) {
             String name = typed.group(1);
             String type = typed.group(2);
@@ -278,9 +278,11 @@ public final class RequestParsing {
         String[] parts = content.split("[,\\s]+", 2);
         String type = parts[0];
         String remaining = parts.length > 1 ? parts[1] : "";
-        if ("enum".equalsIgnoreCase(type)) {
+        String normalizedType = type.replace(":", "").trim();
+        if ("enum".equalsIgnoreCase(normalizedType) || content.toLowerCase(Locale.ROOT).startsWith("enum:")) {
             type = "string";
-            remaining = "enum: " + remaining;
+            String enumTail = content.replaceFirst("(?i)^enum\\s*:?", "").trim();
+            remaining = "enum: " + enumTail;
         }
         String mergedTail = (remaining + " " + (tail == null ? "" : tail)).trim();
         return new ParsedField(

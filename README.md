@@ -22,6 +22,7 @@ This project is designed for teams: developers run the generator and receive a c
 - JPA relationship scaffolding in entities (`@ManyToOne`, `@OneToMany`, `@ManyToMany`, join table hints)
 - Strict spec validation (relationship targets, field constraints, naming)
 - Enhanced validation extraction (`min/max`, `valid email`, enum constraints) with DTO annotation mapping
+- Advanced field type support (`enum` -> generated enum class, `boolean`, `decimal`/`BigDecimal`, `date`/`timestamp`, `json`, `list`/`array`)
 - Global error-handling scaffold generation (`GlobalExceptionHandler`, `ErrorResponse`, `ResourceNotFoundException`)
 - Pagination/sorting/filtering method scaffolding in repository/service/controller layers
 - MapStruct mapper generation (`<Entity>Mapper`) for DTO <-> entity conversion
@@ -82,8 +83,12 @@ curl -X POST http://localhost:8080/generator/spec \
 Create an API for Product with:
 - name (string, required, min 2, max 100)
 - price (decimal, required, min 0, max 10000)
-- status (string, enum: ACTIVE, INACTIVE)
+- status (enum: ACTIVE, INACTIVE)
 - ownerEmail (string, required, valid email)
+- active (boolean)
+- createdAt (timestamp)
+- metadata (json)
+- tags (list<string>)
 - belongs to Category
 - has many Tag (many-to-many)
 

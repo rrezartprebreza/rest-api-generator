@@ -10,6 +10,18 @@ public final class TypeInference {
         String hinted = typeHint == null ? "" : typeHint.trim();
         if (!hinted.isEmpty()) {
             String normalized = hinted.toLowerCase(Locale.ROOT);
+            if (normalized.startsWith("list<") && normalized.endsWith(">")) {
+                String inner = normalized.substring(5, normalized.length() - 1).trim();
+                return "List<" + normalizeCollectionInnerType(inner) + ">";
+            }
+            if (normalized.startsWith("array<") && normalized.endsWith(">")) {
+                String inner = normalized.substring(6, normalized.length() - 1).trim();
+                return "List<" + normalizeCollectionInnerType(inner) + ">";
+            }
+            if (normalized.endsWith("[]")) {
+                String inner = normalized.substring(0, normalized.length() - 2).trim();
+                return "List<" + normalizeCollectionInnerType(inner) + ">";
+            }
             return switch (normalized) {
                 case "string" -> "String";
                 case "long" -> "Long";
@@ -19,6 +31,7 @@ public final class TypeInference {
                 case "double" -> "Double";
                 case "localdate", "date" -> "LocalDate";
                 case "localdatetime", "datetime", "timestamp" -> "LocalDateTime";
+                case "json", "jsonb", "object", "map" -> "Map<String,Object>";
                 default -> "String";
             };
         }
@@ -43,6 +56,19 @@ public final class TypeInference {
             return "Integer";
         }
         return "String";
+    }
+
+    private static String normalizeCollectionInnerType(String innerType) {
+        return switch (innerType) {
+            case "string" -> "String";
+            case "integer", "int" -> "Integer";
+            case "long" -> "Long";
+            case "decimal", "bigdecimal", "money" -> "BigDecimal";
+            case "boolean", "bool" -> "Boolean";
+            case "date" -> "LocalDate";
+            case "datetime", "timestamp" -> "LocalDateTime";
+            default -> "String";
+        };
     }
 
     public static boolean looksLikeNameField(String fieldNameCamel) {

@@ -67,9 +67,6 @@ public final class SpecValidator {
             if (field.min != null && field.max != null && field.min > field.max) {
                 throw new IllegalArgumentException("Invalid range for field '" + field.name + "' in entity " + entityName + ": min > max");
             }
-            if (!field.enumValues.isEmpty() && !"String".equals(field.type)) {
-                throw new IllegalArgumentException("Enum values require String type for field '" + field.name + "' in entity " + entityName);
-            }
         }
     }
 

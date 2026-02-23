@@ -51,7 +51,7 @@ public final class NaturalLanguageSpecGenerator {
                 continue;
             }
 
-            List<FieldSpec> fields = buildFields(segment);
+            List<FieldSpec> fields = buildFields(segment, entityName);
             List<RelationshipSpec> relationships = buildRelationships(segment);
             EntitySpec entity = new EntitySpec(entityName, defaultTableName(entityName), DEFAULT_ID_TYPE, fields);
             ApiSpec api = buildApi(segment, entityName);
@@ -89,7 +89,7 @@ public final class NaturalLanguageSpecGenerator {
         return new ApiSpec(defaultResourcePath(entityName), crud, pagination, sorting);
     }
 
-    private static List<FieldSpec> buildFields(String request) {
+    private static List<FieldSpec> buildFields(String request, String entityName) {
         List<RequestParsing.ParsedField> parsedFields = RequestParsing.extractFields(request);
         List<FieldSpec> fields = new ArrayList<>();
         Set<String> usedNames = new LinkedHashSet<>();
@@ -107,6 +107,9 @@ public final class NaturalLanguageSpecGenerator {
             String format = parsed.format();
             boolean encrypted = parsed.encrypted();
             List<String> enumValues = parsed.enumValues();
+            if (!enumValues.isEmpty()) {
+                type = NameTransforms.toPascalCase(entityName + " " + camel);
+            }
             String defaultValue = parsed.defaultValue();
             String calculatedExpression = parsed.calculatedExpression();
 
@@ -180,7 +183,7 @@ public final class NaturalLanguageSpecGenerator {
             }
         }
 
-        if (!enumValues.isEmpty()) {
+        if (!enumValues.isEmpty() && "String".equals(type)) {
             validation.add("OneOf:" + String.join("|", enumValues));
         }
         return List.copyOf(validation);
