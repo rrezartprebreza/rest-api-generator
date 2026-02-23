@@ -2,9 +2,17 @@ name: CI
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "develop"]
   pull_request:
-    branches: ["main"]
+    branches: ["main", "develop"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-test:
@@ -25,9 +33,18 @@ jobs:
         uses: gradle/actions/wrapper-validation@v4
 
       - name: Build and test
-        run: ./gradlew clean test
+        run: ./gradlew --no-daemon clean test
 
       - name: CLI smoke test
         run: |
-          ./gradlew -q run --args="templates list"
-          ./gradlew -q run --args="plugins list --config .rest-api-generator.yml"
+          ./gradlew --no-daemon -q run --args="templates list"
+          ./gradlew --no-daemon -q run --args="plugins list --config .rest-api-generator.yml"
+
+      - name: Upload test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            build/reports/tests/test
+            build/test-results/test
