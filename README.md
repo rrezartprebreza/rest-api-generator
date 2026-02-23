@@ -1,5 +1,32 @@
 # REST API Generator
 
+> Generate production-ready Spring Boot REST APIs from plain English in seconds
+
+[📺 Demo Video](#) | [🚀 Quick Start](#quick-start) | [📚 Examples](#examples) | [💬 Discord](#)
+
+---
+
+## Why Use This?
+
+❌ **Before:**
+- Manually create Entity, DTO, Repository, Service, Controller
+- Copy-paste boilerplate for each field
+- Wire up relationships by hand
+- Add validation annotations one-by-one
+- Set up error handling
+- Configure pagination
+- Write MapStruct mappers
+- **Time: 2-3 hours per entity**
+
+✅ **After:**
+- Complete CRUD API generated
+- All layers (Entity, DTO, Service, Controller)
+- Relationships configured
+- Validation included
+- Error handling set up
+- Pagination working
+- **Time: 30 seconds**
+
 Generate Spring Boot REST API scaffolding from natural language prompts.
 
 This project is designed for teams: developers run the generator and receive a consistent ZIP scaffold that follows shared standards.
