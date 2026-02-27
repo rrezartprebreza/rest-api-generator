@@ -105,6 +105,9 @@ class CodeGeneratorTest {
         String compose = zipFiles.get("docker-compose.yml");
         assertTrue(compose != null && compose.contains("image: postgres:16-alpine"));
         assertTrue(compose.contains("SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/appdb"));
+        assertTrue(compose.contains("image: adminer:4"));
+        assertTrue(compose.contains("profiles:"));
+        assertTrue(compose.contains("- tools"));
         assertNoTemplatePlaceholdersInJavaSources(zipFiles);
     }
 
@@ -146,6 +149,7 @@ class CodeGeneratorTest {
         assertTrue(compose != null);
         assertTrue(compose.contains("image: mysql:8.4"));
         assertTrue(compose.contains("SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/appdb"));
+        assertTrue(compose.contains("image: adminer:4"));
     }
 
     @Test
