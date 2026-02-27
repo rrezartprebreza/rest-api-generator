@@ -83,25 +83,9 @@ This project is designed for teams: developers run the generator and receive a c
 ./gradlew run --args="serve --port 8080"
 ```
 
-3. Generate spec from prompt:
+3. Use the advanced generation flow in the [Examples](#examples) section.
 
-```bash
-curl -X POST http://localhost:8080/generator/spec \
-  -H "Content-Type: application/json" \
-  -d '{"prompt":"Create an API for Product with name, price, stock\n\nCreate an API for Employee with firstName, lastName, email"}' \
-  -o spec.json
-```
-
-4. Generate ZIP from spec:
-
-```bash
-curl -X POST http://localhost:8080/generator/code \
-  -H "Content-Type: application/json" \
-  --data-binary @spec.json \
-  -o scaffold.zip
-```
-
-The generator returns only the ZIP response artifact for generated code. It does not write generated source into this generator project's source tree.
+## Examples
 
 ### Advanced Multi-Entity Example (Relationships + Validations)
 
@@ -139,6 +123,18 @@ curl -X POST http://localhost:8080/generator/code \
   -H "Content-Type: application/json" \
   --data-binary @spec.json \
   -o scaffold.zip
+```
+
+Generate ZIP directly from a prompt file:
+
+```bash
+jq -Rs '{prompt:.}' examples/prompts/ecommerce.txt \
+| curl -s -X POST http://localhost:8080/generator/spec \
+  -H "Content-Type: application/json" \
+  --data-binary @- -o spec.json \
+&& curl -s -X POST http://localhost:8080/generator/code \
+  -H "Content-Type: application/json" \
+  --data-binary @spec.json -o scaffold.zip
 ```
 
 Quick verification:
@@ -183,11 +179,60 @@ Test generated pagination/sorting endpoint:
 curl "http://localhost:8080/api/products?page=0&size=10&sort=name,asc"
 ```
 
-5. Try full example prompts:
+More prompt examples:
+
+- `Create an API for Order with totalPrice (decimal), createdAt (timestamp), belongs to Customer`
+- `Create an API for BlogPost with title, content, status (enum: DRAFT, PUBLISHED), authorEmail (valid email)`
+- `Create an API for Invoice with amount (decimal, min 0), dueDate (date), paid (boolean)`
+
+Try full example prompts:
 
 ```bash
 ./gradlew run --args="generate --file examples/prompts/ecommerce.txt --pretty"
 ./gradlew run --args="generate --file examples/prompts/blog.txt --pretty"
+```
+
+### Prompt -> Output Showcase
+
+Prompt:
+
+```text
+Create an API for Product with:
+- name (string, required)
+- price (decimal, required, min 0)
+- createdAt (timestamp)
+- belongs to Category
+
+Create an API for Category with:
+- name (string, required)
+```
+
+Generated project (excerpt):
+
+```text
+generated-api/
+  src/main/java/com/example/generated/
+    entity/Product.java
+    entity/Category.java
+    dto/ProductDTO.java
+    repository/ProductRepository.java
+    service/ProductService.java
+    controller/ProductController.java
+```
+
+Sample generated entity snippet:
+
+```java
+@Entity
+@Table(name = "products")
+public class Product {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private BigDecimal price;
+    private LocalDateTime createdAt;
+}
 ```
 
 ## CLI commands
@@ -238,6 +283,12 @@ Runtime templates:
 - Templates: expand microservices + DDD starter packs
 - Docs: add more real-world prompt examples and troubleshooting
 - Quality: add more integration tests around generated projects
+
+### Community ideas
+
+- Add clear prompt -> generated output showcase in docs (in progress)
+- Keep improving typed field hints in prompts (`BigDecimal`, `LocalDateTime`, etc.)
+- Consider optional `application.properties` generation alongside `application.yml`
 
 ## Contributing
 
