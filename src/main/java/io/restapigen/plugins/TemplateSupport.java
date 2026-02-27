@@ -24,6 +24,9 @@ final class TemplateSupport {
         Set<String> imports = new LinkedHashSet<>();
         imports.add("jakarta.persistence.Entity");
         imports.add("jakarta.persistence.Table");
+        imports.add("jakarta.persistence.Id");
+        imports.add("jakarta.persistence.GeneratedValue");
+        imports.add("jakarta.persistence.GenerationType");
         imports.add("jakarta.persistence.ManyToOne");
         imports.add("jakarta.persistence.OneToOne");
         imports.add("jakarta.persistence.OneToMany");
@@ -75,6 +78,12 @@ final class TemplateSupport {
         return out.toString();
     }
 
+    static String idFieldBlock(String idType) {
+        return "    @Id\n"
+                + "    @GeneratedValue(strategy = GenerationType.IDENTITY)\n"
+                + "    private " + idType + " id;\n\n";
+    }
+
     static String constructorBlock(String className, List<FieldSpec> fields) {
         StringBuilder params = new StringBuilder();
         StringBuilder body = new StringBuilder();
@@ -98,6 +107,18 @@ final class TemplateSupport {
                     .append("    }\n\n");
         }
         return out.toString();
+    }
+
+    static String entityGettersBlock(String idType, List<FieldSpec> fields) {
+        return "    public " + idType + " getId() {\n"
+                + "        return id;\n"
+                + "    }\n\n"
+                + gettersBlock(fields);
+    }
+
+    static String noArgConstructorBlock(String className) {
+        return "    protected " + className + "() {\n"
+                + "    }\n\n";
     }
 
     static String relationshipBlock(String ownerClassName, List<RelationshipSpec> relationships) {

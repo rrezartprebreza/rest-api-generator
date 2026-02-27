@@ -9,4 +9,4 @@ ${imports}
 @Table(name = "${tableName}")
 public class ${className} {
 
-${fieldsBlock}${relationshipBlock}${constructorBlock}${gettersBlock}}
+${idFieldBlock}${fieldsBlock}${relationshipBlock}${noArgConstructorBlock}${constructorBlock}${gettersBlock}}

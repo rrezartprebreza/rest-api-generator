@@ -34,16 +34,18 @@ public final class EntityGeneratorPlugin implements GeneratorPlugin {
             Set<String> imports = TemplateSupport.collectEntityImports(definition.entity.fields, definition.relationships);
             String content = context.templates().render(
                     context.templatePack().templatePath("entity.java.tpl"),
-                    Map.of(
-                            "basePackage", basePackage,
-                            "entityName", definition.entity.name,
-                            "className", className,
-                            "tableName", definition.entity.table,
-                            "imports", imports.stream().map(it -> "import " + it + ";").collect(Collectors.joining("\n")),
-                            "fieldsBlock", TemplateSupport.fieldsBlock(definition.entity.fields),
-                            "relationshipBlock", TemplateSupport.relationshipBlock(definition.entity.name, definition.relationships),
-                            "constructorBlock", TemplateSupport.constructorBlock(className, definition.entity.fields),
-                            "gettersBlock", TemplateSupport.gettersBlock(definition.entity.fields)
+                    Map.ofEntries(
+                            Map.entry("basePackage", basePackage),
+                            Map.entry("entityName", definition.entity.name),
+                            Map.entry("className", className),
+                            Map.entry("tableName", definition.entity.table),
+                            Map.entry("imports", imports.stream().map(it -> "import " + it + ";").collect(Collectors.joining("\n"))),
+                            Map.entry("idFieldBlock", TemplateSupport.idFieldBlock(definition.entity.idType)),
+                            Map.entry("fieldsBlock", TemplateSupport.fieldsBlock(definition.entity.fields)),
+                            Map.entry("relationshipBlock", TemplateSupport.relationshipBlock(definition.entity.name, definition.relationships)),
+                            Map.entry("noArgConstructorBlock", TemplateSupport.noArgConstructorBlock(className)),
+                            Map.entry("constructorBlock", TemplateSupport.constructorBlock(className, definition.entity.fields)),
+                            Map.entry("gettersBlock", TemplateSupport.entityGettersBlock(definition.entity.idType, definition.entity.fields))
                     )
             );
             out.add(new GeneratedFile(javaBase + "/entity/" + className + ".java", content));

@@ -51,6 +51,7 @@ class CodeGeneratorTest {
         String service = null;
         String repository = null;
         String mapper = null;
+        String entity = null;
         try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zip))) {
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
@@ -65,6 +66,8 @@ class CodeGeneratorTest {
                     repository = readAll(zis);
                 } else if ("src/main/java/com/example/generated/mapper/ProductMapper.java".equals(entry.getName())) {
                     mapper = readAll(zis);
+                } else if ("src/main/java/com/example/generated/entity/Product.java".equals(entry.getName())) {
+                    entity = readAll(zis);
                 }
                 zis.closeEntry();
             }
@@ -95,8 +98,54 @@ class CodeGeneratorTest {
         assertTrue(service != null && service.contains("mapper.toEntity(dto)"));
         assertTrue(repository != null && repository.contains("extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product>"));
         assertTrue(mapper != null && mapper.contains("@Mapper(componentModel = \"spring\")"));
+        assertTrue(entity != null && entity.contains("@Id"));
+        assertTrue(entity.contains("@GeneratedValue(strategy = GenerationType.IDENTITY)"));
+        assertTrue(entity.contains("protected Product()"));
         Map<String, String> zipFiles = readZipFiles(zip);
+        String compose = zipFiles.get("docker-compose.yml");
+        assertTrue(compose != null && compose.contains("image: postgres:16-alpine"));
+        assertTrue(compose.contains("SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/appdb"));
         assertNoTemplatePlaceholdersInJavaSources(zipFiles);
+    }
+
+    @Test
+    void generatesDockerComposeWithMySqlWhenConfigured() throws IOException {
+        ApiSpecification spec = new ApiSpecification(
+                "products-api",
+                "com.example.generated",
+                List.of(new EntityDefinition(
+                        new EntitySpec("Product", "products", "Long", List.of()),
+                        new ApiSpec("/api/products", true, true, true),
+                        List.of()
+                )),
+                List.of()
+        );
+
+        GenerationConfig defaults = GenerationConfig.defaults();
+        GenerationConfig config = new GenerationConfig(
+                defaults.project(),
+                new GenerationConfig.StandardsConfig(
+                        defaults.standards().naming(),
+                        defaults.standards().layering(),
+                        new GenerationConfig.DatabaseConfig("mysql", "snake_case", true, "flyway"),
+                        defaults.standards().validation(),
+                        defaults.standards().documentation(),
+                        defaults.standards().testing(),
+                        defaults.standards().security(),
+                        defaults.standards().errorHandling(),
+                        defaults.standards().responseFormat()
+                ),
+                defaults.features(),
+                defaults.plugins()
+        );
+
+        byte[] zip = new CodeGenerator().generateZip(spec, config);
+        Map<String, String> zipFiles = readZipFiles(zip);
+        String compose = zipFiles.get("docker-compose.yml");
+
+        assertTrue(compose != null);
+        assertTrue(compose.contains("image: mysql:8.4"));
+        assertTrue(compose.contains("SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/appdb"));
     }
 
     @Test
