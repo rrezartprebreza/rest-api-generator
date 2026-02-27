@@ -28,6 +28,7 @@ public final class TypeInference {
                 case "integer", "int" -> "Integer";
                 case "boolean", "bool" -> "Boolean";
                 case "bigdecimal", "decimal", "money" -> "BigDecimal";
+                case "float" -> "Float";
                 case "double" -> "Double";
                 case "localdate", "date" -> "LocalDate";
                 case "localdatetime", "datetime", "timestamp" -> "LocalDateTime";

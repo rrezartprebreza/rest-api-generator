@@ -14,11 +14,15 @@ public final class Pluralizer {
             return "";
         }
         String lower = s.toLowerCase(Locale.ROOT);
+        if (lower.endsWith("ss") || lower.endsWith("us") || lower.endsWith("x") || lower.endsWith("z")
+                || lower.endsWith("ch") || lower.endsWith("sh")) {
+            return s + "es";
+        }
+        if (lower.endsWith("is") && s.length() >= 3) {
+            return s.substring(0, s.length() - 2) + "es";
+        }
         if (lower.endsWith("s")) {
             return s;
-        }
-        if (lower.endsWith("ch") || lower.endsWith("sh") || lower.endsWith("x") || lower.endsWith("z")) {
-            return s + "es";
         }
         if (lower.endsWith("y") && s.length() >= 2) {
             char beforeY = lower.charAt(lower.length() - 2);
