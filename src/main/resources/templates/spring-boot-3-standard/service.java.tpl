@@ -37,6 +37,26 @@ public class ${className} {
         return mapper.toDto(saved);
     }
 
+    public ${dtoClass} findById(Long id) {
+        ${entityName} entity = repository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("${entityName} not found: " + id));
+        return mapper.toDto(entity);
+    }
+
+    public ${dtoClass} update(Long id, ${dtoClass} dto) {
+        ${entityName} entity = repository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("${entityName} not found: " + id));
+        mapper.updateEntityFromDto(dto, entity);
+        ${entityName} saved = repository.save(entity);
+        return mapper.toDto(saved);
+    }
+
+    public void delete(Long id) {
+        ${entityName} entity = repository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("${entityName} not found: " + id));
+        repository.delete(entity);
+    }
+
     private Specification<${entityName}> buildSpecification(String filter) {
         if (filter == null || filter.isBlank()) {
             return Specification.where(null);

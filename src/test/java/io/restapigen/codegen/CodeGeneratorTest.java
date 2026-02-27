@@ -95,7 +95,13 @@ class CodeGeneratorTest {
         assertTrue(readme.contains("Generated REST API entries"));
         assertTrue(readme.contains("Resource path: /api/products"));
         assertTrue(controller != null && controller.contains("@GetMapping(\"/search\")"));
+        assertTrue(controller.contains("@GetMapping(\"/{id}\")"));
+        assertTrue(controller.contains("@PutMapping(\"/{id}\")"));
+        assertTrue(controller.contains("@DeleteMapping(\"/{id}\")"));
         assertTrue(service != null && service.contains("mapper.toEntity(dto)"));
+        assertTrue(service.contains("public ProductDTO findById(Long id)"));
+        assertTrue(service.contains("public ProductDTO update(Long id, ProductDTO dto)"));
+        assertTrue(service.contains("public void delete(Long id)"));
         assertTrue(repository != null && repository.contains("extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product>"));
         assertTrue(mapper != null && mapper.contains("@Mapper(componentModel = \"spring\")"));
         assertTrue(entity != null && entity.contains("@Id"));
