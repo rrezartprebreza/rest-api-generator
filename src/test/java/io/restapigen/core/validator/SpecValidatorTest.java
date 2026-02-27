@@ -50,6 +50,22 @@ class SpecValidatorTest {
     }
 
     @Test
+    void rejectsSelfReferentialRelationship() {
+        ApiSpecification spec = new ApiSpecification(
+                "products-api",
+                "com.example.generated",
+                List.of(new EntityDefinition(
+                        new EntitySpec("Product", "products", "Long", List.of()),
+                        new ApiSpec("/api/products", true, true, true),
+                        List.of(new RelationshipSpec("ManyToOne", "Product", "parent"))
+                )),
+                List.of()
+        );
+
+        assertThrows(IllegalArgumentException.class, () -> new SpecValidator().validate(spec));
+    }
+
+    @Test
     void acceptsValidCrossEntityRelationship() {
         ApiSpecification spec = new ApiSpecification(
                 "shop-api",

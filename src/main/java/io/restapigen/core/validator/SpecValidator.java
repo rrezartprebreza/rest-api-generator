@@ -76,7 +76,10 @@ public final class SpecValidator {
             if (relationship.type == null || !SUPPORTED_RELATIONS.contains(relationship.type)) {
                 throw new IllegalArgumentException("Unsupported relationship type '" + relationship.type + "' in entity " + entityName);
             }
-            if (relationship.target == null || !entityNames.contains(relationship.target)) {
+            if (relationship.target == null || relationship.target.equals(entityName)) {
+                throw new IllegalArgumentException("Relationship '" + relationship.fieldName + "' target must differ from the owning entity in entity " + entityName);
+            }
+            if (!entityNames.contains(relationship.target)) {
                 throw new IllegalArgumentException("Unknown relationship target '" + relationship.target + "' in entity " + entityName);
             }
             if (relationship.fieldName == null || !FIELD_NAME.matcher(relationship.fieldName).matches()) {
