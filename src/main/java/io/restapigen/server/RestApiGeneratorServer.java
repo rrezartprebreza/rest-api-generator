@@ -51,6 +51,7 @@ public final class RestApiGeneratorServer implements AutoCloseable {
     private void registerContexts() {
         server.createContext("/generator/spec", new SpecHandler());
         server.createContext("/generator/code", new CodeHandler());
+        server.createContext("/about", new AboutHandler());
     }
 
     private final class SpecHandler implements HttpHandler {
@@ -108,6 +109,30 @@ public final class RestApiGeneratorServer implements AutoCloseable {
             }
             byte[] zip = codeGenerator.generateZip(spec, config);
             respond(exchange, 200, zip, "application/zip");
+        }
+    }
+
+    private final class AboutHandler implements HttpHandler {
+        private static final String ABOUT_JSON = """
+                {
+                  "name": "REST API Generator",
+                  "version": "1.0",
+                  "description": "Generate production-ready Spring Boot REST APIs from plain English in seconds.",
+                  "endpoints": [
+                    {"method": "GET",  "path": "/about",          "description": "Project information"},
+                    {"method": "POST", "path": "/generator/spec", "description": "Parse a natural-language prompt into an API specification"},
+                    {"method": "POST", "path": "/generator/code", "description": "Generate a runnable Spring Boot ZIP from an API specification"}
+                  ],
+                  "repository": "https://github.com/rrezartprebreza/rest-api-generator"
+                }""";
+
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+                respond(exchange, 405, "Only GET is supported", "text/plain");
+                return;
+            }
+            respond(exchange, 200, ABOUT_JSON, "application/json");
         }
     }
 
