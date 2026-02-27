@@ -59,6 +59,7 @@ This project is designed for teams: developers run the generator and receive a c
 - Template-pack support with starter packs and fallback resolution
 - OpenAPI export command (`openapi`) for prompt-to-spec docs output
 - Docker scaffold generation (`Dockerfile`, `docker-compose.yml`)
+- Optional DB editor in Docker (`Adminer`) for PostgreSQL/MySQL via compose profile `tools`
 - HTTP API endpoints:
   - `POST /generator/spec`
   - `POST /generator/code`
@@ -155,6 +156,26 @@ unzip scaffold.zip -d generated-api
 cd generated-api
 ./gradlew bootRun
 ```
+
+Run generated project with Docker:
+
+```bash
+unzip scaffold.zip -d generated-api
+cd generated-api
+
+# App + DB
+docker compose up
+
+# App + DB + Adminer (DB editor)
+docker compose --profile tools up
+```
+
+Adminer UI:
+
+- URL: `http://localhost:8081`
+- Server: `db`
+- PostgreSQL: database `appdb`, user `app`, password `app`
+- MySQL: database `appdb`, user `app`, password `app`
 
 Test generated pagination/sorting endpoint:
 
