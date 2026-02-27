@@ -61,6 +61,7 @@ This project is designed for teams: developers run the generator and receive a c
 - Docker scaffold generation (`Dockerfile`, `docker-compose.yml`)
 - Optional DB editor in Docker (`Adminer`) for PostgreSQL/MySQL via compose profile `tools`
 - HTTP API endpoints:
+  - `GET /about`
   - `POST /generator/spec`
   - `POST /generator/code`
 
