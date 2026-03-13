@@ -28,6 +28,21 @@ class RequestParsingTest {
     }
 
     @Test
+    void doesNotTreatRelationshipBulletsAsFields() {
+        String request = """
+                Create API for Product with:
+                - name (string)
+                - belongs to Category
+                - has many Tag (many-to-many)
+                """;
+        var fields = RequestParsing.extractFields(request);
+
+        assertTrue(fields.stream().anyMatch(field -> "name".equals(field.name())));
+        assertTrue(fields.stream().noneMatch(field -> "belongsToCategory".equals(field.name())));
+        assertTrue(fields.stream().noneMatch(field -> "hasManyTagManyToMany".equals(field.name())));
+    }
+
+    @Test
     void parsesValidationHintsWithoutColon() {
         String request = "Create API for User with fields: age (integer min 18 max 120), email (string valid email), status (enum ACTIVE, INACTIVE).";
         var fields = RequestParsing.extractFields(request);

@@ -64,6 +64,9 @@ public final class RequestParsing {
                 continue;
             }
             String token = line.substring(1).trim();
+            if (isRelationshipToken(token)) {
+                continue;
+            }
             ParsedField parsed = parseSimpleFieldToken(token);
             if (parsed != null) {
                 out.add(parsed);
@@ -78,6 +81,9 @@ public final class RequestParsing {
             }
             list = stripFieldListPrefix(list);
             for (String raw : splitFieldList(list)) {
+                if (isRelationshipToken(raw)) {
+                    continue;
+                }
                 ParsedField parsed = parseSimpleFieldToken(raw);
                 if (parsed != null) {
                     out.add(parsed);
@@ -213,6 +219,9 @@ public final class RequestParsing {
     private static ParsedField parseSimpleFieldToken(String token) {
         String cleaned = token.replaceAll("[.]", "").trim();
         if (cleaned.isEmpty()) {
+            return null;
+        }
+        if (isRelationshipToken(cleaned)) {
             return null;
         }
 
@@ -382,5 +391,13 @@ public final class RequestParsing {
             return null;
         }
         return Integer.parseInt(matcher.group(1));
+    }
+
+    private static boolean isRelationshipToken(String token) {
+        if (token == null || token.isBlank()) {
+            return false;
+        }
+        String normalized = token.trim();
+        return BELONGS_TO.matcher(normalized).find() || HAS_MANY.matcher(normalized).find();
     }
 }

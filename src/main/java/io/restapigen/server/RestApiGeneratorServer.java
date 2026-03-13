@@ -107,8 +107,14 @@ public final class RestApiGeneratorServer implements AutoCloseable {
                 respond(exchange, 400, "invalid spec payload", "text/plain");
                 return;
             }
-            byte[] zip = codeGenerator.generateZip(spec, config);
-            respond(exchange, 200, zip, "application/zip");
+            try {
+                byte[] zip = codeGenerator.generateZip(spec, config);
+                respond(exchange, 200, zip, "application/zip");
+            } catch (IllegalArgumentException e) {
+                respond(exchange, 400, e.getMessage(), "text/plain");
+            } catch (Exception e) {
+                respond(exchange, 500, "failed to generate code", "text/plain");
+            }
         }
     }
 

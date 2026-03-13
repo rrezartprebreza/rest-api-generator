@@ -106,6 +106,22 @@ class NaturalLanguageSpecGeneratorTest {
     }
 
     @Test
+    void relationshipHintsDoNotCreateSyntheticFields() {
+        String request = """
+                Create an API for Product with:
+                - name (string, required)
+                - belongs to Category
+                - has many Tag (many-to-many)
+                """;
+        ApiSpecification spec = new NaturalLanguageSpecGenerator().generate(request);
+        EntityDefinition definition = spec.entities.get(0);
+
+        assertTrue(definition.entity.fields.stream().anyMatch(field -> "name".equals(field.name)));
+        assertFalse(definition.entity.fields.stream().anyMatch(field -> "belongsToCategory".equals(field.name)));
+        assertFalse(definition.entity.fields.stream().anyMatch(field -> "hasManyTagManyToMany".equals(field.name)));
+    }
+
+    @Test
     void generatesAdvancedValidationTokens() {
         String request = """
                 Create an API for Product with:
