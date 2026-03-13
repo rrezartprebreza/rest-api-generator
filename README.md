@@ -86,47 +86,19 @@ This project is designed for teams: developers run the generator and receive a c
 
 3. Use the advanced generation flow in the [Examples](#examples) section.
 
+### Shell notes (Linux/macOS vs Windows)
+
+- `bash`/`zsh` examples in this README use `\` for multiline commands.
+- In Windows PowerShell, use backtick `` ` `` for multiline commands.
+- In PowerShell, use `curl.exe` (not `curl`) to avoid alias differences.
+
 ## Examples
 
 ### Advanced Multi-Entity Example (Relationships + Validations)
 
-Generate a richer spec with relationships and constraints:
+Use the provided prompt file (`examples/prompts/ecommerce.txt`) and generate ZIP with one flow.
 
-```bash
-curl -X POST http://localhost:8080/generator/spec \
-  -H "Content-Type: application/json" \
-  -d '{
-    "prompt":"Create an API for Category with:
-- name (string, required, unique)
-
-Create an API for Product with:
-- name (string, required, min 2, max 100)
-- price (decimal, required, min 0, max 10000)
-- status (enum: ACTIVE, INACTIVE)
-- ownerEmail (string, required, valid email)
-- active (boolean)
-- createdAt (timestamp)
-- metadata (json)
-- tags (list<string>)
-- belongs to Category
-- has many Tag (many-to-many)
-
-Create an API for Tag with:
-- name (string, required, unique)"
-  }' \
-  -o spec.json
-```
-
-Generate code ZIP from that spec:
-
-```bash
-curl -X POST http://localhost:8080/generator/code \
-  -H "Content-Type: application/json" \
-  --data-binary @spec.json \
-  -o scaffold.zip
-```
-
-Generate ZIP directly from a prompt file:
+bash/zsh:
 
 ```bash
 jq -Rs '{prompt:.}' examples/prompts/ecommerce.txt \
@@ -136,6 +108,23 @@ jq -Rs '{prompt:.}' examples/prompts/ecommerce.txt \
 && curl -s -X POST http://localhost:8080/generator/code \
   -H "Content-Type: application/json" \
   --data-binary @spec.json -o scaffold.zip
+```
+
+Windows PowerShell (including IntelliJ terminal on Windows):
+
+```powershell
+$prompt = Get-Content "examples/prompts/ecommerce.txt" -Raw
+$body = @{ prompt = $prompt } | ConvertTo-Json -Depth 5
+
+curl.exe -s -X POST "http://localhost:8080/generator/spec" `
+  -H "Content-Type: application/json" `
+  -d $body `
+  -o spec.json
+
+curl.exe -s -X POST "http://localhost:8080/generator/code" `
+  -H "Content-Type: application/json" `
+  --data-binary "@spec.json" `
+  -o scaffold.zip
 ```
 
 Quick verification:
