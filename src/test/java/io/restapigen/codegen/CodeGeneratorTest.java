@@ -109,11 +109,16 @@ class CodeGeneratorTest {
         assertTrue(entity.contains("protected Product()"));
         Map<String, String> zipFiles = readZipFiles(zip);
         String compose = zipFiles.get("docker-compose.yml");
+        String dockerfile = zipFiles.get("Dockerfile");
         assertTrue(compose != null && compose.contains("image: postgres:16-alpine"));
         assertTrue(compose.contains("SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/appdb"));
         assertTrue(compose.contains("image: adminer:4"));
         assertTrue(compose.contains("profiles:"));
         assertTrue(compose.contains("- tools"));
+        assertFalse(compose.contains("version:"));
+        assertTrue(dockerfile != null && dockerfile.contains("FROM gradle:8.10-jdk17 AS builder"));
+        assertTrue(dockerfile.contains("RUN gradle --no-daemon bootJar -x test"));
+        assertTrue(dockerfile.contains("COPY --from=builder /workspace/build/libs/*.jar app.jar"));
         assertNoTemplatePlaceholdersInJavaSources(zipFiles);
     }
 
@@ -156,6 +161,7 @@ class CodeGeneratorTest {
         assertTrue(compose.contains("image: mysql:8.4"));
         assertTrue(compose.contains("SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/appdb"));
         assertTrue(compose.contains("image: adminer:4"));
+        assertFalse(compose.contains("version:"));
     }
 
     @Test

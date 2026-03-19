@@ -25,9 +25,13 @@ public final class DockerGeneratorPlugin implements GeneratorPlugin {
             return List.of();
         }
 
-        String dockerfile = "FROM eclipse-temurin:17-jre\n"
+        String dockerfile = "FROM gradle:8.10-jdk17 AS builder\n"
+                + "WORKDIR /workspace\n"
+                + "COPY . .\n"
+                + "RUN gradle --no-daemon bootJar -x test\n\n"
+                + "FROM eclipse-temurin:17-jre\n"
                 + "WORKDIR /app\n"
-                + "COPY build/libs/*.jar app.jar\n"
+                + "COPY --from=builder /workspace/build/libs/*.jar app.jar\n"
                 + "EXPOSE 8080\n"
                 + "ENTRYPOINT [\"java\",\"-jar\",\"/app/app.jar\"]\n";
 
@@ -42,8 +46,7 @@ public final class DockerGeneratorPlugin implements GeneratorPlugin {
     private String compose(String projectName, String databaseType) {
         String normalized = databaseType == null ? "" : databaseType.toLowerCase(Locale.ROOT);
         return switch (normalized) {
-            case "mysql" -> "version: '3.9'\n"
-                    + "services:\n"
+            case "mysql" -> "services:\n"
                     + "  db:\n"
                     + "    image: mysql:8.4\n"
                     + "    environment:\n"
@@ -76,8 +79,7 @@ public final class DockerGeneratorPlugin implements GeneratorPlugin {
                     + "      - \"8081:8080\"\n"
                     + "volumes:\n"
                     + "  db-data:\n";
-            case "h2" -> "version: '3.9'\n"
-                    + "services:\n"
+            case "h2" -> "services:\n"
                     + "  " + projectName + ":\n"
                     + "    build: .\n"
                     + "    ports:\n"
@@ -87,8 +89,7 @@ public final class DockerGeneratorPlugin implements GeneratorPlugin {
                     + "      SPRING_DATASOURCE_URL: jdbc:h2:mem:testdb\n"
                     + "      SPRING_DATASOURCE_USERNAME: sa\n"
                     + "      SPRING_DATASOURCE_PASSWORD: \n";
-            default -> "version: '3.9'\n"
-                    + "services:\n"
+            default -> "services:\n"
                     + "  db:\n"
                     + "    image: postgres:16-alpine\n"
                     + "    environment:\n"
