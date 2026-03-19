@@ -344,6 +344,59 @@ class CodeGeneratorTest {
         assertNoTemplatePlaceholdersInJavaSources(zipFiles);
     }
 
+    @Test
+    void generatesLombokModelsWhenEnabled() throws IOException {
+        ApiSpecification spec = new ApiSpecification(
+                "catalog-api",
+                "com.example.generated",
+                List.of(new EntityDefinition(
+                        new EntitySpec("Category", "categories", "Long", List.of(
+                                new FieldSpec("name", "String", List.of("NotBlank"), true, false, null, null, null, false, List.of(), null, null)
+                        )),
+                        new ApiSpec("/api/categories", true, true, true),
+                        List.of()
+                )),
+                List.of()
+        );
+
+        GenerationConfig defaults = GenerationConfig.defaults();
+        GenerationConfig config = new GenerationConfig(
+                defaults.project(),
+                defaults.standards(),
+                new GenerationConfig.FeaturesConfig(
+                        defaults.features().auditing(),
+                        defaults.features().softDelete(),
+                        defaults.features().versioning(),
+                        defaults.features().caching(),
+                        defaults.features().dockerArtifacts(),
+                        true
+                ),
+                defaults.plugins()
+        );
+
+        byte[] zip = new CodeGenerator().generateZip(spec, config);
+        Map<String, String> zipFiles = readZipFiles(zip);
+        String entity = zipFiles.get("src/main/java/com/example/generated/entity/Category.java");
+        String dto = zipFiles.get("src/main/java/com/example/generated/dto/CategoryDTO.java");
+
+        assertTrue(entity != null);
+        assertTrue(entity.contains("import lombok.Getter;"));
+        assertTrue(entity.contains("import lombok.Setter;"));
+        assertTrue(entity.contains("@Getter"));
+        assertTrue(entity.contains("@Setter"));
+        assertFalse(entity.contains("public String getName()"));
+
+        assertTrue(dto != null);
+        assertTrue(dto.contains("import lombok.Getter;"));
+        assertTrue(dto.contains("import lombok.Setter;"));
+        assertTrue(dto.contains("import lombok.NoArgsConstructor;"));
+        assertTrue(dto.contains("import lombok.AllArgsConstructor;"));
+        assertTrue(dto.contains("@NoArgsConstructor"));
+        assertTrue(dto.contains("@AllArgsConstructor"));
+        assertFalse(dto.contains("public String getName()"));
+        assertNoTemplatePlaceholdersInJavaSources(zipFiles);
+    }
+
     private String readAll(ZipInputStream zis) throws IOException {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         byte[] tmp = new byte[512];

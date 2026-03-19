@@ -271,6 +271,7 @@ Plugin extension fields:
 - `plugins.externalDirectories`: directories scanned for plugin JARs (default `plugins`)
 - `plugins.externalClassNames`: explicit class names to instantiate as plugins
 - `features.dockerArtifacts`: include Docker artifacts in generated ZIP output
+- `features.lombokModels`: generate DTO/entity classes with Lombok annotations (`@Getter`, `@Setter`, etc.)
 
 ## Template packs
 

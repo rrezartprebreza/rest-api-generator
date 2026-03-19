@@ -197,10 +197,11 @@ public record GenerationConfig(
             boolean softDelete,
             boolean versioning,
             boolean caching,
-            boolean dockerArtifacts
+            boolean dockerArtifacts,
+            boolean lombokModels
     ) {
         static FeaturesConfig defaults() {
-            return new FeaturesConfig(true, false, false, false, true);
+            return new FeaturesConfig(true, false, false, false, true, false);
         }
     }
 

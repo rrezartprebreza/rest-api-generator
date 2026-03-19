@@ -29,9 +29,14 @@ public final class EntityGeneratorPlugin implements GeneratorPlugin {
         List<GeneratedFile> out = new ArrayList<>();
         String basePackage = context.config().project().basePackage();
         String javaBase = "src/main/java/" + context.basePackagePath();
+        boolean lombokModels = context.config().features().lombokModels();
         for (EntityDefinition definition : specification.entities) {
             String className = definition.entity.name + context.config().standards().naming().entitySuffix();
             Set<String> imports = TemplateSupport.collectEntityImports(definition.entity.fields, definition.relationships);
+            if (lombokModels) {
+                imports.add("lombok.Getter");
+                imports.add("lombok.Setter");
+            }
             String content = context.templates().render(
                     context.templatePack().templatePath("entity.java.tpl"),
                     Map.ofEntries(
@@ -43,9 +48,10 @@ public final class EntityGeneratorPlugin implements GeneratorPlugin {
                             Map.entry("idFieldBlock", TemplateSupport.idFieldBlock(definition.entity.idType)),
                             Map.entry("fieldsBlock", TemplateSupport.fieldsBlock(definition.entity.fields)),
                             Map.entry("relationshipBlock", TemplateSupport.relationshipBlock(definition.entity.name, definition.relationships)),
+                            Map.entry("classAnnotations", lombokModels ? "@Getter\n@Setter\n" : ""),
                             Map.entry("noArgConstructorBlock", TemplateSupport.noArgConstructorBlock(className)),
                             Map.entry("constructorBlock", TemplateSupport.constructorBlock(className, definition.entity.fields)),
-                            Map.entry("gettersBlock", TemplateSupport.entityGettersBlock(definition.entity.idType, definition.entity.fields))
+                            Map.entry("gettersBlock", lombokModels ? "" : TemplateSupport.entityGettersBlock(definition.entity.idType, definition.entity.fields))
                     )
             );
             out.add(new GeneratedFile(javaBase + "/entity/" + className + ".java", content));

@@ -6,6 +6,7 @@ ${imports}
 /**
  * ${className} DTO.
  */
+${classAnnotations}
 public class ${className} {
 
 ${fieldsBlock}${constructorBlock}${gettersBlock}}
