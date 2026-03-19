@@ -78,13 +78,19 @@ This project is designed for teams: developers run the generator and receive a c
 ./gradlew clean test
 ```
 
-2. Start server:
+2. Generate ZIP directly from a prompt file:
 
 ```bash
-./gradlew run --args="serve --port 8080"
+./gradlew run --args="generate-zip --file examples/prompts/ecommerce.txt --out scaffold.zip"
 ```
 
-3. Use the advanced generation flow in the [Examples](#examples) section.
+3. Unzip and run generated project:
+
+```bash
+unzip scaffold.zip -d generated-api
+cd generated-api
+./gradlew bootRun
+```
 
 ### Shell notes (Linux/macOS vs Windows)
 
@@ -96,9 +102,33 @@ This project is designed for teams: developers run the generator and receive a c
 
 ### Advanced Multi-Entity Example (Relationships + Validations)
 
-Use the provided prompt file (`examples/prompts/ecommerce.txt`) and generate ZIP with one flow.
+Use the provided prompt file (`examples/prompts/ecommerce.txt`) and generate ZIP with one command.
 
 bash/zsh:
+
+```bash
+./gradlew run --args="generate-zip --file examples/prompts/ecommerce.txt --out scaffold.zip"
+```
+
+If `--out` is omitted, output defaults to `./scaffold.zip`.
+
+Windows PowerShell (including IntelliJ terminal on Windows):
+
+```powershell
+./gradlew run --args="generate-zip --file examples/prompts/ecommerce.txt --out scaffold.zip"
+```
+
+Windows (`cmd.exe` / PowerShell) with batch wrapper:
+
+```powershell
+.\gradlew.bat run --args="generate-zip --file examples/prompts/ecommerce.txt --out scaffold.zip"
+```
+
+Alternative API mode (server + endpoints):
+
+```bash
+./gradlew run --args="serve --port 8080"
+```
 
 ```bash
 jq -Rs '{prompt:.}' examples/prompts/ecommerce.txt \
@@ -108,23 +138,6 @@ jq -Rs '{prompt:.}' examples/prompts/ecommerce.txt \
 && curl -s -X POST http://localhost:8080/generator/code \
   -H "Content-Type: application/json" \
   --data-binary @spec.json -o scaffold.zip
-```
-
-Windows PowerShell (including IntelliJ terminal on Windows):
-
-```powershell
-$prompt = Get-Content "examples/prompts/ecommerce.txt" -Raw
-$body = @{ prompt = $prompt } | ConvertTo-Json -Depth 5
-
-curl.exe -s -X POST "http://localhost:8080/generator/spec" `
-  -H "Content-Type: application/json" `
-  -d $body `
-  -o spec.json
-
-curl.exe -s -X POST "http://localhost:8080/generator/code" `
-  -H "Content-Type: application/json" `
-  --data-binary "@spec.json" `
-  -o scaffold.zip
 ```
 
 Quick verification:
@@ -228,6 +241,7 @@ public class Product {
 ## CLI commands
 
 ```bash
+./gradlew run --args="generate-zip --file examples/prompts/ecommerce.txt --out scaffold.zip"
 ./gradlew run --args="generate --prompt 'Create API for User with email, password' --pretty"
 ./gradlew run --args="generate --file ./prompt.txt --pretty"
 ./gradlew run --args="openapi --prompt 'Create API for User with email, password'"
@@ -241,6 +255,7 @@ public class Product {
 Legacy flags still work:
 - `--user-request`
 - `--input`
+- `--generate-zip`
 - `--serve`
 - `--init-config`
 - `--validate-config`
@@ -256,6 +271,7 @@ Plugin extension fields:
 - `plugins.externalDirectories`: directories scanned for plugin JARs (default `plugins`)
 - `plugins.externalClassNames`: explicit class names to instantiate as plugins
 - `features.dockerArtifacts`: include Docker artifacts in generated ZIP output
+- `features.lombokModels`: generate DTO/entity classes with Lombok annotations (`@Getter`, `@Setter`, etc.)
 
 ## Template packs
 

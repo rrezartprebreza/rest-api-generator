@@ -30,23 +30,33 @@ public final class DtoGeneratorPlugin implements GeneratorPlugin {
         String basePackage = context.config().project().basePackage();
         String javaBase = "src/main/java/" + context.basePackagePath();
         String dtoSuffix = context.config().standards().naming().dtoSuffix();
+        boolean lombokModels = context.config().features().lombokModels();
         for (EntityDefinition definition : specification.entities) {
             String className = definition.entity.name + dtoSuffix;
             StringBuilder body = new StringBuilder();
             Set<String> imports = TemplateSupport.collectImports(definition.entity.fields);
+            if (lombokModels) {
+                imports.add("lombok.AllArgsConstructor");
+                imports.add("lombok.Getter");
+                imports.add("lombok.NoArgsConstructor");
+                imports.add("lombok.Setter");
+            }
             for (FieldSpec field : definition.entity.fields) {
                 for (String validation : field.validation) {
                     body.append("    @").append(validationToAnnotation(validation)).append("\n");
                 }
                 body.append("    private ").append(field.type).append(" ").append(field.name).append(";\n\n");
             }
-            body.append(TemplateSupport.constructorBlock(className, definition.entity.fields));
-            body.append(TemplateSupport.gettersBlock(definition.entity.fields));
+            if (!lombokModels) {
+                body.append(TemplateSupport.constructorBlock(className, definition.entity.fields));
+                body.append(TemplateSupport.gettersBlock(definition.entity.fields));
+            }
             String content = context.templates().render(
                     context.templatePack().templatePath("dto.java.tpl"),
                     Map.of(
                             "basePackage", basePackage,
                             "className", className,
+                            "classAnnotations", lombokModels ? "@Getter\n@Setter\n@NoArgsConstructor\n@AllArgsConstructor\n" : "",
                             "imports", imports.stream().map(it -> "import " + it + ";").collect(Collectors.joining("\n")),
                             "fieldsBlock", body.toString(),
                             "constructorBlock", "",

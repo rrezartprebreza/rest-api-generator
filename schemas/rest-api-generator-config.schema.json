@@ -114,7 +114,8 @@
         "softDelete": {"type": "boolean"},
         "versioning": {"type": "boolean"},
         "caching": {"type": "boolean"},
-        "dockerArtifacts": {"type": "boolean"}
+        "dockerArtifacts": {"type": "boolean"},
+        "lombokModels": {"type": "boolean"}
       }
     },
     "plugins": {

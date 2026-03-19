@@ -9,6 +9,7 @@ import java.util.regex.Pattern;
 
 public final class RequestParsing {
     private static final Pattern ENTITY_EXPLICIT = Pattern.compile("(?im)^\\s*entity\\s*[:=]\\s*([A-Za-z][A-Za-z0-9_-]*)\\s*$");
+    private static final Pattern ENTITY_HEADER = Pattern.compile("(?im)^\\s*([A-Z][A-Za-z0-9_-]*)\\s*:\\s*$");
     private static final Pattern ENTITY_API_FOR = Pattern.compile("(?i)\\bapi\\s+for\\s+(?:an?\\s+|the\\s+)?([A-Za-z][A-Za-z0-9_-]*)\\b");
     private static final Pattern ENTITY_MANAGE = Pattern.compile("(?i)\\bmanage\\s+(?:an?\\s+|the\\s+)?([A-Za-z][A-Za-z0-9_-]*)\\b");
     private static final Pattern BULLET_FIELD = Pattern.compile("(?m)^\\s*[-*]\\s*([A-Za-z][A-Za-z0-9_]*)\\s*(?::|-)\\s*([A-Za-z][A-Za-z0-9_<>\\[\\],]*)?\\s*(.*)$");
@@ -28,6 +29,10 @@ public final class RequestParsing {
         Matcher explicit = ENTITY_EXPLICIT.matcher(request);
         if (explicit.find()) {
             return explicit.group(1);
+        }
+        Matcher header = ENTITY_HEADER.matcher(request);
+        if (header.find()) {
+            return header.group(1);
         }
         Matcher apiFor = ENTITY_API_FOR.matcher(request);
         if (apiFor.find()) {

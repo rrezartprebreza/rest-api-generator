@@ -1,5 +1,6 @@
 package io.restapigen.cli;
 
+import io.restapigen.codegen.CodeGenerator;
 import io.restapigen.core.config.ConfigLoader;
 import io.restapigen.core.config.GenerationConfig;
 import io.restapigen.core.parser.NaturalLanguagePromptParser;
@@ -22,6 +23,7 @@ import java.util.concurrent.CountDownLatch;
 public final class Main {
     private static final int DEFAULT_PORT = 8080;
     private static final Path DEFAULT_CONFIG = Path.of(".rest-api-generator.yml");
+    private static final Path DEFAULT_OUTPUT_ZIP = Path.of("scaffold.zip");
 
     public static void main(String[] args) throws Exception {
         CliArgs cliArgs = CliArgs.parse(args);
@@ -84,6 +86,14 @@ public final class Main {
             System.out.print(OpenApiWriter.write(spec));
             return;
         }
+        if (cliArgs.mode == CliMode.GENERATE_ZIP) {
+            CodeGenerator codeGenerator = new CodeGenerator();
+            byte[] zip = codeGenerator.generateZip(spec, config);
+            Path output = cliArgs.outputZipPath == null ? DEFAULT_OUTPUT_ZIP : cliArgs.outputZipPath;
+            Files.write(output, zip);
+            System.out.println("Generated ZIP: " + output.toAbsolutePath());
+            return;
+        }
         String json = JsonSpecificationWriter.writeApiSpecification(spec, cliArgs.pretty);
         System.out.print(json);
     }
@@ -100,6 +110,7 @@ public final class Main {
 
     enum CliMode {
         GENERATE,
+        GENERATE_ZIP,
         SERVE,
         INIT_CONFIG,
         VALIDATE_CONFIG,
@@ -116,6 +127,7 @@ public final class Main {
         final int port;
         final Path configPath;
         final String templateName;
+        final Path outputZipPath;
         final boolean showHelp;
 
         private CliArgs(
@@ -126,6 +138,7 @@ public final class Main {
                 int port,
                 Path configPath,
                 String templateName,
+                Path outputZipPath,
                 boolean showHelp
         ) {
             this.mode = mode;
@@ -135,6 +148,7 @@ public final class Main {
             this.port = port;
             this.configPath = configPath;
             this.templateName = templateName;
+            this.outputZipPath = outputZipPath;
             this.showHelp = showHelp;
         }
 
@@ -151,16 +165,17 @@ public final class Main {
             return switch (command) {
                 case "init" -> parseForMode(CliMode.INIT_CONFIG, argList, 1);
                 case "generate" -> parseForMode(CliMode.GENERATE, argList, 1);
+                case "generate-zip" -> parseForMode(CliMode.GENERATE_ZIP, argList, 1);
                 case "serve" -> parseForMode(CliMode.SERVE, argList, 1);
                 case "validate" -> parseForMode(CliMode.VALIDATE_CONFIG, argList, 1);
                 case "openapi" -> parseForMode(CliMode.OPENAPI_EXPORT, argList, 1);
                 case "templates" -> {
                     if (argList.size() > 1 && "list".equalsIgnoreCase(argList.get(1))) {
-                        yield new CliArgs(CliMode.TEMPLATE_LIST, null, null, false, DEFAULT_PORT, DEFAULT_CONFIG, null, false);
+                        yield new CliArgs(CliMode.TEMPLATE_LIST, null, null, false, DEFAULT_PORT, DEFAULT_CONFIG, null, null, false);
                     }
                     System.err.println("Unknown templates command. Use: templates list");
                     printHelpAndExit(2);
-                    yield new CliArgs(CliMode.TEMPLATE_LIST, null, null, false, DEFAULT_PORT, DEFAULT_CONFIG, null, false);
+                    yield new CliArgs(CliMode.TEMPLATE_LIST, null, null, false, DEFAULT_PORT, DEFAULT_CONFIG, null, null, false);
                 }
                 case "plugins" -> {
                     if (argList.size() > 1 && "list".equalsIgnoreCase(argList.get(1))) {
@@ -168,13 +183,13 @@ public final class Main {
                     }
                     System.err.println("Unknown plugins command. Use: plugins list");
                     printHelpAndExit(2);
-                    yield new CliArgs(CliMode.PLUGIN_LIST, null, null, false, DEFAULT_PORT, DEFAULT_CONFIG, null, false);
+                    yield new CliArgs(CliMode.PLUGIN_LIST, null, null, false, DEFAULT_PORT, DEFAULT_CONFIG, null, null, false);
                 }
-                case "--help", "-h", "help" -> new CliArgs(CliMode.GENERATE, null, null, false, DEFAULT_PORT, DEFAULT_CONFIG, null, true);
+                case "--help", "-h", "help" -> new CliArgs(CliMode.GENERATE, null, null, false, DEFAULT_PORT, DEFAULT_CONFIG, null, null, true);
                 default -> {
                     System.err.println("Unknown command: " + command);
                     printHelpAndExit(2);
-                    yield new CliArgs(CliMode.GENERATE, null, null, false, DEFAULT_PORT, DEFAULT_CONFIG, null, false);
+                    yield new CliArgs(CliMode.GENERATE, null, null, false, DEFAULT_PORT, DEFAULT_CONFIG, null, null, false);
                 }
             };
         }
@@ -187,6 +202,7 @@ public final class Main {
             int port = DEFAULT_PORT;
             Path configPath = DEFAULT_CONFIG;
             String templateName = null;
+            Path outputZipPath = null;
             boolean showHelp = false;
 
             List<String> argList = List.of(args);
@@ -202,6 +218,7 @@ public final class Main {
                         userRequest = argList.get(++i);
                     }
                     case "--pretty" -> pretty = true;
+                    case "--generate-zip" -> mode = CliMode.GENERATE_ZIP;
                     case "--serve" -> mode = CliMode.SERVE;
                     case "--port" -> {
                         ensureHasValue(argList, i, "--port");
@@ -217,24 +234,28 @@ public final class Main {
                         ensureHasValue(argList, i, "--template");
                         templateName = argList.get(++i);
                     }
+                    case "--out" -> {
+                        ensureHasValue(argList, i, "--out");
+                        outputZipPath = Path.of(argList.get(++i));
+                    }
                     case "--help", "-h" -> {
                         showHelp = true;
                     }
                     default -> {
                         System.err.println("Unknown argument: " + arg);
                         printHelpAndExit(2);
-                        return new CliArgs(CliMode.GENERATE, null, null, false, DEFAULT_PORT, DEFAULT_CONFIG, null, false);
+                        return new CliArgs(CliMode.GENERATE, null, null, false, DEFAULT_PORT, DEFAULT_CONFIG, null, null, false);
                     }
                 }
             }
 
-            if ((mode == CliMode.GENERATE || mode == CliMode.OPENAPI_EXPORT)
+            if ((mode == CliMode.GENERATE || mode == CliMode.OPENAPI_EXPORT || mode == CliMode.GENERATE_ZIP)
                     && (userRequest == null || userRequest.isBlank()) && inputFile == null && System.console() != null) {
                 System.err.println("No input provided. Use --user-request, --input, or pipe stdin.");
                 printHelpAndExit(2);
             }
 
-            return new CliArgs(mode, inputFile, userRequest, pretty, port, configPath, templateName, showHelp);
+            return new CliArgs(mode, inputFile, userRequest, pretty, port, configPath, templateName, outputZipPath, showHelp);
         }
 
         private static CliArgs parseForMode(CliMode mode, List<String> argList, int startIndex) {
@@ -244,6 +265,7 @@ public final class Main {
             int port = DEFAULT_PORT;
             Path configPath = DEFAULT_CONFIG;
             String templateName = null;
+            Path outputZipPath = null;
             boolean showHelp = false;
 
             for (int i = startIndex; i < argList.size(); i++) {
@@ -270,23 +292,27 @@ public final class Main {
                         ensureHasValue(argList, i, "--template");
                         templateName = argList.get(++i);
                     }
+                    case "--out" -> {
+                        ensureHasValue(argList, i, "--out");
+                        outputZipPath = Path.of(argList.get(++i));
+                    }
                     case "--help", "-h" -> showHelp = true;
                     default -> {
                         System.err.println("Unknown argument: " + arg);
                         printHelpAndExit(2);
-                        return new CliArgs(mode, null, null, false, DEFAULT_PORT, DEFAULT_CONFIG, null, false);
+                        return new CliArgs(mode, null, null, false, DEFAULT_PORT, DEFAULT_CONFIG, null, null, false);
                     }
                 }
             }
 
-            if ((mode == CliMode.GENERATE || mode == CliMode.OPENAPI_EXPORT)
+            if ((mode == CliMode.GENERATE || mode == CliMode.OPENAPI_EXPORT || mode == CliMode.GENERATE_ZIP)
                     && (userRequest == null || userRequest.isBlank())
                     && inputFile == null
                     && System.console() != null) {
                 System.err.println("No input provided. Use --prompt/--user-request, --file/--input, or pipe stdin.");
                 printHelpAndExit(2);
             }
-            return new CliArgs(mode, inputFile, userRequest, pretty, port, configPath, templateName, showHelp);
+            return new CliArgs(mode, inputFile, userRequest, pretty, port, configPath, templateName, outputZipPath, showHelp);
         }
 
         private static void ensureHasValue(List<String> args, int index, String flag) {
@@ -311,6 +337,7 @@ public final class Main {
                     Usage:
                       ./gradlew run --args="generate --prompt \\"Create a CRUD API for Book with title, authorName, publishedDate\\""
                       ./gradlew run --args="generate --file path/to/prompt.txt --pretty"
+                      ./gradlew run --args="generate-zip --file path/to/prompt.txt --out scaffold.zip"
                       ./gradlew run --args="serve --port 8080"
                       ./gradlew run --args="init --config .rest-api-generator.yml --template spring-boot-3-standard"
                       ./gradlew run --args="validate --config .rest-api-generator.yml"
@@ -326,11 +353,13 @@ public final class Main {
                       --port <number>         Port for serve mode (default 8080)
                       --config <path>         Path to .rest-api-generator.yml (default ./.rest-api-generator.yml)
                       --template <name>       Template pack name for init/generate metadata
+                      --out <path>            Output ZIP path for generate-zip (default ./scaffold.zip)
 
                     Legacy flags (still supported):
                       --serve                 Equivalent to serve
                       --init-config           Equivalent to init
                       --validate-config       Equivalent to validate
+                      --generate-zip          Equivalent to generate-zip
                       --help, -h              Show help
                     """);
             System.exit(code);
