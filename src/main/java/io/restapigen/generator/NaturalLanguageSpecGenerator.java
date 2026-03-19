@@ -46,13 +46,17 @@ public final class NaturalLanguageSpecGenerator {
         Set<String> usedNames = new LinkedHashSet<>();
         for (String segment : segments) {
             String rawName = RequestParsing.extractEntityName(segment);
+            List<RequestParsing.ParsedField> parsedFields = RequestParsing.extractFields(segment);
+            List<RelationshipSpec> relationships = buildRelationships(segment);
+            if (rawName == null && parsedFields.isEmpty() && relationships.isEmpty()) {
+                continue;
+            }
             String entityName = NameTransforms.toPascalCase(rawName == null ? DEFAULT_ENTITY_NAME : rawName);
             if (entityName.isBlank() || !usedNames.add(entityName)) {
                 continue;
             }
 
-            List<FieldSpec> fields = buildFields(segment, entityName);
-            List<RelationshipSpec> relationships = buildRelationships(segment);
+            List<FieldSpec> fields = buildFields(parsedFields, entityName);
             EntitySpec entity = new EntitySpec(entityName, defaultTableName(entityName), DEFAULT_ID_TYPE, fields);
             ApiSpec api = buildApi(segment, entityName);
             definitions.add(new EntityDefinition(entity, api, relationships));
@@ -89,8 +93,7 @@ public final class NaturalLanguageSpecGenerator {
         return new ApiSpec(defaultResourcePath(entityName), crud, pagination, sorting);
     }
 
-    private static List<FieldSpec> buildFields(String request, String entityName) {
-        List<RequestParsing.ParsedField> parsedFields = RequestParsing.extractFields(request);
+    private static List<FieldSpec> buildFields(List<RequestParsing.ParsedField> parsedFields, String entityName) {
         List<FieldSpec> fields = new ArrayList<>();
         Set<String> usedNames = new LinkedHashSet<>();
         for (RequestParsing.ParsedField parsed : parsedFields) {

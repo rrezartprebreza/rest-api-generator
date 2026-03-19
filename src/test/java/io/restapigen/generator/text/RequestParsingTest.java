@@ -17,6 +17,15 @@ class RequestParsingTest {
     }
 
     @Test
+    void extractsEntityNameFromHeaderStyleSegment() {
+        String request = """
+                Category:
+                - name (string, required)
+                """;
+        assertEquals("Category", RequestParsing.extractEntityName(request));
+    }
+
+    @Test
     void parsesRelationships() {
         String request = "Create API for Product with name. Product belongs to Category and has many Review and has many Tag (many-to-many).";
         var relations = RequestParsing.extractRelationships(request);

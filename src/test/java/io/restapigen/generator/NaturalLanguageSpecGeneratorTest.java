@@ -169,4 +169,30 @@ class NaturalLanguageSpecGeneratorTest {
         FieldSpec createdAt = definition.entity.fields.stream().filter(field -> "createdAt".equals(field.name)).findFirst().orElseThrow();
         assertEquals("LocalDateTime", createdAt.type);
     }
+
+    @Test
+    void parsesHeaderStyleMultiEntityPrompt() {
+        String request = """
+                Create a complete e-commerce API with:
+
+                Category:
+                - name (string, required, unique)
+
+                Product:
+                - name (string, required)
+                - belongs to Category
+                """;
+        ApiSpecification spec = new NaturalLanguageSpecGenerator().generate(request);
+
+        assertEquals(2, spec.entities.size());
+        assertFalse(spec.entities.stream().anyMatch(definition -> "Item".equals(definition.entity.name)));
+        assertTrue(spec.entities.stream().anyMatch(definition -> "Category".equals(definition.entity.name)));
+        EntityDefinition product = spec.entities.stream()
+                .filter(definition -> "Product".equals(definition.entity.name))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(1, product.relationships.size());
+        assertEquals("ManyToOne", product.relationships.get(0).type);
+        assertEquals("Category", product.relationships.get(0).target);
+    }
 }
