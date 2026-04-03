@@ -4,7 +4,6 @@ import io.restapigen.codegen.CodeGenerator;
 import io.restapigen.core.config.ConfigLoader;
 import io.restapigen.core.config.GenerationConfig;
 import io.restapigen.core.parser.NaturalLanguagePromptParser;
-import io.restapigen.core.parser.PromptParser;
 import io.restapigen.core.plugin.PluginLoader;
 import io.restapigen.core.template.TemplatePack;
 import io.restapigen.domain.ApiSpecification;
@@ -12,357 +11,391 @@ import io.restapigen.generator.parser.SpecInputExtractor;
 import io.restapigen.output.openapi.OpenApiWriter;
 import io.restapigen.output.json.JsonSpecificationWriter;
 import io.restapigen.server.RestApiGeneratorServer;
+import picocli.CommandLine;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Mixin;
+import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Spec;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 
-public final class Main {
-    private static final int DEFAULT_PORT = 8080;
-    private static final Path DEFAULT_CONFIG = Path.of(".rest-api-generator.yml");
-    private static final Path DEFAULT_OUTPUT_ZIP = Path.of("scaffold.zip");
+@Command(
+        name = "rest-api-gen",
+        description = "Generate production-ready Spring Boot REST APIs from natural language",
+        mixinStandardHelpOptions = true,
+        subcommands = {
+                Main.GenerateCommand.class,
+                Main.GenerateZipCommand.class,
+                Main.ServeCommand.class,
+                Main.InitCommand.class,
+                Main.ValidateCommand.class,
+                Main.OpenApiCommand.class,
+                Main.TemplatesCommand.class,
+                Main.PluginsCommand.class
+        })
+public final class Main implements Callable<Integer> {
 
-    public static void main(String[] args) throws Exception {
-        CliArgs cliArgs = CliArgs.parse(args);
-        if (cliArgs.showHelp) {
-            CliArgs.printHelpAndExit(0);
-            return;
-        }
+    // ── Legacy top-level flags kept for backward compatibility ────────────────
 
+    @Option(names = "--generate-zip", hidden = true)
+    boolean legacyGenerateZip;
+
+    @Option(names = "--serve", hidden = true)
+    boolean legacyServe;
+
+    @Option(names = "--init-config", hidden = true)
+    boolean legacyInitConfig;
+
+    @Option(names = "--validate-config", hidden = true)
+    boolean legacyValidateConfig;
+
+    @Option(names = {"--prompt", "--user-request"}, hidden = true)
+    String userRequest;
+
+    @Option(names = {"--file", "--input"}, hidden = true)
+    Path inputFile;
+
+    @Option(names = "--pretty", hidden = true)
+    boolean pretty;
+
+    @Option(names = "--port", hidden = true, defaultValue = "8080")
+    int port;
+
+    @Option(names = "--config", hidden = true, defaultValue = ".rest-api-generator.yml")
+    Path configPath;
+
+    @Option(names = "--template", hidden = true)
+    String templateName;
+
+    @Option(names = "--out", hidden = true)
+    Path outputZipPath;
+
+    @Spec
+    CommandSpec spec;
+
+    @Override
+    public Integer call() throws Exception {
+        PrintWriter out = spec.commandLine().getOut();
+        PrintWriter err = spec.commandLine().getErr();
         ConfigLoader configLoader = new ConfigLoader();
-        Path configPath = cliArgs.configPath == null ? DEFAULT_CONFIG : cliArgs.configPath;
-        if (cliArgs.mode == CliMode.INIT_CONFIG) {
-            configLoader.writeDefault(configPath, cliArgs.templateName);
-            System.out.println("Wrote default config to " + configPath);
-            if (cliArgs.templateName != null && !cliArgs.templateName.isBlank()) {
-                System.out.println("Template selected: " + cliArgs.templateName);
+
+        if (legacyInitConfig) {
+            configLoader.writeDefault(configPath, templateName);
+            err.println("Wrote default config to " + configPath);
+            if (templateName != null && !templateName.isBlank()) {
+                err.println("Template selected: " + templateName);
             }
-            return;
+            return 0;
         }
 
-        if (cliArgs.mode == CliMode.TEMPLATE_LIST) {
-            TemplatePack.availablePacks().forEach(System.out::println);
-            return;
+        if (legacyValidateConfig) {
+            configLoader.load(configPath);
+            err.println("Configuration is valid: " + configPath);
+            return 0;
         }
 
         GenerationConfig config = configLoader.load(configPath);
-        if (cliArgs.templateName != null && !cliArgs.templateName.isBlank()) {
-            config = config.withTemplatePack(cliArgs.templateName);
-        }
-        if (cliArgs.mode == CliMode.PLUGIN_LIST) {
-            final GenerationConfig activeConfig = config;
-            PluginLoader loader = new PluginLoader();
-            loader.load(activeConfig).forEach(plugin -> {
-                String status = activeConfig.plugins().isEnabled(plugin.getName()) ? "enabled" : "disabled";
-                System.out.println(plugin.getName() + "@" + plugin.getVersion() + " [" + status + "]");
-            });
-            return;
-        }
-        if (cliArgs.mode == CliMode.VALIDATE_CONFIG) {
-            System.out.println("Configuration is valid: " + configPath);
-            return;
+        if (templateName != null && !templateName.isBlank()) {
+            config = config.withTemplatePack(templateName);
         }
 
-        if (cliArgs.mode == CliMode.SERVE) {
-            try (RestApiGeneratorServer server = new RestApiGeneratorServer(cliArgs.port, config)) {
+        if (legacyServe) {
+            try (RestApiGeneratorServer server = new RestApiGeneratorServer(port, config)) {
                 server.start();
-                System.out.printf("Listening on http://localhost:%d%n", cliArgs.port);
+                err.printf("Listening on http://localhost:%d%n", port);
                 new CountDownLatch(1).await();
             } catch (InterruptedException ignored) {
                 Thread.currentThread().interrupt();
             }
-            return;
+            return 0;
         }
 
-        String rawInput = readInput(cliArgs);
-        String userRequest = SpecInputExtractor.extractUserRequestOrWholeInput(rawInput);
+        if (legacyGenerateZip || userRequest != null || inputFile != null) {
+            String rawInput = InputMixin.readInput(userRequest, inputFile);
+            String request = SpecInputExtractor.extractUserRequestOrWholeInput(rawInput);
+            ApiSpecification apiSpec = new NaturalLanguagePromptParser().parse(request, config);
 
-        PromptParser parser = new NaturalLanguagePromptParser();
-        ApiSpecification spec = parser.parse(userRequest, config);
-        if (cliArgs.mode == CliMode.OPENAPI_EXPORT) {
-            System.out.print(OpenApiWriter.write(spec));
-            return;
+            if (legacyGenerateZip) {
+                byte[] zip = new CodeGenerator().generateZip(apiSpec, config);
+                Path output = outputZipPath != null ? outputZipPath : Path.of("scaffold.zip");
+                Files.write(output, zip);
+                err.println("Generated ZIP: " + output.toAbsolutePath());
+                return 0;
+            }
+
+            out.print(JsonSpecificationWriter.writeApiSpecification(apiSpec, pretty));
+            out.flush();
+            return 0;
         }
-        if (cliArgs.mode == CliMode.GENERATE_ZIP) {
-            CodeGenerator codeGenerator = new CodeGenerator();
-            byte[] zip = codeGenerator.generateZip(spec, config);
-            Path output = cliArgs.outputZipPath == null ? DEFAULT_OUTPUT_ZIP : cliArgs.outputZipPath;
-            Files.write(output, zip);
-            System.out.println("Generated ZIP: " + output.toAbsolutePath());
-            return;
-        }
-        String json = JsonSpecificationWriter.writeApiSpecification(spec, cliArgs.pretty);
-        System.out.print(json);
+
+        // No subcommand, no legacy flags, no input – show help
+        spec.commandLine().usage(err);
+        return 0;
     }
 
-    private static String readInput(CliArgs cliArgs) throws IOException {
-        if (cliArgs.userRequest != null && !cliArgs.userRequest.isBlank()) {
-            return cliArgs.userRequest;
-        }
-        if (cliArgs.inputFile != null) {
-            return Files.readString(cliArgs.inputFile, StandardCharsets.UTF_8);
-        }
-        return new String(System.in.readAllBytes(), StandardCharsets.UTF_8);
+    public static void main(String[] args) {
+        int exitCode = new CommandLine(new Main())
+                .setCaseInsensitiveEnumValuesAllowed(true)
+                .setExecutionExceptionHandler((ex, commandLine, parseResult) -> {
+                    commandLine.getErr().println("Error: " + ex.getMessage());
+                    return 1;
+                })
+                .execute(args);
+        System.exit(exitCode);
     }
 
-    enum CliMode {
-        GENERATE,
-        GENERATE_ZIP,
-        SERVE,
-        INIT_CONFIG,
-        VALIDATE_CONFIG,
-        TEMPLATE_LIST,
-        PLUGIN_LIST,
-        OPENAPI_EXPORT
+    // ── Shared mixins ─────────────────────────────────────────────────────────
+
+    static final class ConfigMixin {
+        @Option(names = {"--config", "-c"},
+                description = "Path to .rest-api-generator.yml (default: ${DEFAULT-VALUE})",
+                defaultValue = ".rest-api-generator.yml")
+        Path configPath;
+
+        @Option(names = "--template",
+                description = "Template pack name")
+        String templateName;
+
+        GenerationConfig load() throws IOException {
+            GenerationConfig cfg = new ConfigLoader().load(configPath);
+            if (templateName != null && !templateName.isBlank()) {
+                cfg = cfg.withTemplatePack(templateName);
+            }
+            return cfg;
+        }
     }
 
-    static final class CliArgs {
-        final CliMode mode;
-        final Path inputFile;
-        final String userRequest;
-        final boolean pretty;
-        final int port;
-        final Path configPath;
-        final String templateName;
-        final Path outputZipPath;
-        final boolean showHelp;
+    static final class InputMixin {
+        @Option(names = {"--prompt", "--user-request"},
+                description = "Natural-language prompt")
+        String prompt;
 
-        private CliArgs(
-                CliMode mode,
-                Path inputFile,
-                String userRequest,
-                boolean pretty,
-                int port,
-                Path configPath,
-                String templateName,
-                Path outputZipPath,
-                boolean showHelp
-        ) {
-            this.mode = mode;
-            this.inputFile = inputFile;
-            this.userRequest = userRequest;
-            this.pretty = pretty;
-            this.port = port;
-            this.configPath = configPath;
-            this.templateName = templateName;
-            this.outputZipPath = outputZipPath;
-            this.showHelp = showHelp;
+        @Option(names = {"--file", "--input"},
+                description = "File containing the prompt")
+        Path inputFile;
+
+        String read() throws IOException {
+            return readInput(prompt, inputFile);
         }
 
-        static CliArgs parse(String[] args) {
-            if (args.length > 0 && !args[0].startsWith("--")) {
-                return parseCommandStyle(args);
+        static String readInput(String prompt, Path file) throws IOException {
+            if (prompt != null && !prompt.isBlank()) return prompt;
+            if (file != null) return Files.readString(file, StandardCharsets.UTF_8);
+            return new String(System.in.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+
+    // ── Subcommands ───────────────────────────────────────────────────────────
+
+    @Command(name = "generate",
+            description = "Parse a prompt and output the API specification as JSON",
+            mixinStandardHelpOptions = true)
+    static final class GenerateCommand implements Callable<Integer> {
+        @Mixin ConfigMixin config;
+        @Mixin InputMixin input;
+
+        @Option(names = "--pretty", description = "Pretty-print JSON output")
+        boolean pretty;
+
+        @Spec CommandSpec spec;
+
+        @Override
+        public Integer call() throws Exception {
+            GenerationConfig cfg = config.load();
+            ApiSpecification apiSpec = new NaturalLanguagePromptParser()
+                    .parse(SpecInputExtractor.extractUserRequestOrWholeInput(input.read()), cfg);
+            PrintWriter out = spec.commandLine().getOut();
+            out.print(JsonSpecificationWriter.writeApiSpecification(apiSpec, pretty));
+            out.flush();
+            return 0;
+        }
+    }
+
+    @Command(name = "generate-zip",
+            description = "Generate a runnable ZIP scaffold from a prompt",
+            mixinStandardHelpOptions = true)
+    static final class GenerateZipCommand implements Callable<Integer> {
+        @Mixin ConfigMixin config;
+        @Mixin InputMixin input;
+
+        @Option(names = {"--out", "-o"},
+                description = "Output ZIP path (default: ${DEFAULT-VALUE})",
+                defaultValue = "scaffold.zip")
+        Path outputZip;
+
+        @Spec CommandSpec spec;
+
+        @Override
+        public Integer call() throws Exception {
+            GenerationConfig cfg = config.load();
+            ApiSpecification apiSpec = new NaturalLanguagePromptParser()
+                    .parse(SpecInputExtractor.extractUserRequestOrWholeInput(input.read()), cfg);
+            byte[] zip = new CodeGenerator().generateZip(apiSpec, cfg);
+            Files.write(outputZip, zip);
+            spec.commandLine().getErr().println("Generated ZIP: " + outputZip.toAbsolutePath());
+            return 0;
+        }
+    }
+
+    @Command(name = "serve",
+            description = "Start the HTTP API server",
+            mixinStandardHelpOptions = true)
+    static final class ServeCommand implements Callable<Integer> {
+        @Mixin ConfigMixin config;
+
+        @Option(names = {"--port", "-p"},
+                description = "Port to listen on (default: ${DEFAULT-VALUE})",
+                defaultValue = "8080")
+        int port;
+
+        @Spec CommandSpec spec;
+
+        @Override
+        public Integer call() throws Exception {
+            GenerationConfig cfg = config.load();
+            try (RestApiGeneratorServer server = new RestApiGeneratorServer(port, cfg)) {
+                server.start();
+                spec.commandLine().getErr().printf("Listening on http://localhost:%d%n", port);
+                new CountDownLatch(1).await();
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
             }
-            return parseFlagStyle(args);
+            return 0;
+        }
+    }
+
+    @Command(name = "init",
+            description = "Write a default .rest-api-generator.yml config file",
+            mixinStandardHelpOptions = true)
+    static final class InitCommand implements Callable<Integer> {
+        @Option(names = {"--config", "-c"},
+                description = "Config file path (default: ${DEFAULT-VALUE})",
+                defaultValue = ".rest-api-generator.yml")
+        Path configPath;
+
+        @Option(names = "--template",
+                description = "Template pack name")
+        String templateName;
+
+        @Spec CommandSpec spec;
+
+        @Override
+        public Integer call() throws Exception {
+            new ConfigLoader().writeDefault(configPath, templateName);
+            PrintWriter err = spec.commandLine().getErr();
+            err.println("Wrote default config to " + configPath);
+            if (templateName != null && !templateName.isBlank()) {
+                err.println("Template selected: " + templateName);
+            }
+            return 0;
+        }
+    }
+
+    @Command(name = "validate",
+            description = "Validate a .rest-api-generator.yml config file",
+            mixinStandardHelpOptions = true)
+    static final class ValidateCommand implements Callable<Integer> {
+        @Option(names = {"--config", "-c"},
+                description = "Config file path (default: ${DEFAULT-VALUE})",
+                defaultValue = ".rest-api-generator.yml")
+        Path configPath;
+
+        @Spec CommandSpec spec;
+
+        @Override
+        public Integer call() throws Exception {
+            new ConfigLoader().load(configPath);
+            spec.commandLine().getErr().println("Configuration is valid: " + configPath);
+            return 0;
+        }
+    }
+
+    @Command(name = "openapi",
+            description = "Export an OpenAPI specification from a prompt",
+            mixinStandardHelpOptions = true)
+    static final class OpenApiCommand implements Callable<Integer> {
+        @Mixin ConfigMixin config;
+        @Mixin InputMixin input;
+
+        @Spec CommandSpec spec;
+
+        @Override
+        public Integer call() throws Exception {
+            GenerationConfig cfg = config.load();
+            ApiSpecification apiSpec = new NaturalLanguagePromptParser()
+                    .parse(SpecInputExtractor.extractUserRequestOrWholeInput(input.read()), cfg);
+            PrintWriter out = spec.commandLine().getOut();
+            out.print(OpenApiWriter.write(apiSpec));
+            out.flush();
+            return 0;
+        }
+    }
+
+    @Command(name = "templates",
+            description = "Manage template packs",
+            subcommands = {TemplatesCommand.ListCommand.class},
+            mixinStandardHelpOptions = true)
+    static final class TemplatesCommand implements Runnable {
+        @Spec CommandSpec spec;
+
+        @Override
+        public void run() {
+            spec.commandLine().usage(spec.commandLine().getErr());
         }
 
-        private static CliArgs parseCommandStyle(String[] args) {
-            String command = args[0];
-            List<String> argList = List.of(args);
-            return switch (command) {
-                case "init" -> parseForMode(CliMode.INIT_CONFIG, argList, 1);
-                case "generate" -> parseForMode(CliMode.GENERATE, argList, 1);
-                case "generate-zip" -> parseForMode(CliMode.GENERATE_ZIP, argList, 1);
-                case "serve" -> parseForMode(CliMode.SERVE, argList, 1);
-                case "validate" -> parseForMode(CliMode.VALIDATE_CONFIG, argList, 1);
-                case "openapi" -> parseForMode(CliMode.OPENAPI_EXPORT, argList, 1);
-                case "templates" -> {
-                    if (argList.size() > 1 && "list".equalsIgnoreCase(argList.get(1))) {
-                        yield new CliArgs(CliMode.TEMPLATE_LIST, null, null, false, DEFAULT_PORT, DEFAULT_CONFIG, null, null, false);
-                    }
-                    System.err.println("Unknown templates command. Use: templates list");
-                    printHelpAndExit(2);
-                    yield new CliArgs(CliMode.TEMPLATE_LIST, null, null, false, DEFAULT_PORT, DEFAULT_CONFIG, null, null, false);
-                }
-                case "plugins" -> {
-                    if (argList.size() > 1 && "list".equalsIgnoreCase(argList.get(1))) {
-                        yield parseForMode(CliMode.PLUGIN_LIST, argList, 2);
-                    }
-                    System.err.println("Unknown plugins command. Use: plugins list");
-                    printHelpAndExit(2);
-                    yield new CliArgs(CliMode.PLUGIN_LIST, null, null, false, DEFAULT_PORT, DEFAULT_CONFIG, null, null, false);
-                }
-                case "--help", "-h", "help" -> new CliArgs(CliMode.GENERATE, null, null, false, DEFAULT_PORT, DEFAULT_CONFIG, null, null, true);
-                default -> {
-                    System.err.println("Unknown command: " + command);
-                    printHelpAndExit(2);
-                    yield new CliArgs(CliMode.GENERATE, null, null, false, DEFAULT_PORT, DEFAULT_CONFIG, null, null, false);
-                }
-            };
-        }
+        @Command(name = "list",
+                description = "List available template packs",
+                mixinStandardHelpOptions = true)
+        static final class ListCommand implements Callable<Integer> {
+            @Spec CommandSpec spec;
 
-        private static CliArgs parseFlagStyle(String[] args) {
-            Path inputFile = null;
-            String userRequest = null;
-            boolean pretty = false;
-            CliMode mode = CliMode.GENERATE;
-            int port = DEFAULT_PORT;
-            Path configPath = DEFAULT_CONFIG;
-            String templateName = null;
-            Path outputZipPath = null;
-            boolean showHelp = false;
-
-            List<String> argList = List.of(args);
-            for (int i = 0; i < argList.size(); i++) {
-                String arg = argList.get(i);
-                switch (arg) {
-                    case "--input" -> {
-                        ensureHasValue(argList, i, "--input");
-                        inputFile = Path.of(argList.get(++i));
-                    }
-                    case "--user-request" -> {
-                        ensureHasValue(argList, i, "--user-request");
-                        userRequest = argList.get(++i);
-                    }
-                    case "--pretty" -> pretty = true;
-                    case "--generate-zip" -> mode = CliMode.GENERATE_ZIP;
-                    case "--serve" -> mode = CliMode.SERVE;
-                    case "--port" -> {
-                        ensureHasValue(argList, i, "--port");
-                        port = parsePort(argList.get(++i));
-                    }
-                    case "--config" -> {
-                        ensureHasValue(argList, i, "--config");
-                        configPath = Path.of(argList.get(++i));
-                    }
-                    case "--init-config" -> mode = CliMode.INIT_CONFIG;
-                    case "--validate-config" -> mode = CliMode.VALIDATE_CONFIG;
-                    case "--template" -> {
-                        ensureHasValue(argList, i, "--template");
-                        templateName = argList.get(++i);
-                    }
-                    case "--out" -> {
-                        ensureHasValue(argList, i, "--out");
-                        outputZipPath = Path.of(argList.get(++i));
-                    }
-                    case "--help", "-h" -> {
-                        showHelp = true;
-                    }
-                    default -> {
-                        System.err.println("Unknown argument: " + arg);
-                        printHelpAndExit(2);
-                        return new CliArgs(CliMode.GENERATE, null, null, false, DEFAULT_PORT, DEFAULT_CONFIG, null, null, false);
-                    }
-                }
-            }
-
-            if ((mode == CliMode.GENERATE || mode == CliMode.OPENAPI_EXPORT || mode == CliMode.GENERATE_ZIP)
-                    && (userRequest == null || userRequest.isBlank()) && inputFile == null && System.console() != null) {
-                System.err.println("No input provided. Use --user-request, --input, or pipe stdin.");
-                printHelpAndExit(2);
-            }
-
-            return new CliArgs(mode, inputFile, userRequest, pretty, port, configPath, templateName, outputZipPath, showHelp);
-        }
-
-        private static CliArgs parseForMode(CliMode mode, List<String> argList, int startIndex) {
-            Path inputFile = null;
-            String userRequest = null;
-            boolean pretty = false;
-            int port = DEFAULT_PORT;
-            Path configPath = DEFAULT_CONFIG;
-            String templateName = null;
-            Path outputZipPath = null;
-            boolean showHelp = false;
-
-            for (int i = startIndex; i < argList.size(); i++) {
-                String arg = argList.get(i);
-                switch (arg) {
-                    case "--prompt", "--user-request" -> {
-                        ensureHasValue(argList, i, arg);
-                        userRequest = argList.get(++i);
-                    }
-                    case "--file", "--input" -> {
-                        ensureHasValue(argList, i, arg);
-                        inputFile = Path.of(argList.get(++i));
-                    }
-                    case "--pretty" -> pretty = true;
-                    case "--port" -> {
-                        ensureHasValue(argList, i, "--port");
-                        port = parsePort(argList.get(++i));
-                    }
-                    case "--config" -> {
-                        ensureHasValue(argList, i, "--config");
-                        configPath = Path.of(argList.get(++i));
-                    }
-                    case "--template" -> {
-                        ensureHasValue(argList, i, "--template");
-                        templateName = argList.get(++i);
-                    }
-                    case "--out" -> {
-                        ensureHasValue(argList, i, "--out");
-                        outputZipPath = Path.of(argList.get(++i));
-                    }
-                    case "--help", "-h" -> showHelp = true;
-                    default -> {
-                        System.err.println("Unknown argument: " + arg);
-                        printHelpAndExit(2);
-                        return new CliArgs(mode, null, null, false, DEFAULT_PORT, DEFAULT_CONFIG, null, null, false);
-                    }
-                }
-            }
-
-            if ((mode == CliMode.GENERATE || mode == CliMode.OPENAPI_EXPORT || mode == CliMode.GENERATE_ZIP)
-                    && (userRequest == null || userRequest.isBlank())
-                    && inputFile == null
-                    && System.console() != null) {
-                System.err.println("No input provided. Use --prompt/--user-request, --file/--input, or pipe stdin.");
-                printHelpAndExit(2);
-            }
-            return new CliArgs(mode, inputFile, userRequest, pretty, port, configPath, templateName, outputZipPath, showHelp);
-        }
-
-        private static void ensureHasValue(List<String> args, int index, String flag) {
-            if (index + 1 >= args.size() || args.get(index + 1).startsWith("--")) {
-                System.err.println("Missing value for " + flag);
-                printHelpAndExit(2);
+            @Override
+            public Integer call() {
+                PrintWriter out = spec.commandLine().getOut();
+                TemplatePack.availablePacks().forEach(out::println);
+                out.flush();
+                return 0;
             }
         }
+    }
 
-        private static int parsePort(String raw) {
-            try {
-                return Integer.parseInt(raw);
-            } catch (NumberFormatException e) {
-                System.err.println("Invalid port: " + raw);
-                printHelpAndExit(2);
-                return DEFAULT_PORT;
-            }
+    @Command(name = "plugins",
+            description = "Manage plugins",
+            subcommands = {PluginsCommand.ListCommand.class},
+            mixinStandardHelpOptions = true)
+    static final class PluginsCommand implements Runnable {
+        @Spec CommandSpec spec;
+
+        @Override
+        public void run() {
+            spec.commandLine().usage(spec.commandLine().getErr());
         }
 
-        static void printHelpAndExit(int code) {
-            System.err.println("""
-                    Usage:
-                      ./gradlew run --args="generate --prompt \\"Create a CRUD API for Book with title, authorName, publishedDate\\""
-                      ./gradlew run --args="generate --file path/to/prompt.txt --pretty"
-                      ./gradlew run --args="generate-zip --file path/to/prompt.txt --out scaffold.zip"
-                      ./gradlew run --args="serve --port 8080"
-                      ./gradlew run --args="init --config .rest-api-generator.yml --template spring-boot-3-standard"
-                      ./gradlew run --args="validate --config .rest-api-generator.yml"
-                      ./gradlew run --args="openapi --prompt \\"Create API for User with email\\""
-                      ./gradlew run --args="templates list"
-                      ./gradlew run --args="plugins list --config .rest-api-generator.yml"
-                      cat prompt.txt | ./gradlew run
+        @Command(name = "list",
+                description = "List available plugins",
+                mixinStandardHelpOptions = true)
+        static final class ListCommand implements Callable<Integer> {
+            @Mixin ConfigMixin config;
+            @Spec CommandSpec spec;
 
-                    Options:
-                      --prompt <text>         Natural-language request (alias: --user-request)
-                      --file <path>           File containing either a user request or a full prompt with a USER REQUEST section (alias: --input)
-                      --pretty                Pretty-print JSON
-                      --port <number>         Port for serve mode (default 8080)
-                      --config <path>         Path to .rest-api-generator.yml (default ./.rest-api-generator.yml)
-                      --template <name>       Template pack name for init/generate metadata
-                      --out <path>            Output ZIP path for generate-zip (default ./scaffold.zip)
-
-                    Legacy flags (still supported):
-                      --serve                 Equivalent to serve
-                      --init-config           Equivalent to init
-                      --validate-config       Equivalent to validate
-                      --generate-zip          Equivalent to generate-zip
-                      --help, -h              Show help
-                    """);
-            System.exit(code);
+            @Override
+            public Integer call() throws Exception {
+                GenerationConfig cfg = config.load();
+                PrintWriter out = spec.commandLine().getOut();
+                new PluginLoader().load(cfg).forEach(plugin -> {
+                    String status = cfg.plugins().isEnabled(plugin.getName()) ? "enabled" : "disabled";
+                    out.println(plugin.getName() + "@" + plugin.getVersion() + " [" + status + "]");
+                });
+                out.flush();
+                return 0;
+            }
         }
     }
 }

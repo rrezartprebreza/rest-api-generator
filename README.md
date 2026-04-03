@@ -43,6 +43,8 @@ This project is designed for teams: developers run the generator and receive a c
 
 ## What is implemented now
 
+- [picocli](https://picocli.info)-based CLI with typed subcommands (`generate`, `generate-zip`, `serve`, `init`, `validate`, `openapi`, `templates list`, `plugins list`) — `--help` / `-h` works on every subcommand
+- Clean stdout/stderr separation: data output (JSON spec, OpenAPI) goes to **stdout**, status messages go to **stderr** — safe to pipe (`> output.json`) without polluting the output
 - Plugin-based generation pipeline (`entity`, `dto`, `repository`, `service`, `controller`, `test`, `migration`, `docs`, `security` placeholder)
 - Project scaffold generation (`build.gradle`, `settings.gradle`, `application.yml`, Spring Boot main class)
 - Multi-entity prompt parsing (separate entities with blank lines)
@@ -252,13 +254,38 @@ public class Product {
 ./gradlew run --args="serve --port 8080"
 ```
 
-Legacy flags still work:
-- `--user-request`
-- `--input`
-- `--generate-zip`
-- `--serve`
-- `--init-config`
-- `--validate-config`
+Every subcommand supports `--help` / `-h`:
+
+```bash
+./gradlew run --args="generate --help"
+./gradlew run --args="generate-zip --help"
+./gradlew run --args="serve --help"
+```
+
+### Piping output
+
+Because status messages go to **stderr** and data goes to **stdout**, you can pipe safely:
+
+```bash
+# Write JSON spec to a file without any status noise
+./gradlew run --args="generate --prompt 'Create API for User with email' --pretty" > spec.json
+
+# Pipe spec directly into another tool
+./gradlew run --args="generate --file prompt.txt" | jq '.entities[].name'
+```
+
+### Legacy flags (still supported)
+
+These top-level flags from earlier versions continue to work:
+
+| Legacy flag | Equivalent subcommand |
+|---|---|
+| `--user-request <text>` | `generate --prompt <text>` |
+| `--input <path>` | `generate --file <path>` |
+| `--generate-zip` | `generate-zip` subcommand |
+| `--serve` | `serve` subcommand |
+| `--init-config` | `init` subcommand |
+| `--validate-config` | `validate` subcommand |
 
 ## Config and schema
 
