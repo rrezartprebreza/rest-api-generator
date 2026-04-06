@@ -319,7 +319,7 @@
   <div class="server-config">
     <label for="serverUrl">Server</label>
     <div class="server-divider"></div>
-    <input type="text" id="serverUrl" value="http://localhost:8080" placeholder="http://localhost:8080" autocomplete="off" spellcheck="false"/>
+    <input type="text" id="serverUrl" placeholder="Auto-detected from current site" autocomplete="off" spellcheck="false"/>
     <div class="server-divider"></div>
     <div class="online-badge" id="onlineBadge"><div class="pulse"></div>checking&#x2026;</div>
   </div>
@@ -484,6 +484,21 @@
 let specData = null;
 let zipBlob = null;
 
+const serverUrlInput = document.getElementById('serverUrl');
+
+function resolveDefaultServerUrl() {
+  const origin = window.location.origin;
+  if (!origin || origin === 'null') {
+    return 'http://localhost:8080';
+  }
+  if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+    return 'http://localhost:8080';
+  }
+  return origin;
+}
+
+serverUrlInput.value = resolveDefaultServerUrl();
+
 const examples = {
   ecommerce: "Create an API for Product with:\n- name (string, required)\n- price (decimal, required, min 0)\n- stock (integer)\n- createdAt (timestamp)\n- belongs to Category\n\nCreate an API for Category with:\n- name (string, required)\n- description (string)\n\nCreate an API for Order with:\n- totalPrice (decimal, required)\n- status (enum: PENDING, PROCESSING, SHIPPED, DELIVERED)\n- createdAt (timestamp)\n- belongs to Customer\n\nCreate an API for Customer with:\n- firstName (string, required)\n- lastName (string, required)\n- email (valid email, required)",
   blog: "Create an API for BlogPost with:\n- title (string, required)\n- content (string, required)\n- status (enum: DRAFT, PUBLISHED, ARCHIVED)\n- publishedAt (timestamp)\n- authorEmail (valid email)\n- belongs to Author\n\nCreate an API for Author with:\n- name (string, required)\n- bio (string)\n- email (valid email, required)\n\nCreate an API for Tag with:\n- name (string, required)\n- many-to-many with BlogPost",
@@ -518,7 +533,7 @@ function setStep(n) {
 
 async function checkServer() {
   const badge = document.getElementById('onlineBadge');
-  const url = document.getElementById('serverUrl').value.trim();
+  const url = serverUrlInput.value.trim() || resolveDefaultServerUrl();
   try {
     const res = await fetch(url + '/about', { signal: AbortSignal.timeout(3000) });
     if (res.ok) {
@@ -533,7 +548,7 @@ async function checkServer() {
     badge.style.color = 'var(--accent3)';
   }
 }
-document.getElementById('serverUrl').addEventListener('change', checkServer);
+serverUrlInput.addEventListener('change', checkServer);
 checkServer();
 setInterval(checkServer, 15000);
 
@@ -611,7 +626,7 @@ function buildFileTree(spec) {
 async function generateSpec() {
   const prompt = promptInput.value.trim();
   if (!prompt) { setStatus('Please write a prompt first', 'error'); return; }
-  const url = document.getElementById('serverUrl').value.trim();
+  const url = serverUrlInput.value.trim() || resolveDefaultServerUrl();
   const btn = document.getElementById('genSpecBtn');
   btn.disabled = true; btn.classList.add('loading');
   setStatus('Calling POST /generator/spec...', 'loading');
@@ -641,7 +656,7 @@ async function generateSpec() {
 
 async function generateZip() {
   if (!specData) return;
-  const url = document.getElementById('serverUrl').value.trim();
+  const url = serverUrlInput.value.trim() || resolveDefaultServerUrl();
   const btn = document.getElementById('genZipBtn');
   btn.disabled = true; btn.classList.add('loading');
   setStatus('Building ZIP...', 'loading');
