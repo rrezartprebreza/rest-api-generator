@@ -1,328 +1,226 @@
 # REST API Generator
 
-> Generate production-ready Spring Boot REST APIs from plain English in seconds
+**Generate production-ready Spring Boot REST APIs from plain English in 30 seconds.**
 
-[📺 Demo Video](#) | [🚀 Quick Start](#quick-start) | [📚 Examples](#examples) | [💬 Discord](#)
+No boilerplate. No copy-pasting. Type a description → get a complete, runnable ZIP.
+
+[![CI](https://github.com/rrezartprebreza/rest-api-generator/actions/workflows/ci.yml/badge.svg)](https://github.com/rrezartprebreza/rest-api-generator/actions)
 
 ---
 
-## Why Use This?
-
-❌ **Before:**
-- Manually create Entity, DTO, Repository, Service, Controller
-- Copy-paste boilerplate for each field
-- Wire up relationships by hand
-- Add validation annotations one-by-one
-- Set up error handling
-- Configure pagination
-- Write MapStruct mappers
-- **Time: 2-3 hours per entity**
-
-✅ **After:**
-- Complete CRUD API generated
-- All layers (Entity, DTO, Service, Controller)
-- Relationships configured
-- Validation included
-- Error handling set up
-- Pagination working
-- **Time: 30 seconds**
-
-Generate Spring Boot REST API scaffolding from natural language prompts.
-
-This project is designed for teams: developers run the generator and receive a consistent ZIP scaffold that follows shared standards.
-
-## What Developers Can Do
-
-- Write natural-language prompts for single or multi-entity APIs.
-- Define relationships like `belongs to`, `has many`, and `many-to-many`.
-- Generate a JSON specification (`/generator/spec`) and then a runnable ZIP scaffold (`/generator/code`).
-- Apply team standards via `.rest-api-generator.yml` (naming, layering, testing, database, migrations, plugins).
-- Choose template packs (`spring-boot-3-standard`, `microservices-pattern`, `ddd-layered`).
-- Extend generation with custom plugins (`plugins.externalDirectories`, `plugins.externalClassNames`).
-- Validate quality with strict spec checks and CI (`.github/workflows/ci.yml`).
-
-## What is implemented now
-
-- [picocli](https://picocli.info)-based CLI with typed subcommands (`generate`, `generate-zip`, `serve`, `init`, `validate`, `openapi`, `templates list`, `plugins list`) — `--help` / `-h` works on every subcommand
-- Clean stdout/stderr separation: data output (JSON spec, OpenAPI) goes to **stdout**, status messages go to **stderr** — safe to pipe (`> output.json`) without polluting the output
-- Plugin-based generation pipeline (`entity`, `dto`, `repository`, `service`, `controller`, `test`, `migration`, `docs`, `security` placeholder)
-- Project scaffold generation (`build.gradle`, `settings.gradle`, `application.yml`, Spring Boot main class)
-- Multi-entity prompt parsing (separate entities with blank lines)
-- Relationship parsing (`belongs to`, `has many`, `many-to-many`)
-- JPA relationship scaffolding in entities (`@ManyToOne`, `@OneToMany`, `@ManyToMany`, join table hints)
-- Strict spec validation (relationship targets, field constraints, naming)
-- Enhanced validation extraction (`min/max`, `valid email`, enum constraints) with DTO annotation mapping
-- Advanced field type support (`enum` -> generated enum class, `boolean`, `decimal`/`BigDecimal`, `date`/`timestamp`, `json`, `list`/`array`)
-- Global error-handling scaffold generation (`GlobalExceptionHandler`, `ErrorResponse`, `ResourceNotFoundException`)
-- Pagination/sorting/filtering method scaffolding in repository/service/controller layers
-- MapStruct mapper generation (`<Entity>Mapper`) for DTO <-> entity conversion
-- Spring Data repository scaffolding (`JpaRepository` + `JpaSpecificationExecutor`) with pageable query flow
-- YAML configuration (`.rest-api-generator.yml`)
-- Template-pack support with starter packs and fallback resolution
-- OpenAPI export command (`openapi`) for prompt-to-spec docs output
-- Docker scaffold generation (`Dockerfile`, `docker-compose.yml`)
-- Optional DB editor in Docker (`Adminer`) for PostgreSQL/MySQL via compose profile `tools`
-- HTTP API endpoints:
-  - `GET /about`
-  - `POST /generator/spec`
-  - `POST /generator/code`
-
-## Requirements
-
-- Java 17+ and Gradle available on the machine.
-- Generated ZIP projects can be unzipped and opened directly in an IDE (no Spring Initializr step required).
-
-## Quick start
-
-1. Build/test:
+## ⚡ Quickest start (Docker)
 
 ```bash
-./gradlew clean test
+docker run -p 8080:8080 ghcr.io/rrezartprebreza/rest-api-generator:latest
 ```
 
-2. Generate ZIP directly from a prompt file:
+Open **http://localhost:8080** → write a prompt → click **Download ZIP** → run your API.
+
+Published image: `ghcr.io/rrezartprebreza/rest-api-generator`
+
+Tags:
+- `latest` from `main`
+- branch tags from CI, for example `main` or `develop`
+- commit SHA tags from CI
+- release tags from `v*`, for example `1.0.0`, `1.0`, `1`
+
+---
+
+## What gets generated
+
+| Layer | File | Details |
+|---|---|---|
+| Entity | `Product.java` | JPA, auditing (`createdAt`/`updatedAt`), relationships |
+| DTO | `ProductDTO.java` | Bean Validation (`@NotNull`, `@Email`, `@Min`) |
+| Repository | `ProductRepository.java` | JpaRepository + JpaSpecificationExecutor |
+| Service | `ProductService.java` | `@Transactional`, pagination, filter |
+| Controller | `ProductController.java` | REST endpoints, `@Valid`, proper HTTP status codes |
+| Mapper | `ProductMapper.java` | MapStruct interface |
+| Error handling | `GlobalExceptionHandler.java` | 404, 400 field errors, 500 — all JSON |
+| Tests | `ProductServiceTest.java` | Mockito unit tests with real assertions |
+| Integration test | `ProductIntegrationTest.java` | MockMvc against H2 |
+| Migration | `V1__create_products_table.sql` | Flyway/Liquibase |
+| Docker | `Dockerfile` + `docker-compose.yml` | Multi-stage build + DB + Adminer |
+| Config | `application.yml` | Env var placeholders (`${DB_URL:...}`) |
+
+**Time saved: ~2-3 hours → 30 seconds per entity.**
+
+---
+
+## Build from source
+
+**Requirements:** Java 17+, Gradle (or use `./gradlew`)
 
 ```bash
-./gradlew run --args="generate-zip --file examples/prompts/ecommerce.txt --out scaffold.zip"
+git clone https://github.com/rrezartprebreza/rest-api-generator
+cd rest-api-generator
+./gradlew installDist
 ```
 
-3. Unzip and run generated project:
-
-```bash
-unzip scaffold.zip -d generated-api
-cd generated-api
-./gradlew bootRun
-```
-
-### Shell notes (Linux/macOS vs Windows)
-
-- `bash`/`zsh` examples in this README use `\` for multiline commands.
-- In Windows PowerShell, use backtick `` ` `` for multiline commands.
-- In PowerShell, use `curl.exe` (not `curl`) to avoid alias differences.
-
-## Examples
-
-### Advanced Multi-Entity Example (Relationships + Validations)
-
-Use the provided prompt file (`examples/prompts/ecommerce.txt`) and generate ZIP with one command.
-
-bash/zsh:
-
-```bash
-./gradlew run --args="generate-zip --file examples/prompts/ecommerce.txt --out scaffold.zip"
-```
-
-If `--out` is omitted, output defaults to `./scaffold.zip`.
-
-Windows PowerShell (including IntelliJ terminal on Windows):
-
-```powershell
-./gradlew run --args="generate-zip --file examples/prompts/ecommerce.txt --out scaffold.zip"
-```
-
-Windows (`cmd.exe` / PowerShell) with batch wrapper:
-
-```powershell
-.\gradlew.bat run --args="generate-zip --file examples/prompts/ecommerce.txt --out scaffold.zip"
-```
-
-Alternative API mode (server + endpoints):
+### Web UI (recommended)
 
 ```bash
 ./gradlew run --args="serve --port 8080"
+# Open http://localhost:8080
 ```
+
+### CLI
 
 ```bash
-jq -Rs '{prompt:.}' examples/prompts/ecommerce.txt \
-| curl -s -X POST http://localhost:8080/generator/spec \
-  -H "Content-Type: application/json" \
-  --data-binary @- -o spec.json \
-&& curl -s -X POST http://localhost:8080/generator/code \
-  -H "Content-Type: application/json" \
-  --data-binary @spec.json -o scaffold.zip
+# Generate JSON spec
+./gradlew run --args="generate --prompt 'Create an API for Product with name, price' --pretty"
+
+# Generate ZIP directly
+./gradlew run --args="generate-zip --file examples/prompts/ecommerce.txt --out scaffold.zip"
+
+# Unzip and run
+unzip scaffold.zip -d my-api && cd my-api && ./gradlew bootRun
 ```
 
-Quick verification:
+---
 
-```bash
-unzip -p scaffold.zip src/main/java/com/example/generated/entity/Product.java
-unzip -p scaffold.zip src/main/java/com/example/generated/dto/ProductDTO.java
-unzip -p scaffold.zip src/main/java/com/example/generated/error/GlobalExceptionHandler.java
+## Prompt syntax
+
 ```
-
-Run the generated project directly:
-
-```bash
-unzip scaffold.zip -d generated-api
-cd generated-api
-./gradlew bootRun
-```
-
-Run generated project with Docker:
-
-```bash
-unzip scaffold.zip -d generated-api
-cd generated-api
-
-# App + DB
-docker compose up
-
-# App + DB + Adminer (DB editor)
-docker compose --profile tools up
-```
-
-Adminer UI:
-
-- URL: `http://localhost:8081`
-- Server: `db`
-- PostgreSQL: database `appdb`, user `app`, password `app`
-- MySQL: database `appdb`, user `app`, password `app`
-
-Test generated pagination/sorting endpoint:
-
-```bash
-curl "http://localhost:8080/api/products?page=0&size=10&sort=name,asc"
-```
-
-More prompt examples:
-
-- `Create an API for Order with totalPrice (decimal), createdAt (timestamp), belongs to Customer`
-- `Create an API for BlogPost with title, content, status (enum: DRAFT, PUBLISHED), authorEmail (valid email)`
-- `Create an API for Invoice with amount (decimal, min 0), dueDate (date), paid (boolean)`
-
-Try full example prompts:
-
-```bash
-./gradlew run --args="generate --file examples/prompts/ecommerce.txt --pretty"
-./gradlew run --args="generate --file examples/prompts/blog.txt --pretty"
-```
-
-### Prompt -> Output Showcase
-
-Prompt:
-
-```text
 Create an API for Product with:
 - name (string, required)
 - price (decimal, required, min 0)
+- status (enum: DRAFT, ACTIVE, ARCHIVED)
 - createdAt (timestamp)
 - belongs to Category
 
 Create an API for Category with:
 - name (string, required)
+- description (string)
 ```
 
-Generated project (excerpt):
+**Field type hints:** `string`, `integer`, `decimal`, `boolean`, `date`, `timestamp`, `email`
 
-```text
-generated-api/
-  src/main/java/com/example/generated/
-    entity/Product.java
-    entity/Category.java
-    dto/ProductDTO.java
-    repository/ProductRepository.java
-    service/ProductService.java
-    controller/ProductController.java
+**Relationships:** `belongs to X` → `@ManyToOne`, `has many X` → `@OneToMany`, `many-to-many with X` → `@ManyToMany`
+
+**Constraints:** `required`, `min 0`, `max 255`, `valid email`, `unique`, `nullable`
+
+---
+
+## HTTP API
+
+Start the server: `./gradlew run --args="serve --port 8080"`
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/` | Web UI |
+| `GET` | `/about` | Server info |
+| `GET` | `/health` | Health check |
+| `POST` | `/generator/spec` | Prompt → JSON spec |
+| `POST` | `/generator/code` | JSON spec → ZIP scaffold |
+
+```bash
+# Step 1: parse prompt → spec
+curl -X POST http://localhost:8080/generator/spec \
+  -H "Content-Type: application/json" \
+  -d '{"prompt":"Create an API for Product with name, price"}' \
+  -o spec.json
+
+# Step 2: spec → ZIP
+curl -X POST http://localhost:8080/generator/code \
+  -H "Content-Type: application/json" \
+  --data-binary @spec.json -o scaffold.zip
 ```
 
-Sample generated entity snippet:
+---
 
-```java
-@Entity
-@Table(name = "products")
-public class Product {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+## Self-host with Docker
 
-    private BigDecimal price;
-    private LocalDateTime createdAt;
-}
+```bash
+# Run the published image
+docker run -p 8080:8080 ghcr.io/rrezartprebreza/rest-api-generator:latest
+
+# Or build and run locally from this repo
+docker build -t rest-api-generator:local .
+docker run -p 8080:8080 rest-api-generator:local
+
+# Or use docker compose for local source changes
+docker compose up
+
+# Rebuild after changes
+docker compose up --build
 ```
+
+The Web UI is served at **http://localhost:8080** — share this URL with your team.
+
+---
+
+## Configuration (`.rest-api-generator.yml`)
+
+```bash
+# Generate a default config
+./gradlew run --args="init"
+```
+
+```yaml
+project:
+  basePackage: com.mycompany.api
+  springBootVersion: "3.2.1"
+  javaVersion: "17"
+  templatePack: spring-boot-3-standard
+
+standards:
+  database:
+    type: postgresql          # postgresql | mysql | h2
+    migrationTool: flyway     # flyway | liquibase | none
+  layering:
+    includeServiceLayer: true
+
+features:
+  auditing: true              # adds createdAt / updatedAt automatically
+  dockerArtifacts: true
+  lombokModels: false
+```
+
+---
 
 ## CLI commands
 
 ```bash
-./gradlew run --args="generate-zip --file examples/prompts/ecommerce.txt --out scaffold.zip"
-./gradlew run --args="generate --prompt 'Create API for User with email, password' --pretty"
-./gradlew run --args="generate --file ./prompt.txt --pretty"
-./gradlew run --args="openapi --prompt 'Create API for User with email, password'"
-./gradlew run --args="init --config .rest-api-generator.yml --template spring-boot-3-standard"
-./gradlew run --args="validate --config .rest-api-generator.yml"
-./gradlew run --args="templates list"
-./gradlew run --args="plugins list --config .rest-api-generator.yml"
-./gradlew run --args="serve --port 8080"
+./gradlew run --args="generate --prompt '...' --pretty"   # JSON spec
+./gradlew run --args="generate-zip --file prompt.txt"     # ZIP scaffold
+./gradlew run --args="serve --port 8080"                  # Web UI + HTTP API
+./gradlew run --args="openapi --prompt '...'"             # OpenAPI YAML
+./gradlew run --args="init"                               # Write default config
+./gradlew run --args="validate"                           # Validate config
+./gradlew run --args="templates list"                     # List template packs
+./gradlew run --args="plugins list"                       # List plugins
 ```
 
-Every subcommand supports `--help` / `-h`:
+Every command supports `--help`.
 
-```bash
-./gradlew run --args="generate --help"
-./gradlew run --args="generate-zip --help"
-./gradlew run --args="serve --help"
-```
-
-### Piping output
-
-Because status messages go to **stderr** and data goes to **stdout**, you can pipe safely:
-
-```bash
-# Write JSON spec to a file without any status noise
-./gradlew run --args="generate --prompt 'Create API for User with email' --pretty" > spec.json
-
-# Pipe spec directly into another tool
-./gradlew run --args="generate --file prompt.txt" | jq '.entities[].name'
-```
-
-### Legacy flags (still supported)
-
-These top-level flags from earlier versions continue to work:
-
-| Legacy flag | Equivalent subcommand |
-|---|---|
-| `--user-request <text>` | `generate --prompt <text>` |
-| `--input <path>` | `generate --file <path>` |
-| `--generate-zip` | `generate-zip` subcommand |
-| `--serve` | `serve` subcommand |
-| `--init-config` | `init` subcommand |
-| `--validate-config` | `validate` subcommand |
-
-## Config and schema
-
-- Example config model: `src/main/java/io/restapigen/core/config/GenerationConfig.java`
-- Selected template pack can be set with `project.templatePack` or CLI `--template`.
-- Config JSON schema: `schemas/rest-api-generator-config.schema.json`
-- Spec JSON schema: `schemas/api-specification.schema.json`
-
-Plugin extension fields:
-- `plugins.externalDirectories`: directories scanned for plugin JARs (default `plugins`)
-- `plugins.externalClassNames`: explicit class names to instantiate as plugins
-- `features.dockerArtifacts`: include Docker artifacts in generated ZIP output
-- `features.lombokModels`: generate DTO/entity classes with Lombok annotations (`@Getter`, `@Setter`, etc.)
+---
 
 ## Template packs
 
-Pack descriptors:
-- `templates/packs/spring-boot-3-standard.yml`
-- `templates/packs/microservices-pattern.yml`
-- `templates/packs/ddd-layered.yml`
+| Pack | Description |
+|---|---|
+| `spring-boot-3-standard` | Standard layered architecture (default) |
+| `microservices-pattern` | Microservice-ready structure |
+| `ddd-layered` | Domain-Driven Design layers |
 
-Runtime templates:
-- `src/main/resources/templates/spring-boot-3-standard/`
+---
 
-## Roadmap
+## Tests
 
-- CLI: `generate --zip` convenience option to write scaffold.zip directly
-- Templates: expand microservices + DDD starter packs
-- Docs: add more real-world prompt examples and troubleshooting
-- Quality: add more integration tests around generated projects
+```bash
+./gradlew clean test
+docker build -t rest-api-generator:local .
+```
 
-### Community ideas
-
-- Add clear prompt -> generated output showcase in docs (in progress)
-- Keep improving typed field hints in prompts (`BigDecimal`, `LocalDateTime`, etc.)
-- Consider optional `application.properties` generation alongside `application.yml`
+---
 
 ## Contributing
 
-See `CONTRIBUTING.md` for setup, workflow, and PR guidance.
+See [CONTRIBUTING.md](CONTRIBUTING.md). PRs welcome.
+
+---
+
+## License
+
+[MIT](LICENSE)

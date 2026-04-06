@@ -11,59 +11,58 @@ import java.util.List;
 import java.util.Map;
 
 public final class TestGeneratorPlugin implements GeneratorPlugin {
-    @Override
-    public String getName() {
-        return "test-generator";
-    }
-
-    @Override
-    public String getVersion() {
-        return "1.0.0";
-    }
-
-    @Override
-    public List<String> getDependencies() {
-        return List.of("service-generator");
-    }
+    @Override public String getName()    { return "test-generator"; }
+    @Override public String getVersion() { return "1.0.0"; }
 
     @Override
     public List<GeneratedFile> generate(ApiSpecification specification, PluginContext context) {
-        boolean includeUnitTests = context.config().standards().testing().includeUnitTests();
-        boolean includeIntegrationTests = context.config().standards().testing().includeIntegrationTests();
-        if (!includeUnitTests && !includeIntegrationTests) {
+        if (!context.config().standards().testing().includeUnitTests()) {
             return List.of();
         }
+        List<GeneratedFile> out      = new ArrayList<>();
+        String basePackage           = context.config().project().basePackage();
+        String testBase              = "src/test/java/" + context.basePackagePath();
+        String serviceSuffix         = context.config().standards().naming().serviceSuffix();
+        String repositorySuffix      = context.config().standards().naming().repositorySuffix();
+        String dtoSuffix             = context.config().standards().naming().dtoSuffix();
 
-        List<GeneratedFile> out = new ArrayList<>();
-        String basePackage = context.config().project().basePackage();
-        String testBase = "src/test/java/" + context.basePackagePath();
-        String serviceSuffix = context.config().standards().naming().serviceSuffix();
         for (EntityDefinition definition : specification.entities) {
-            String entityName = definition.entity.name;
-            if (includeUnitTests) {
-                String className = entityName + serviceSuffix + "Test";
-                String content = context.templates().render(
-                        context.templatePack().templatePath("test.java.tpl"),
-                        Map.of(
-                                "basePackage", basePackage,
-                                "className", className,
-                                "entityName", entityName
-                        )
-                );
-                out.add(new GeneratedFile(testBase + "/service/" + className + ".java", content));
-            }
+            String entityName      = definition.entity.name;
+            String serviceClass    = entityName + serviceSuffix;
+            String repositoryClass = entityName + repositorySuffix;
+            String mapperClass     = entityName + "Mapper";
+            String dtoClass        = entityName + dtoSuffix;
+            String testClass       = serviceClass + "Test";
 
-            if (includeIntegrationTests) {
-                String className = entityName + "IntegrationTest";
-                String content = context.templates().render(
+            // Unit test
+            String unitContent = context.templates().render(
+                    context.templatePack().templatePath("test.java.tpl"),
+                    Map.of(
+                            "basePackage",     basePackage,
+                            "className",       testClass,
+                            "entityName",      entityName,
+                            "serviceClass",    serviceClass,
+                            "repositoryClass", repositoryClass,
+                            "mapperClass",     mapperClass,
+                            "dtoClass",        dtoClass
+                    )
+            );
+            out.add(new GeneratedFile(testBase + "/service/" + testClass + ".java", unitContent));
+
+            // Integration test
+            if (context.config().standards().testing().includeIntegrationTests()) {
+                String integrationClass = entityName + "IntegrationTest";
+                String integrationContent = context.templates().render(
                         context.templatePack().templatePath("integration-test.java.tpl"),
                         Map.of(
-                                "basePackage", basePackage,
-                                "className", className,
-                                "entityName", entityName
+                                "basePackage",  basePackage,
+                                "className",    integrationClass,
+                                "entityName",   entityName,
+                                "dtoClass",     dtoClass,
+                                "resourcePath", definition.api.resourcePath
                         )
                 );
-                out.add(new GeneratedFile(testBase + "/integration/" + className + ".java", content));
+                out.add(new GeneratedFile(testBase + "/integration/" + integrationClass + ".java", integrationContent));
             }
         }
         return out;

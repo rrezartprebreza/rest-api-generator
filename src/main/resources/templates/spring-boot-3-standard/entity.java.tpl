@@ -9,4 +9,4 @@ ${classAnnotations}@Entity
 @Table(name = "${tableName}")
 public class ${className} {
 
-${idFieldBlock}${fieldsBlock}${relationshipBlock}${noArgConstructorBlock}${constructorBlock}${gettersBlock}}
+${idFieldBlock}${auditBlock}${fieldsBlock}${relationshipBlock}${noArgConstructorBlock}${constructorBlock}${gettersBlock}}

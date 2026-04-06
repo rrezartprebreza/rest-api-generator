@@ -14,62 +14,92 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public final class EntityGeneratorPlugin implements GeneratorPlugin {
-    @Override
-    public String getName() {
-        return "entity-generator";
-    }
-
-    @Override
-    public String getVersion() {
-        return "1.0.0";
-    }
+    @Override public String getName()    { return "entity-generator"; }
+    @Override public String getVersion() { return "1.0.0"; }
 
     @Override
     public List<GeneratedFile> generate(ApiSpecification specification, PluginContext context) {
-        List<GeneratedFile> out = new ArrayList<>();
-        String basePackage = context.config().project().basePackage();
-        String javaBase = "src/main/java/" + context.basePackagePath();
-        boolean lombokModels = context.config().features().lombokModels();
+        List<GeneratedFile> out  = new ArrayList<>();
+        String basePackage       = context.config().project().basePackage();
+        String javaBase          = "src/main/java/" + context.basePackagePath();
+        boolean lombokModels     = context.config().features().lombokModels();
+        boolean auditing         = context.config().features().auditing();
+
         for (EntityDefinition definition : specification.entities) {
             String className = definition.entity.name + context.config().standards().naming().entitySuffix();
             Set<String> imports = TemplateSupport.collectEntityImports(definition.entity.fields, definition.relationships);
+
+            if (auditing) {
+                imports.add("org.springframework.data.annotation.CreatedDate");
+                imports.add("org.springframework.data.annotation.LastModifiedDate");
+                imports.add("org.springframework.data.jpa.domain.support.AuditingEntityListener");
+                imports.add("jakarta.persistence.EntityListeners");
+                imports.add("java.time.Instant");
+            }
             if (lombokModels) {
                 imports.add("lombok.Getter");
                 imports.add("lombok.Setter");
             }
+
+            String auditBlock = auditing ? buildAuditBlock() : "";
+            String classAnnotations = buildClassAnnotations(lombokModels, auditing);
+
             String content = context.templates().render(
                     context.templatePack().templatePath("entity.java.tpl"),
                     Map.ofEntries(
-                            Map.entry("basePackage", basePackage),
-                            Map.entry("entityName", definition.entity.name),
-                            Map.entry("className", className),
-                            Map.entry("tableName", definition.entity.table),
-                            Map.entry("imports", imports.stream().map(it -> "import " + it + ";").collect(Collectors.joining("\n"))),
-                            Map.entry("idFieldBlock", TemplateSupport.idFieldBlock(definition.entity.idType)),
-                            Map.entry("fieldsBlock", TemplateSupport.fieldsBlock(definition.entity.fields)),
-                            Map.entry("relationshipBlock", TemplateSupport.relationshipBlock(definition.entity.name, definition.relationships)),
-                            Map.entry("classAnnotations", lombokModels ? "@Getter\n@Setter\n" : ""),
-                            Map.entry("noArgConstructorBlock", TemplateSupport.noArgConstructorBlock(className)),
-                            Map.entry("constructorBlock", TemplateSupport.constructorBlock(className, definition.entity.fields)),
-                            Map.entry("gettersBlock", lombokModels ? "" : TemplateSupport.entityGettersBlock(definition.entity.idType, definition.entity.fields))
+                            Map.entry("basePackage",          basePackage),
+                            Map.entry("entityName",           definition.entity.name),
+                            Map.entry("className",            className),
+                            Map.entry("tableName",            definition.entity.table),
+                            Map.entry("imports",              imports.stream().map(it -> "import " + it + ";").collect(Collectors.joining("\n"))),
+                            Map.entry("idFieldBlock",         TemplateSupport.idFieldBlock(definition.entity.idType)),
+                            Map.entry("auditBlock",           auditBlock),
+                            Map.entry("fieldsBlock",          TemplateSupport.fieldsBlock(definition.entity.fields)),
+                            Map.entry("relationshipBlock",    TemplateSupport.relationshipBlock(definition.entity.name, definition.relationships)),
+                            Map.entry("classAnnotations",     classAnnotations),
+                            Map.entry("noArgConstructorBlock",TemplateSupport.noArgConstructorBlock(className)),
+                            Map.entry("constructorBlock",     TemplateSupport.constructorBlock(className, definition.entity.fields)),
+                            Map.entry("gettersBlock",         lombokModels ? "" : TemplateSupport.entityGettersBlock(definition.entity.idType, definition.entity.fields))
                     )
             );
             out.add(new GeneratedFile(javaBase + "/entity/" + className + ".java", content));
+
+            // Generate enum classes
             for (FieldSpec field : definition.entity.fields) {
-                if (field.enumValues.isEmpty()) {
-                    continue;
-                }
-                String enumContent = buildEnumContent(basePackage, field.type, field.enumValues);
-                out.add(new GeneratedFile(javaBase + "/entity/" + field.type + ".java", enumContent));
+                if (field.enumValues.isEmpty()) continue;
+                out.add(new GeneratedFile(
+                        javaBase + "/entity/" + field.type + ".java",
+                        buildEnumContent(basePackage, field.type, field.enumValues)
+                ));
             }
         }
         return out;
     }
 
+    private String buildAuditBlock() {
+        return """
+                    @CreatedDate
+                    @Column(name = "created_at", nullable = false, updatable = false)
+                    private Instant createdAt;
+
+                    @LastModifiedDate
+                    @Column(name = "updated_at")
+                    private Instant updatedAt;
+
+                """;
+    }
+
+    private String buildClassAnnotations(boolean lombok, boolean auditing) {
+        StringBuilder sb = new StringBuilder();
+        if (auditing) sb.append("@EntityListeners(AuditingEntityListener.class)\n");
+        if (lombok)   sb.append("@Getter\n@Setter\n");
+        return sb.toString();
+    }
+
     private String buildEnumContent(String basePackage, String enumName, List<String> values) {
         String constants = values.stream()
-                .map(value -> value.replaceAll("[^A-Za-z0-9_]", "").toUpperCase())
-                .filter(value -> !value.isBlank())
+                .map(v -> v.replaceAll("[^A-Za-z0-9_]", "").toUpperCase())
+                .filter(v -> !v.isBlank())
                 .collect(Collectors.joining(",\n    "));
         return "package " + basePackage + ".entity;\n\n"
                 + "public enum " + enumName + " {\n"
