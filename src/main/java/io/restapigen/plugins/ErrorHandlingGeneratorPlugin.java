@@ -9,14 +9,10 @@ import java.util.List;
 
 public final class ErrorHandlingGeneratorPlugin implements GeneratorPlugin {
     @Override
-    public String getName() {
-        return "error-handling-generator";
-    }
+    public String getName() { return "error-handling-generator"; }
 
     @Override
-    public String getVersion() {
-        return "1.0.0";
-    }
+    public String getVersion() { return "1.0.0"; }
 
     @Override
     public List<GeneratedFile> generate(ApiSpecification specification, PluginContext context) {
@@ -25,45 +21,138 @@ public final class ErrorHandlingGeneratorPlugin implements GeneratorPlugin {
             return List.of();
         }
 
-        String basePackage = context.config().project().basePackage();
-        String javaBase = "src/main/java/" + context.basePackagePath();
+        String pkg = context.config().project().basePackage();
+        String base = "src/main/java/" + context.basePackagePath();
 
-        String errorResponse = "package " + basePackage + ".error;\n\n"
-                + "import java.time.Instant;\n\n"
-                + "public record ErrorResponse(String code, String message, Instant timestamp, String path) {}\n";
+        String errorResponse = """
+                package %s.error;
 
-        String notFound = "package " + basePackage + ".error;\n\n"
-                + "public class ResourceNotFoundException extends RuntimeException {\n"
-                + "    public ResourceNotFoundException(String message) {\n"
-                + "        super(message);\n"
-                + "    }\n"
-                + "}\n";
+                import java.time.Instant;
+                import java.util.Map;
 
-        String handler = "package " + basePackage + ".error;\n\n"
-                + "import org.springframework.http.HttpStatus;\n"
-                + "import org.springframework.http.ResponseEntity;\n"
-                + "import org.springframework.web.bind.annotation.ControllerAdvice;\n"
-                + "import org.springframework.web.bind.annotation.ExceptionHandler;\n"
-                + "import org.springframework.web.context.request.WebRequest;\n\n"
-                + "import java.time.Instant;\n\n"
-                + "@ControllerAdvice\n"
-                + "public class GlobalExceptionHandler {\n\n"
-                + "    @ExceptionHandler(ResourceNotFoundException.class)\n"
-                + "    public ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException ex, WebRequest request) {\n"
-                + "        ErrorResponse body = new ErrorResponse(\"NOT_FOUND\", ex.getMessage(), Instant.now(), request.getDescription(false));\n"
-                + "        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);\n"
-                + "    }\n\n"
-                + "    @ExceptionHandler(Exception.class)\n"
-                + "    public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex, WebRequest request) {\n"
-                + "        ErrorResponse body = new ErrorResponse(\"INTERNAL_ERROR\", ex.getMessage(), Instant.now(), request.getDescription(false));\n"
-                + "        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);\n"
-                + "    }\n"
-                + "}\n";
+                public record ErrorResponse(
+                        String code,
+                        String message,
+                        Instant timestamp,
+                        String path,
+                        Map<String, String> fieldErrors
+                ) {
+                    /** Convenience factory for simple errors (no field-level detail). */
+                    public static ErrorResponse of(String code, String message, String path) {
+                        return new ErrorResponse(code, message, Instant.now(), path, Map.of());
+                    }
+                }
+                """.formatted(pkg);
+
+        String notFound = """
+                package %s.error;
+
+                public class ResourceNotFoundException extends RuntimeException {
+                    private final String resourceName;
+                    private final String fieldName;
+                    private final Object fieldValue;
+
+                    public ResourceNotFoundException(String resourceName, String fieldName, Object fieldValue) {
+                        super("%%s not found with %%s: %%s".formatted(resourceName, fieldName, fieldValue));
+                        this.resourceName = resourceName;
+                        this.fieldName    = fieldName;
+                        this.fieldValue   = fieldValue;
+                    }
+
+                    public String getResourceName() { return resourceName; }
+                    public String getFieldName()    { return fieldName; }
+                    public Object getFieldValue()   { return fieldValue; }
+                }
+                """.formatted(pkg);
+
+        String handler = """
+                package %s.error;
+
+                import jakarta.validation.ConstraintViolationException;
+                import org.springframework.http.HttpStatus;
+                import org.springframework.http.ResponseEntity;
+                import org.springframework.validation.FieldError;
+                import org.springframework.web.bind.MethodArgumentNotValidException;
+                import org.springframework.web.bind.annotation.ControllerAdvice;
+                import org.springframework.web.bind.annotation.ExceptionHandler;
+                import org.springframework.web.context.request.WebRequest;
+
+                import java.util.Map;
+                import java.util.stream.Collectors;
+
+                /**
+                 * Global exception handler — converts exceptions to structured JSON error responses.
+                 * Generated by REST API Generator.
+                 */
+                @ControllerAdvice
+                public class GlobalExceptionHandler {
+
+                    /** 404 — entity not found */
+                    @ExceptionHandler(ResourceNotFoundException.class)
+                    public ResponseEntity<ErrorResponse> handleNotFound(
+                            ResourceNotFoundException ex, WebRequest request) {
+                        return ResponseEntity
+                                .status(HttpStatus.NOT_FOUND)
+                                .body(ErrorResponse.of("NOT_FOUND", ex.getMessage(), path(request)));
+                    }
+
+                    /** 400 — @Valid / @Validated bean validation failures */
+                    @ExceptionHandler(MethodArgumentNotValidException.class)
+                    public ResponseEntity<ErrorResponse> handleValidation(
+                            MethodArgumentNotValidException ex, WebRequest request) {
+                        Map<String, String> fieldErrors = ex.getBindingResult().getFieldErrors().stream()
+                                .collect(Collectors.toMap(
+                                        FieldError::getField,
+                                        fe -> fe.getDefaultMessage() == null ? "invalid" : fe.getDefaultMessage(),
+                                        (a, b) -> a
+                                ));
+                        ErrorResponse body = new ErrorResponse(
+                                "VALIDATION_ERROR",
+                                "Request validation failed",
+                                java.time.Instant.now(),
+                                path(request),
+                                fieldErrors
+                        );
+                        return ResponseEntity.badRequest().body(body);
+                    }
+
+                    /** 400 — constraint violations on path/query params */
+                    @ExceptionHandler(ConstraintViolationException.class)
+                    public ResponseEntity<ErrorResponse> handleConstraintViolation(
+                            ConstraintViolationException ex, WebRequest request) {
+                        return ResponseEntity
+                                .badRequest()
+                                .body(ErrorResponse.of("CONSTRAINT_VIOLATION", ex.getMessage(), path(request)));
+                    }
+
+                    /** 400 — illegal arguments */
+                    @ExceptionHandler(IllegalArgumentException.class)
+                    public ResponseEntity<ErrorResponse> handleIllegalArgument(
+                            IllegalArgumentException ex, WebRequest request) {
+                        return ResponseEntity
+                                .badRequest()
+                                .body(ErrorResponse.of("BAD_REQUEST", ex.getMessage(), path(request)));
+                    }
+
+                    /** 500 — catch-all */
+                    @ExceptionHandler(Exception.class)
+                    public ResponseEntity<ErrorResponse> handleUnexpected(
+                            Exception ex, WebRequest request) {
+                        return ResponseEntity
+                                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .body(ErrorResponse.of("INTERNAL_ERROR", "An unexpected error occurred", path(request)));
+                    }
+
+                    private static String path(WebRequest request) {
+                        return request.getDescription(false).replace("uri=", "");
+                    }
+                }
+                """.formatted(pkg);
 
         return List.of(
-                new GeneratedFile(javaBase + "/error/ErrorResponse.java", errorResponse),
-                new GeneratedFile(javaBase + "/error/ResourceNotFoundException.java", notFound),
-                new GeneratedFile(javaBase + "/error/GlobalExceptionHandler.java", handler)
+                new GeneratedFile(base + "/error/ErrorResponse.java",             errorResponse),
+                new GeneratedFile(base + "/error/ResourceNotFoundException.java", notFound),
+                new GeneratedFile(base + "/error/GlobalExceptionHandler.java",    handler)
         );
     }
 }

@@ -13,136 +13,241 @@ import io.restapigen.domain.ApiSpecification;
 import io.restapigen.generator.parser.SpecInputExtractor;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Executors;
 
 public final class RestApiGeneratorServer implements AutoCloseable {
-    private static final int DEFAULT_THREAD_POOL = 4;
-    private final HttpServer server;
-    private final PromptParser parser;
-    private final CodeGenerator codeGenerator;
+
+    private static final int DEFAULT_THREAD_POOL = 8;
+
+    private final HttpServer     server;
+    private final PromptParser   parser;
+    private final CodeGenerator  codeGenerator;
     private final GenerationConfig config;
-    private final ObjectMapper mapper;
+    private final ObjectMapper   mapper;
 
     public RestApiGeneratorServer(int port) throws IOException {
         this(port, GenerationConfig.defaults());
     }
 
     public RestApiGeneratorServer(int port, GenerationConfig config) throws IOException {
-        this.server = HttpServer.create(new InetSocketAddress(port), 0);
+        this.server        = HttpServer.create(new InetSocketAddress(port), 0);
         this.server.setExecutor(Executors.newFixedThreadPool(DEFAULT_THREAD_POOL));
-        this.parser = new NaturalLanguagePromptParser();
+        this.parser        = new NaturalLanguagePromptParser();
         this.codeGenerator = new CodeGenerator();
-        this.config = config == null ? GenerationConfig.defaults() : config;
-        this.mapper = new ObjectMapper().findAndRegisterModules();
+        this.config        = config == null ? GenerationConfig.defaults() : config;
+        this.mapper        = new ObjectMapper().findAndRegisterModules();
         registerContexts();
     }
 
-    public void start() {
-        server.start();
-    }
+    public void start()  { server.start(); }
 
     @Override
-    public void close() {
-        server.stop(0);
-    }
+    public void close()  { server.stop(0); }
 
     private void registerContexts() {
         server.createContext("/generator/spec", new SpecHandler());
         server.createContext("/generator/code", new CodeHandler());
-        server.createContext("/about", new AboutHandler());
+        server.createContext("/about",           new AboutHandler());
+        server.createContext("/health",          new HealthHandler());
+        server.createContext("/",                new StaticFileHandler());
     }
+
+    // ── CORS helper ───────────────────────────────────────────────────────────
+
+    private static void addCorsHeaders(HttpExchange exchange) {
+        exchange.getResponseHeaders().set("Access-Control-Allow-Origin",  "*");
+        exchange.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type, Accept");
+    }
+
+    /** Returns true if this was a preflight OPTIONS request (already handled). */
+    private static boolean handlePreflight(HttpExchange exchange) throws IOException {
+        addCorsHeaders(exchange);
+        if ("OPTIONS".equalsIgnoreCase(exchange.getRequestMethod())) {
+            exchange.sendResponseHeaders(204, -1);
+            exchange.close();
+            return true;
+        }
+        return false;
+    }
+
+    // ── POST /generator/spec ──────────────────────────────────────────────────
 
     private final class SpecHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            if (handlePreflight(exchange)) return;
             if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-                respond(exchange, 405, "Only POST is supported", "text/plain");
+                respond(exchange, 405, jsonError("METHOD_NOT_ALLOWED", "Only POST is supported"), "application/json");
                 return;
             }
-            String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8).trim();
-            String prompt = parsePrompt(requestBody);
+            String requestBody = readBody(exchange);
+            String prompt = extractPrompt(requestBody);
             if (prompt.isBlank()) {
-                respond(exchange, 400, "prompt is missing", "text/plain");
+                respond(exchange, 400, jsonError("MISSING_PROMPT", "Field 'prompt' is required and must not be blank"), "application/json");
                 return;
             }
-            String userRequest = SpecInputExtractor.extractUserRequestOrWholeInput(prompt);
-            ApiSpecification spec = parser.parse(userRequest, config);
-            byte[] payload = mapper.writeValueAsBytes(spec);
-            respond(exchange, 200, payload, "application/json");
-        }
-
-        private String parsePrompt(String requestBody) {
-            if (requestBody.isEmpty()) {
-                return "";
+            // Basic length guard — prevents abuse
+            if (prompt.length() > 32_000) {
+                respond(exchange, 400, jsonError("PROMPT_TOO_LONG", "Prompt must be 32 000 characters or fewer"), "application/json");
+                return;
             }
             try {
-                SpecRequest request = mapper.readValue(requestBody, SpecRequest.class);
-                if (request.prompt != null && !request.prompt.isBlank()) {
-                    return request.prompt;
-                }
-            } catch (JsonProcessingException ignored) {
+                String userRequest = SpecInputExtractor.extractUserRequestOrWholeInput(prompt);
+                ApiSpecification spec = parser.parse(userRequest, config);
+                byte[] payload = mapper.writeValueAsBytes(spec);
+                respond(exchange, 200, payload, "application/json");
+            } catch (Exception e) {
+                respond(exchange, 500, jsonError("PARSE_ERROR", "Failed to parse prompt: " + sanitize(e.getMessage())), "application/json");
             }
-            return requestBody;
+        }
+
+        private String extractPrompt(String body) {
+            if (body.isEmpty()) return "";
+            try {
+                SpecRequest req = mapper.readValue(body, SpecRequest.class);
+                if (req.prompt() != null && !req.prompt().isBlank()) return req.prompt();
+            } catch (JsonProcessingException ignored) {}
+            return body;
         }
     }
+
+    // ── POST /generator/code ──────────────────────────────────────────────────
 
     private final class CodeHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            if (handlePreflight(exchange)) return;
             if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-                respond(exchange, 405, "Only POST is supported", "text/plain");
+                respond(exchange, 405, jsonError("METHOD_NOT_ALLOWED", "Only POST is supported"), "application/json");
                 return;
             }
-            String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8).trim();
+            String requestBody = readBody(exchange);
             if (requestBody.isEmpty()) {
-                respond(exchange, 400, "spec is missing", "text/plain");
+                respond(exchange, 400, jsonError("MISSING_SPEC", "Request body (API spec JSON) is required"), "application/json");
                 return;
             }
             ApiSpecification spec;
             try {
                 spec = mapper.readValue(requestBody, ApiSpecification.class);
             } catch (JsonProcessingException e) {
-                respond(exchange, 400, "invalid spec payload", "text/plain");
+                respond(exchange, 400, jsonError("INVALID_SPEC", "invalid spec payload: " + sanitize(e.getMessage())), "application/json");
                 return;
             }
             try {
                 byte[] zip = codeGenerator.generateZip(spec, config);
+                String filename = (spec.projectName != null && !spec.projectName.isBlank())
+                        ? spec.projectName + ".zip"
+                        : "scaffold.zip";
+                exchange.getResponseHeaders().set("Content-Disposition", "attachment; filename=\"" + filename + "\"");
                 respond(exchange, 200, zip, "application/zip");
             } catch (IllegalArgumentException e) {
-                respond(exchange, 400, e.getMessage(), "text/plain");
+                respond(exchange, 400, jsonError("BAD_SPEC", sanitize(e.getMessage())), "application/json");
             } catch (Exception e) {
-                respond(exchange, 500, "failed to generate code", "text/plain");
+                respond(exchange, 500, jsonError("GENERATION_ERROR", "Code generation failed"), "application/json");
             }
         }
     }
+
+    // ── GET /about ────────────────────────────────────────────────────────────
 
     private final class AboutHandler implements HttpHandler {
         private static final String ABOUT_JSON = """
                 {
                   "name": "REST API Generator",
-                  "version": "1.0",
+                  "version": "1.0.0",
                   "description": "Generate production-ready Spring Boot REST APIs from plain English in seconds.",
                   "endpoints": [
-                    {"method": "GET",  "path": "/about",          "description": "Project information"},
-                    {"method": "POST", "path": "/generator/spec", "description": "Parse a natural-language prompt into an API specification"},
-                    {"method": "POST", "path": "/generator/code", "description": "Generate a runnable Spring Boot ZIP from an API specification"}
+                    {"method": "GET",  "path": "/",                "description": "Web UI"},
+                    {"method": "GET",  "path": "/about",           "description": "Project information"},
+                    {"method": "GET",  "path": "/health",          "description": "Health check"},
+                    {"method": "POST", "path": "/generator/spec",  "description": "Parse a natural-language prompt into an API specification"},
+                    {"method": "POST", "path": "/generator/code",  "description": "Generate a runnable Spring Boot ZIP from an API specification"}
                   ],
                   "repository": "https://github.com/rrezartprebreza/rest-api-generator"
                 }""";
 
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            if (handlePreflight(exchange)) return;
             if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
-                respond(exchange, 405, "Only GET is supported", "text/plain");
+                respond(exchange, 405, jsonError("METHOD_NOT_ALLOWED", "Only GET is supported"), "application/json");
                 return;
             }
             respond(exchange, 200, ABOUT_JSON, "application/json");
         }
     }
 
+    // ── GET /health ───────────────────────────────────────────────────────────
+
+    private final class HealthHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            if (handlePreflight(exchange)) return;
+            respond(exchange, 200, "{\"status\":\"UP\"}", "application/json");
+        }
+    }
+
+    // ── GET / → serve index.html from classpath ───────────────────────────────
+
+    private final class StaticFileHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            if (handlePreflight(exchange)) return;
+            if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+                respond(exchange, 405, "Method Not Allowed", "text/plain");
+                return;
+            }
+            String path = exchange.getRequestURI().getPath();
+            // Only serve root — all other paths that didn't match a context fall here
+            if (!"/".equals(path) && !path.isBlank()) {
+                respond(exchange, 404, jsonError("NOT_FOUND", "No resource at " + path), "application/json");
+                return;
+            }
+            try (InputStream in = getClass().getResourceAsStream("/static/index.html")) {
+                if (in == null) {
+                    String fallback = "<html><body><h2>REST API Generator</h2>"
+                            + "<p>Server is running. See <a href='/about'>/about</a> for API details.</p>"
+                            + "<p>Deploy the Web UI by placing index.html in src/main/resources/static/</p></body></html>";
+                    respond(exchange, 200, fallback, "text/html; charset=utf-8");
+                    return;
+                }
+                byte[] html = in.readAllBytes();
+                exchange.getResponseHeaders().set("Content-Type", "text/html; charset=utf-8");
+                exchange.getResponseHeaders().set("Cache-Control", "no-cache");
+                addCorsHeaders(exchange);
+                exchange.sendResponseHeaders(200, html.length);
+                exchange.getResponseBody().write(html);
+            } finally {
+                exchange.close();
+            }
+        }
+    }
+
+    // ── Utilities ─────────────────────────────────────────────────────────────
+
+    private static String readBody(HttpExchange exchange) throws IOException {
+        return new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8).trim();
+    }
+
+    private static String jsonError(String code, String message) {
+        // Simple JSON — avoids a dependency on ObjectMapper for error paths
+        String safeMessage = message == null ? "" : message.replace("\"", "'");
+        return "{\"code\":\"" + code + "\",\"message\":\"" + safeMessage + "\"}";
+    }
+
+    private static String sanitize(String input) {
+        if (input == null) return "unknown error";
+        // Strip stack trace hints and limit length
+        String normalized = input.replaceAll("\\s+", " ").trim();
+        return normalized.substring(0, Math.min(normalized.length(), 200));
+    }
+
     private void respond(HttpExchange exchange, int status, byte[] payload, String contentType) throws IOException {
+        addCorsHeaders(exchange);
         exchange.getResponseHeaders().set("Content-Type", contentType);
         exchange.sendResponseHeaders(status, payload.length);
         exchange.getResponseBody().write(payload);
