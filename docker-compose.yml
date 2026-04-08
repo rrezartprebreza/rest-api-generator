@@ -1,7 +1,14 @@
 # Docker Compose for running REST API Generator locally
-# Usage:
-#   docker compose up           → starts the generator UI on http://localhost:8080
-#   docker compose up --build   → rebuild after code changes
+#
+# Basic usage (deterministic parser — no LLM, no extra storage needed):
+#   docker compose up
+#
+# With Ollama LLM (free-form prompts — needs ~2 GB disk for the model):
+#   docker compose --profile llm up
+#   docker exec rest-api-generator-ollama-1 ollama pull llama3.2
+#
+# Either way, open http://localhost:8080
+# The UI shows a badge: "LLM active" or "LLM offline" and always falls back.
 
 services:
   rest-api-generator:
@@ -10,9 +17,36 @@ services:
       - "8080:8080"
     environment:
       - JAVA_OPTS=-Xmx256m
+      # Points at the optional ollama sidecar when --profile llm is used.
+      # If Ollama is not running the server falls back to deterministic parsing automatically.
+      - OLLAMA_URL=http://ollama:11434
+      - OLLAMA_MODEL=llama3.2
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
       interval: 15s
       timeout: 3s
       retries: 3
+
+  # ── Optional Ollama sidecar ───────────────────────────────────────────────
+  # Only starts when you run: docker compose --profile llm up
+  # Requires ~2 GB disk for the default model (llama3.2).
+  # After first start, pull the model once:
+  #   docker exec rest-api-generator-ollama-1 ollama pull llama3.2
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["llm"]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  ollama-data:

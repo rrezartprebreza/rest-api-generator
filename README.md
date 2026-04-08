@@ -16,6 +16,9 @@ docker run -p 8080:8080 ghcr.io/rrezartprebreza/rest-api-generator:latest
 
 Open **http://localhost:8080** → write a prompt → click **Download ZIP** → run your API.
 
+> `ghcr.io/rrezartprebreza/rest-api-generator` runs the **generator service** (this project), not your generated API.
+> After downloading a ZIP, run that generated project from its own folder.
+
 Published image: `ghcr.io/rrezartprebreza/rest-api-generator`
 
 Tags:
@@ -23,6 +26,11 @@ Tags:
 - branch tags from CI, for example `main` or `develop`
 - commit SHA tags from CI
 - release tags from `v*`, for example `1.0.0`, `1.0`, `1`
+
+Version flow:
+- `release` branch uses a fixed version such as `1.0.0`
+- `main` continues with the next development version such as `1.1.0-SNAPSHOT`
+- create Git tags like `v1.0.0` from `release` for published builds
 
 ---
 
@@ -77,6 +85,12 @@ cd rest-api-generator
 unzip scaffold.zip -d my-api && cd my-api && ./gradlew bootRun
 ```
 
+### Important: generator app vs generated app
+
+- **Generator app (this repo):** serves UI + `/generator/spec` + `/generator/code`
+- **Generated app (your ZIP output):** your own Spring Boot API with its own `Dockerfile`/`docker-compose.yml`
+- Run generated app commands only after `unzip scaffold.zip -d my-api && cd my-api`
+
 ---
 
 ## Prompt syntax
@@ -99,6 +113,13 @@ Create an API for Category with:
 **Relationships:** `belongs to X` → `@ManyToOne`, `has many X` → `@OneToMany`, `many-to-many with X` → `@ManyToMany`
 
 **Constraints:** `required`, `min 0`, `max 255`, `valid email`, `unique`, `nullable`
+
+### Prompt intelligence mode
+
+- The default parser is deterministic and local (rule-based), keeping runs fast and reproducible.
+- `docker compose` always sets `OLLAMA_URL` — if Ollama is not running the server falls back to deterministic parsing automatically. No configuration required.
+- To enable free-form prompt support, start with `--profile llm` (see Self-host section above) and pull the model once.
+- The UI badge always reflects the live state: **"LLM active"**, **"LLM offline"**, or no badge (deterministic only).
 
 ---
 
@@ -131,22 +152,27 @@ curl -X POST http://localhost:8080/generator/code \
 
 ## Self-host with Docker
 
+Four options — with or without LLM:
+
 ```bash
-# Run the published image
+# A) Run the published image (deterministic parser — no LLM, no extra storage needed)
 docker run -p 8080:8080 ghcr.io/rrezartprebreza/rest-api-generator:latest
 
-# Or build and run locally from this repo
+# B) Run with Ollama for free-form prompt support (~2 GB disk for the model)
+docker compose --profile llm up
+docker exec rest-api-generator-ollama-1 ollama pull llama3.2
+
+# C) Build and run locally from this repo (deterministic, no LLM)
 docker build -t rest-api-generator:local .
 docker run -p 8080:8080 rest-api-generator:local
 
-# Or use docker compose for local source changes
-docker compose up
-
-# Rebuild after changes
+# D) Use docker compose — rebuilds from source (for the generator, not your generated app)
 docker compose up --build
 ```
 
 The Web UI is served at **http://localhost:8080** — share this URL with your team.
+
+The UI shows a status badge: **"LLM active"** when Ollama is reachable, **"LLM offline"** when it is not (generation still works via the deterministic parser). Running without `--profile llm` always falls back to deterministic mode automatically.
 
 ---
 

@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "io.restapigen"
-version = "1.0-SNAPSHOT"
+version = "1.0.0"
 
 repositories {
     mavenCentral()
@@ -45,10 +45,17 @@ tasks.test {
     useJUnitPlatform()
 }
 
+tasks.processResources {
+    filesMatching("rest-api-generator.properties") {
+        expand("appVersion" to project.version.toString())
+    }
+}
+
 // Fat JAR — makes `java -jar` work without the install step
 tasks.jar {
     manifest {
         attributes["Main-Class"] = "io.restapigen.cli.Main"
+        attributes["Implementation-Version"] = project.version
     }
     from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE

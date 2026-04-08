@@ -186,6 +186,13 @@
   .server-config input { flex: 1; background: transparent; border: none; color: var(--text); font-family: var(--mono); font-size: 0.82rem; outline: none; min-width: 0; padding: 4px 0; }
   .server-divider { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
   .online-badge { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 0.7rem; color: var(--text-dim); white-space: nowrap; font-weight: 600; flex-shrink: 0; }
+  .llm-badge { display: none; align-items: center; gap: 6px; font-family: var(--mono); font-size: 0.7rem; white-space: nowrap; font-weight: 700; padding: 3px 10px; border-radius: 20px; flex-shrink: 0; }
+  .llm-badge.active  { color: var(--accent2); background: rgba(123,97,255,0.10); border: 1px solid rgba(123,97,255,0.28); }
+  .llm-badge.offline { color: var(--text-dim); background: transparent; border: 1px solid var(--border); }
+  .parser-note { grid-column: 1 / -1; font-family: var(--mono); font-size: 0.72rem; padding: 9px 16px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface2); color: var(--text-muted); display: none; align-items: center; gap: 10px; }
+  .parser-note.show { display: flex; }
+  .parser-note.llm-active  { border-color: rgba(123,97,255,0.3); background: rgba(123,97,255,0.06); color: var(--accent2); }
+  .parser-note.llm-offline { border-color: rgba(255,107,107,0.2); background: rgba(255,107,107,0.04); color: var(--text-muted); }
   .pulse { width: 7px; height: 7px; background: var(--accent); border-radius: 50%; animation: pulse-anim 2s ease infinite; flex-shrink: 0; }
   @keyframes pulse-anim { 0%, 100% { box-shadow: 0 0 0 0 rgba(0,229,160,0.4); } 50% { box-shadow: 0 0 0 5px rgba(0,229,160,0); } }
 
@@ -322,7 +329,10 @@
     <input type="text" id="serverUrl" placeholder="Auto-detected from current site" autocomplete="off" spellcheck="false"/>
     <div class="server-divider"></div>
     <div class="online-badge" id="onlineBadge"><div class="pulse"></div>checking&#x2026;</div>
+    <div id="llmBadge" class="llm-badge"></div>
   </div>
+
+  <div class="parser-note" id="parserNote"></div>
 
   <div class="steps">
     <div class="step active" id="step1">
@@ -425,29 +435,32 @@
 <section class="docker-section reveal" id="docker">
   <span class="section-eyebrow" style="text-align:center;display:block">// self-host</span>
   <h2 class="section-heading">Run it your way</h2>
-  <p class="section-sub">Docker, source build, or direct CLI &#x2014; your choice.</p>
+  <p class="section-sub">Docker (with or without LLM), source build, or direct CLI &#x2014; your choice.</p>
   <div class="code-block">
     <div class="code-block-header">
       <div class="code-block-title">
         <div class="code-block-dots"><span class="d1"></span><span class="d2"></span><span class="d3"></span></div>
-        <span>Run locally &#x2014; three options</span>
+        <span>Run locally &#x2014; four options</span>
       </div>
       <button class="copy-btn" id="copyDockerBtn" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
         Copy
       </button>
     </div>
-    <pre id="dockerCode"><span class="comment"># Option 1: Docker (recommended)</span>
+    <pre id="dockerCode"><span class="comment"># A) Run this GENERATOR app — no LLM, no extra storage needed</span>
 <span class="cmd-line">docker run -p 8080:8080 ghcr.io/rrezartprebreza/rest-api-generator:latest</span>
 
-<span class="comment"># Option 2: Build from source</span>
-<span class="cmd-line">git clone https://github.com/rrezartprebreza/rest-api-generator</span>
-<span class="cmd-line">cd rest-api-generator</span>
-<span class="cmd-line">./gradlew run --args="serve --port 8080"</span>
+<span class="comment"># B) Same, but with Ollama LLM — write prompts in any plain English (~2 GB disk)</span>
+<span class="cmd-line">docker compose --profile llm up --build</span>
+<span class="cmd-line">docker exec rest-api-generator-ollama-1 ollama pull llama3.2</span>
 
-<span class="comment"># Option 3: Generate ZIP directly from a prompt file</span>
-<span class="cmd-line">./gradlew run --args="generate-zip --file prompt.txt --out scaffold.zip"</span>
-<span class="cmd-line">unzip scaffold.zip -d my-api &amp;&amp; cd my-api &amp;&amp; ./gradlew bootRun</span></pre>
+<span class="comment"># C) Build and run this generator from source</span>
+<span class="cmd-line">git clone https://github.com/rrezartprebreza/rest-api-generator</span>
+<span class="cmd-line">cd rest-api-generator && ./gradlew run --args="serve --port 8080"</span>
+
+<span class="comment"># D) After generating: unzip and run YOUR generated Spring Boot app</span>
+<span class="cmd-line">unzip scaffold.zip -d my-api && cd my-api</span>
+<span class="cmd-line">./gradlew bootRun   # or: docker compose up --build</span></pre>
   </div>
 </section>
 
@@ -532,20 +545,50 @@ function setStep(n) {
 }
 
 async function checkServer() {
-  const badge = document.getElementById('onlineBadge');
-  const url = serverUrlInput.value.trim() || resolveDefaultServerUrl();
+  const badge    = document.getElementById('onlineBadge');
+  const llmBadge = document.getElementById('llmBadge');
+  const note     = document.getElementById('parserNote');
+  const url      = serverUrlInput.value.trim() || resolveDefaultServerUrl();
   try {
     const res = await fetch(url + '/about', { signal: AbortSignal.timeout(3000) });
     if (res.ok) {
       badge.innerHTML = '<div class="pulse"></div>online';
       badge.style.color = 'var(--accent)';
+      try {
+        const info = await res.json();
+        const configured = !!info.llmConfigured;
+        const available  = !!info.llmAvailable;
+        if (configured && available) {
+          llmBadge.className = 'llm-badge active';
+          llmBadge.style.display = 'inline-flex';
+          llmBadge.textContent = '\u{1F9E0} LLM active';
+          llmBadge.title = 'Ollama is running \u2014 free-form prompts are supported';
+          note.className = 'parser-note show llm-active';
+          note.innerHTML = '\u{1F9E0} <strong>LLM mode active</strong> &mdash; write your API description in plain English, any style. Deterministic parser is used as fallback if needed.';
+          promptInput.placeholder = 'Describe your API in any way you like \u2014 LLM mode is active.\n\nExamples:\n"A blog platform with posts, authors, and tags"\n"E-commerce: products, orders, customers, reviews"\n"HR app with employees, departments and leave requests"';
+        } else if (configured && !available) {
+          llmBadge.className = 'llm-badge offline';
+          llmBadge.style.display = 'inline-flex';
+          llmBadge.textContent = '\u{1F9E0} LLM offline';
+          llmBadge.title = 'Ollama configured but not reachable \u2014 using deterministic parser';
+          note.className = 'parser-note show llm-offline';
+          note.innerHTML = '\u26A0\uFE0F <strong>LLM configured but not reachable</strong> &mdash; using deterministic parser. The tool works fully without LLM. To enable: start Ollama and run <code>ollama pull llama3.2</code>.';
+          promptInput.placeholder = 'Create an API for Product with:\n- name (string, required)\n- price (decimal, required, min 0)\n- createdAt (timestamp)\n- belongs to Category\n\nCreate an API for Category with:\n- name (string, required)\n- description (string)';
+        } else {
+          llmBadge.style.display = 'none';
+          note.className = 'parser-note';
+          promptInput.placeholder = 'Create an API for Product with:\n- name (string, required)\n- price (decimal, required, min 0)\n- createdAt (timestamp)\n- belongs to Category\n\nCreate an API for Category with:\n- name (string, required)\n- description (string)';
+        }
+      } catch { llmBadge.style.display = 'none'; note.className = 'parser-note'; }
     } else {
       badge.innerHTML = '<div class="pulse" style="background:var(--accent3)"></div>error';
       badge.style.color = 'var(--accent3)';
+      llmBadge.style.display = 'none'; note.className = 'parser-note';
     }
   } catch {
     badge.innerHTML = '<div class="pulse" style="background:var(--accent3);animation:none"></div>offline';
     badge.style.color = 'var(--accent3)';
+    llmBadge.style.display = 'none'; note.className = 'parser-note';
   }
 }
 serverUrlInput.addEventListener('change', checkServer);
@@ -575,6 +618,28 @@ function highlightJson(json) {
     });
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function getEntityName(entityDef, index) {
+  if (!entityDef) return 'Entity' + (index + 1);
+  const nested = entityDef.entity && entityDef.entity.name;
+  const direct = entityDef.name;
+  return (nested || direct || ('Entity' + (index + 1))).trim();
+}
+
+function getEntityFieldCount(entityDef) {
+  if (entityDef && entityDef.entity && Array.isArray(entityDef.entity.fields)) return entityDef.entity.fields.length;
+  if (entityDef && Array.isArray(entityDef.fields)) return entityDef.fields.length;
+  return 0;
+}
+
 function renderEntityTags(spec) {
   const container = document.getElementById('entityTags');
   const countEl = document.getElementById('entityCount');
@@ -583,8 +648,8 @@ function renderEntityTags(spec) {
     countEl.textContent = '0 entities';
     return;
   }
-  container.innerHTML = spec.entities.map(e =>
-    '<div class="entity-tag">' + e.name + '<span class="count">' + (e.fields||[]).length + '</span></div>'
+  container.innerHTML = spec.entities.map((e, i) =>
+    '<div class="entity-tag">' + escapeHtml(getEntityName(e, i)) + '<span class="count">' + getEntityFieldCount(e) + '</span></div>'
   ).join('');
   countEl.textContent = spec.entities.length + ' entit' + (spec.entities.length === 1 ? 'y' : 'ies');
 }
@@ -592,7 +657,7 @@ function renderEntityTags(spec) {
 function buildFileTree(spec) {
   if (!spec || !spec.entities) return '';
   const pkg = (spec.basePackage || 'com.example.generated').replace(/\./g, '/');
-  const entities = spec.entities.map(e => e.name);
+  const entities = spec.entities.map((e, i) => getEntityName(e, i));
   const lines = [];
   lines.push('<span style="color:var(--accent)">generated-api/</span>');
   lines.push('  src/main/java/' + pkg + '/');
@@ -603,7 +668,7 @@ function buildFileTree(spec) {
     if (layer === 'error') {
       ['GlobalExceptionHandler.java','ErrorResponse.java','ResourceNotFoundException.java'].forEach(f => lines.push('      ' + f));
     } else {
-      entities.forEach(name => lines.push('      ' + name + ext[layer]));
+      entities.forEach(name => lines.push('      ' + escapeHtml(name) + ext[layer]));
     }
   });
   lines.push('  src/main/resources/');
@@ -650,7 +715,7 @@ async function generateSpec() {
     setStep(3);
   } catch (err) {
     setStatus(err.message, 'error'); setStep(1);
-    document.getElementById('specOutput').innerHTML = '<div class="placeholder-msg"><div class="big">&#x26A0;&#xFE0F;</div>' + err.message + '</div>';
+    document.getElementById('specOutput').innerHTML = '<div class="placeholder-msg"><div class="big">&#x26A0;&#xFE0F;</div>' + escapeHtml(err.message) + '</div>';
   } finally { btn.disabled = false; btn.classList.remove('loading'); }
 }
 
