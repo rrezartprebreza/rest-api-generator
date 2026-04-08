@@ -180,9 +180,10 @@ public final class RestApiGeneratorServer implements AutoCloseable {
                 respond(exchange, 405, jsonError("METHOD_NOT_ALLOWED", "Only GET is supported"), "application/json");
                 return;
             }
-            boolean llmMode = ollamaParser != null;
-            String parserMode = llmMode
-                    ? "ollama (" + ollamaParser.getBaseUrl() + ", model=" + ollamaParser.getModel() + ", fallback=deterministic)"
+            boolean llmConfigured = ollamaParser != null;
+            boolean llmAvailable  = llmConfigured && ollamaParser.isAvailable();
+            String parserMode = llmConfigured
+                    ? (llmAvailable ? "ollama" : "ollama-offline")
                     : "deterministic";
             String aboutJson = """
                     {
@@ -190,6 +191,8 @@ public final class RestApiGeneratorServer implements AutoCloseable {
                       "version": "%s",
                       "description": "Generate production-ready Spring Boot REST APIs from plain English in seconds.",
                       "promptParser": "%s",
+                      "llmConfigured": %s,
+                      "llmAvailable": %s,
                       "endpoints": [
                         {"method": "GET",  "path": "/",                "description": "Web UI"},
                         {"method": "GET",  "path": "/about",           "description": "Project information"},
@@ -198,7 +201,7 @@ public final class RestApiGeneratorServer implements AutoCloseable {
                         {"method": "POST", "path": "/generator/code",  "description": "Generate a runnable Spring Boot ZIP from an API specification"}
                       ],
                       "repository": "https://github.com/rrezartprebreza/rest-api-generator"
-                    }""".formatted(APP_VERSION, parserMode);
+                    }""".formatted(APP_VERSION, parserMode, llmConfigured, llmAvailable);
             respond(exchange, 200, aboutJson, "application/json");
         }
     }

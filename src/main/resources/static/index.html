@@ -186,6 +186,13 @@
   .server-config input { flex: 1; background: transparent; border: none; color: var(--text); font-family: var(--mono); font-size: 0.82rem; outline: none; min-width: 0; padding: 4px 0; }
   .server-divider { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
   .online-badge { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 0.7rem; color: var(--text-dim); white-space: nowrap; font-weight: 600; flex-shrink: 0; }
+  .llm-badge { display: none; align-items: center; gap: 6px; font-family: var(--mono); font-size: 0.7rem; white-space: nowrap; font-weight: 700; padding: 3px 10px; border-radius: 20px; flex-shrink: 0; }
+  .llm-badge.active  { color: var(--accent2); background: rgba(123,97,255,0.10); border: 1px solid rgba(123,97,255,0.28); }
+  .llm-badge.offline { color: var(--text-dim); background: transparent; border: 1px solid var(--border); }
+  .parser-note { grid-column: 1 / -1; font-family: var(--mono); font-size: 0.72rem; padding: 9px 16px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface2); color: var(--text-muted); display: none; align-items: center; gap: 10px; }
+  .parser-note.show { display: flex; }
+  .parser-note.llm-active  { border-color: rgba(123,97,255,0.3); background: rgba(123,97,255,0.06); color: var(--accent2); }
+  .parser-note.llm-offline { border-color: rgba(255,107,107,0.2); background: rgba(255,107,107,0.04); color: var(--text-muted); }
   .pulse { width: 7px; height: 7px; background: var(--accent); border-radius: 50%; animation: pulse-anim 2s ease infinite; flex-shrink: 0; }
   @keyframes pulse-anim { 0%, 100% { box-shadow: 0 0 0 0 rgba(0,229,160,0.4); } 50% { box-shadow: 0 0 0 5px rgba(0,229,160,0); } }
 
@@ -322,7 +329,10 @@
     <input type="text" id="serverUrl" placeholder="Auto-detected from current site" autocomplete="off" spellcheck="false"/>
     <div class="server-divider"></div>
     <div class="online-badge" id="onlineBadge"><div class="pulse"></div>checking&#x2026;</div>
+    <div id="llmBadge" class="llm-badge"></div>
   </div>
+
+  <div class="parser-note" id="parserNote"></div>
 
   <div class="steps">
     <div class="step active" id="step1">
@@ -536,20 +546,50 @@ function setStep(n) {
 }
 
 async function checkServer() {
-  const badge = document.getElementById('onlineBadge');
-  const url = serverUrlInput.value.trim() || resolveDefaultServerUrl();
+  const badge    = document.getElementById('onlineBadge');
+  const llmBadge = document.getElementById('llmBadge');
+  const note     = document.getElementById('parserNote');
+  const url      = serverUrlInput.value.trim() || resolveDefaultServerUrl();
   try {
     const res = await fetch(url + '/about', { signal: AbortSignal.timeout(3000) });
     if (res.ok) {
       badge.innerHTML = '<div class="pulse"></div>online';
       badge.style.color = 'var(--accent)';
+      try {
+        const info = await res.json();
+        const configured = !!info.llmConfigured;
+        const available  = !!info.llmAvailable;
+        if (configured && available) {
+          llmBadge.className = 'llm-badge active';
+          llmBadge.style.display = 'inline-flex';
+          llmBadge.textContent = '\u{1F9E0} LLM active';
+          llmBadge.title = 'Ollama is running \u2014 free-form prompts are supported';
+          note.className = 'parser-note show llm-active';
+          note.innerHTML = '\u{1F9E0} <strong>LLM mode active</strong> &mdash; write your API description in plain English, any style. Deterministic parser is used as fallback if needed.';
+          promptInput.placeholder = 'Describe your API in any way you like \u2014 LLM mode is active.\n\nExamples:\n"A blog platform with posts, authors, and tags"\n"E-commerce: products, orders, customers, reviews"\n"HR app with employees, departments and leave requests"';
+        } else if (configured && !available) {
+          llmBadge.className = 'llm-badge offline';
+          llmBadge.style.display = 'inline-flex';
+          llmBadge.textContent = '\u{1F9E0} LLM offline';
+          llmBadge.title = 'Ollama configured but not reachable \u2014 using deterministic parser';
+          note.className = 'parser-note show llm-offline';
+          note.innerHTML = '\u26A0\uFE0F <strong>LLM configured but not reachable</strong> &mdash; using deterministic parser. The tool works fully without LLM. To enable: start Ollama and run <code>ollama pull llama3.2</code>.';
+          promptInput.placeholder = 'Create an API for Product with:\n- name (string, required)\n- price (decimal, required, min 0)\n- createdAt (timestamp)\n- belongs to Category\n\nCreate an API for Category with:\n- name (string, required)\n- description (string)';
+        } else {
+          llmBadge.style.display = 'none';
+          note.className = 'parser-note';
+          promptInput.placeholder = 'Create an API for Product with:\n- name (string, required)\n- price (decimal, required, min 0)\n- createdAt (timestamp)\n- belongs to Category\n\nCreate an API for Category with:\n- name (string, required)\n- description (string)';
+        }
+      } catch { llmBadge.style.display = 'none'; note.className = 'parser-note'; }
     } else {
       badge.innerHTML = '<div class="pulse" style="background:var(--accent3)"></div>error';
       badge.style.color = 'var(--accent3)';
+      llmBadge.style.display = 'none'; note.className = 'parser-note';
     }
   } catch {
     badge.innerHTML = '<div class="pulse" style="background:var(--accent3);animation:none"></div>offline';
     badge.style.color = 'var(--accent3)';
+    llmBadge.style.display = 'none'; note.className = 'parser-note';
   }
 }
 serverUrlInput.addEventListener('change', checkServer);
