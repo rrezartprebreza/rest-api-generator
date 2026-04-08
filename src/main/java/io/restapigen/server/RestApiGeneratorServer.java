@@ -7,6 +7,7 @@ import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import io.restapigen.codegen.CodeGenerator;
 import io.restapigen.core.config.GenerationConfig;
+import io.restapigen.core.parser.CloudLlmPromptParser;
 import io.restapigen.core.parser.NaturalLanguagePromptParser;
 import io.restapigen.core.parser.OllamaPromptParser;
 import io.restapigen.core.parser.PromptParser;
@@ -27,12 +28,13 @@ public final class RestApiGeneratorServer implements AutoCloseable {
     private static final int DEFAULT_THREAD_POOL = 8;
     private static final String APP_VERSION = loadAppVersion();
 
-    private final HttpServer         server;
-    private final PromptParser       parser;
-    private final OllamaPromptParser ollamaParser; // null when deterministic mode
-    private final CodeGenerator      codeGenerator;
-    private final GenerationConfig   config;
-    private final ObjectMapper       mapper;
+    private final HttpServer           server;
+    private final PromptParser         parser;
+    private final OllamaPromptParser   ollamaParser;    // non-null when OLLAMA_URL is set
+    private final CloudLlmPromptParser cloudLlmParser;  // non-null when LLM_API_KEY is set
+    private final CodeGenerator        codeGenerator;
+    private final GenerationConfig     config;
+    private final ObjectMapper         mapper;
 
     public RestApiGeneratorServer(int port) throws IOException {
         this(port, GenerationConfig.defaults());
@@ -46,15 +48,28 @@ public final class RestApiGeneratorServer implements AutoCloseable {
         this.codeGenerator = new CodeGenerator();
 
         String ollamaUrl = System.getenv(OllamaPromptParser.ENV_OLLAMA_URL);
+        String llmApiKey = System.getenv(CloudLlmPromptParser.ENV_LLM_API_KEY);
+
         if (ollamaUrl != null && !ollamaUrl.isBlank()) {
-            this.ollamaParser = new OllamaPromptParser();
-            this.parser       = this.ollamaParser;
+            // Local Ollama (Docker Compose --profile llm)
+            this.ollamaParser   = new OllamaPromptParser();
+            this.cloudLlmParser = null;
+            this.parser         = this.ollamaParser;
             LOG.info("Prompt parser: Ollama at " + this.ollamaParser.getBaseUrl()
                     + " model=" + this.ollamaParser.getModel() + " (fallback: deterministic)");
+        } else if (llmApiKey != null && !llmApiKey.isBlank()) {
+            // Cloud LLM — Groq, OpenAI, or any OpenAI-compatible endpoint
+            this.ollamaParser   = null;
+            this.cloudLlmParser = new CloudLlmPromptParser();
+            this.parser         = this.cloudLlmParser;
+            LOG.info("Prompt parser: cloud LLM at " + this.cloudLlmParser.getBaseUrl()
+                    + " model=" + this.cloudLlmParser.getModel() + " (fallback: deterministic)");
         } else {
-            this.ollamaParser = null;
-            this.parser       = new NaturalLanguagePromptParser();
-            LOG.info("Prompt parser: deterministic (set OLLAMA_URL to enable LLM mode)");
+            // Fully deterministic — no LLM required
+            this.ollamaParser   = null;
+            this.cloudLlmParser = null;
+            this.parser         = new NaturalLanguagePromptParser();
+            LOG.info("Prompt parser: deterministic (set OLLAMA_URL or LLM_API_KEY to enable LLM mode)");
         }
 
         registerContexts();
@@ -180,11 +195,29 @@ public final class RestApiGeneratorServer implements AutoCloseable {
                 respond(exchange, 405, jsonError("METHOD_NOT_ALLOWED", "Only GET is supported"), "application/json");
                 return;
             }
-            boolean llmConfigured = ollamaParser != null;
-            boolean llmAvailable  = llmConfigured && ollamaParser.isAvailable();
-            String parserMode = llmConfigured
-                    ? (llmAvailable ? "ollama" : "ollama-offline")
-                    : "deterministic";
+
+            boolean llmConfigured;
+            boolean llmAvailable;
+            String  parserMode;
+
+            if (ollamaParser != null) {
+                llmConfigured = true;
+                llmAvailable  = ollamaParser.isAvailable();
+                parserMode    = llmAvailable ? "ollama" : "ollama-offline";
+            } else if (cloudLlmParser != null) {
+                llmConfigured = true;
+                llmAvailable  = cloudLlmParser.isAvailable();
+                String url    = cloudLlmParser.getBaseUrl();
+                String tag    = url.contains("groq.com")    ? "groq"
+                              : url.contains("openai.com")  ? "openai"
+                              : "cloud-llm";
+                parserMode    = llmAvailable ? tag : (tag + "-offline");
+            } else {
+                llmConfigured = false;
+                llmAvailable  = false;
+                parserMode    = "deterministic";
+            }
+
             String aboutJson = """
                     {
                       "name": "REST API Generator",
