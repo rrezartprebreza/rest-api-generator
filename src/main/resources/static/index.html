@@ -435,12 +435,12 @@
 <section class="docker-section reveal" id="docker">
   <span class="section-eyebrow" style="text-align:center;display:block">// self-host</span>
   <h2 class="section-heading">Run it your way</h2>
-  <p class="section-sub">Docker (with or without LLM), source build, or direct CLI &#x2014; your choice.</p>
+  <p class="section-sub">Docker with Ollama, cloud LLM via Groq, source build &#x2014; your choice.</p>
   <div class="code-block">
     <div class="code-block-header">
       <div class="code-block-title">
         <div class="code-block-dots"><span class="d1"></span><span class="d2"></span><span class="d3"></span></div>
-        <span>Run locally &#x2014; four options</span>
+        <span>Run locally &#x2014; how to start</span>
       </div>
       <button class="copy-btn" id="copyDockerBtn" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
@@ -458,7 +458,11 @@
 <span class="cmd-line">git clone https://github.com/rrezartprebreza/rest-api-generator</span>
 <span class="cmd-line">cd rest-api-generator && ./gradlew run --args="serve --port 8080"</span>
 
-<span class="comment"># D) After generating: unzip and run YOUR generated Spring Boot app</span>
+<span class="comment"># D) Cloud LLM via Groq (free API key — works on Render and any cloud host)</span>
+<span class="comment">#   Get a free key at https://console.groq.com → API Keys → Create</span>
+<span class="cmd-line">LLM_API_KEY=gsk_... ./gradlew run --args="serve --port 8080"</span>
+
+<span class="comment"># E) After generating: unzip and run YOUR generated Spring Boot app</span>
 <span class="cmd-line">unzip scaffold.zip -d my-api && cd my-api</span>
 <span class="cmd-line">./gradlew bootRun   # or: docker compose up --build</span></pre>
   </div>
