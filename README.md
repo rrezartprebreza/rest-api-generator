@@ -116,9 +116,10 @@ Create an API for Category with:
 
 ### Prompt intelligence mode
 
-- Current default parser is deterministic and local (rule-based), which keeps runs fast and reproducible.
-- For broader free-form prompts, you can add an optional LLM preprocessing step (for example, Ollama running locally) before sending text to `/generator/spec`.
-- Keep the deterministic parser as fallback so generation still works when no LLM is available.
+- The default parser is deterministic and local (rule-based), keeping runs fast and reproducible.
+- `docker compose` always sets `OLLAMA_URL` — if Ollama is not running the server falls back to deterministic parsing automatically. No configuration required.
+- To enable free-form prompt support, start with `--profile llm` (see Self-host section above) and pull the model once.
+- The UI badge always reflects the live state: **"LLM active"**, **"LLM offline"**, or no badge (deterministic only).
 
 ---
 
@@ -151,23 +152,27 @@ curl -X POST http://localhost:8080/generator/code \
 
 ## Self-host with Docker
 
+Four options — with or without LLM:
+
 ```bash
-# Run the published image (deterministic parser)
+# A) Run the published image (deterministic parser — no LLM, no extra storage needed)
 docker run -p 8080:8080 ghcr.io/rrezartprebreza/rest-api-generator:latest
 
-# Or run with Ollama for free-form prompt support
+# B) Run with Ollama for free-form prompt support (~2 GB disk for the model)
 docker compose --profile llm up
 docker exec rest-api-generator-ollama-1 ollama pull llama3.2
 
-# Or build and run locally from this repo
+# C) Build and run locally from this repo (deterministic, no LLM)
 docker build -t rest-api-generator:local .
 docker run -p 8080:8080 rest-api-generator:local
 
-# Or use docker compose (deterministic, rebuilds from source)
+# D) Use docker compose — rebuilds from source (for the generator, not your generated app)
 docker compose up --build
 ```
 
 The Web UI is served at **http://localhost:8080** — share this URL with your team.
+
+The UI shows a status badge: **"LLM active"** when Ollama is reachable, **"LLM offline"** when it is not (generation still works via the deterministic parser). Running without `--profile llm` always falls back to deterministic mode automatically.
 
 ---
 
