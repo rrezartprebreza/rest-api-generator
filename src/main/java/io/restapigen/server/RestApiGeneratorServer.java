@@ -16,11 +16,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.Properties;
 import java.util.concurrent.Executors;
 
 public final class RestApiGeneratorServer implements AutoCloseable {
 
     private static final int DEFAULT_THREAD_POOL = 8;
+    private static final String APP_VERSION = loadAppVersion();
 
     private final HttpServer     server;
     private final PromptParser   parser;
@@ -155,21 +157,6 @@ public final class RestApiGeneratorServer implements AutoCloseable {
     // ── GET /about ────────────────────────────────────────────────────────────
 
     private final class AboutHandler implements HttpHandler {
-        private static final String ABOUT_JSON = """
-                {
-                  "name": "REST API Generator",
-                  "version": "1.0.0",
-                  "description": "Generate production-ready Spring Boot REST APIs from plain English in seconds.",
-                  "endpoints": [
-                    {"method": "GET",  "path": "/",                "description": "Web UI"},
-                    {"method": "GET",  "path": "/about",           "description": "Project information"},
-                    {"method": "GET",  "path": "/health",          "description": "Health check"},
-                    {"method": "POST", "path": "/generator/spec",  "description": "Parse a natural-language prompt into an API specification"},
-                    {"method": "POST", "path": "/generator/code",  "description": "Generate a runnable Spring Boot ZIP from an API specification"}
-                  ],
-                  "repository": "https://github.com/rrezartprebreza/rest-api-generator"
-                }""";
-
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             if (handlePreflight(exchange)) return;
@@ -177,7 +164,21 @@ public final class RestApiGeneratorServer implements AutoCloseable {
                 respond(exchange, 405, jsonError("METHOD_NOT_ALLOWED", "Only GET is supported"), "application/json");
                 return;
             }
-            respond(exchange, 200, ABOUT_JSON, "application/json");
+            String aboutJson = """
+                    {
+                      "name": "REST API Generator",
+                      "version": "%s",
+                      "description": "Generate production-ready Spring Boot REST APIs from plain English in seconds.",
+                      "endpoints": [
+                        {"method": "GET",  "path": "/",                "description": "Web UI"},
+                        {"method": "GET",  "path": "/about",           "description": "Project information"},
+                        {"method": "GET",  "path": "/health",          "description": "Health check"},
+                        {"method": "POST", "path": "/generator/spec",  "description": "Parse a natural-language prompt into an API specification"},
+                        {"method": "POST", "path": "/generator/code",  "description": "Generate a runnable Spring Boot ZIP from an API specification"}
+                      ],
+                      "repository": "https://github.com/rrezartprebreza/rest-api-generator"
+                    }""".formatted(APP_VERSION);
+            respond(exchange, 200, aboutJson, "application/json");
         }
     }
 
@@ -244,6 +245,21 @@ public final class RestApiGeneratorServer implements AutoCloseable {
         // Strip stack trace hints and limit length
         String normalized = input.replaceAll("\\s+", " ").trim();
         return normalized.substring(0, Math.min(normalized.length(), 200));
+    }
+
+    private static String loadAppVersion() {
+        try (InputStream in = RestApiGeneratorServer.class.getResourceAsStream("/rest-api-generator.properties")) {
+            if (in == null) return "dev";
+            Properties properties = new Properties();
+            properties.load(in);
+            String version = properties.getProperty("app.version");
+            if (version == null || version.isBlank() || version.contains("${")) {
+                return "dev";
+            }
+            return version;
+        } catch (IOException ignored) {
+            return "dev";
+        }
     }
 
     private void respond(HttpExchange exchange, int status, byte[] payload, String contentType) throws IOException {

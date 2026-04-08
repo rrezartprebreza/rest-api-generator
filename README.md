@@ -16,6 +16,9 @@ docker run -p 8080:8080 ghcr.io/rrezartprebreza/rest-api-generator:latest
 
 Open **http://localhost:8080** → write a prompt → click **Download ZIP** → run your API.
 
+> `ghcr.io/rrezartprebreza/rest-api-generator` runs the **generator service** (this project), not your generated API.
+> After downloading a ZIP, run that generated project from its own folder.
+
 Published image: `ghcr.io/rrezartprebreza/rest-api-generator`
 
 Tags:
@@ -23,6 +26,11 @@ Tags:
 - branch tags from CI, for example `main` or `develop`
 - commit SHA tags from CI
 - release tags from `v*`, for example `1.0.0`, `1.0`, `1`
+
+Version flow:
+- `release` branch uses a fixed version such as `1.0.0`
+- `main` continues with the next development version such as `1.1.0-SNAPSHOT`
+- create Git tags like `v1.0.0` from `release` for published builds
 
 ---
 
@@ -77,6 +85,12 @@ cd rest-api-generator
 unzip scaffold.zip -d my-api && cd my-api && ./gradlew bootRun
 ```
 
+### Important: generator app vs generated app
+
+- **Generator app (this repo):** serves UI + `/generator/spec` + `/generator/code`
+- **Generated app (your ZIP output):** your own Spring Boot API with its own `Dockerfile`/`docker-compose.yml`
+- Run generated app commands only after `unzip scaffold.zip -d my-api && cd my-api`
+
 ---
 
 ## Prompt syntax
@@ -99,6 +113,12 @@ Create an API for Category with:
 **Relationships:** `belongs to X` → `@ManyToOne`, `has many X` → `@OneToMany`, `many-to-many with X` → `@ManyToMany`
 
 **Constraints:** `required`, `min 0`, `max 255`, `valid email`, `unique`, `nullable`
+
+### Prompt intelligence mode
+
+- Current default parser is deterministic and local (rule-based), which keeps runs fast and reproducible.
+- For broader free-form prompts, you can add an optional LLM preprocessing step (for example, Ollama running locally) before sending text to `/generator/spec`.
+- Keep the deterministic parser as fallback so generation still works when no LLM is available.
 
 ---
 

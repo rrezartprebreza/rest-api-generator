@@ -43,6 +43,7 @@ class RestApiGeneratorServerAboutTest {
         assertEquals(200, status);
         assertTrue(conn.getContentType().contains("application/json"));
         assertTrue(body.contains("REST API Generator"));
+        assertTrue(body.contains("\"version\": \"1.0.0\""));
         assertTrue(body.contains("/generator/spec"));
         assertTrue(body.contains("/generator/code"));
     }

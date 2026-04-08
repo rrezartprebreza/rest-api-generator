@@ -437,17 +437,18 @@
         Copy
       </button>
     </div>
-    <pre id="dockerCode"><span class="comment"># Option 1: Docker (recommended)</span>
+    <pre id="dockerCode"><span class="comment"># A) Run this GENERATOR app (UI + API service)</span>
 <span class="cmd-line">docker run -p 8080:8080 ghcr.io/rrezartprebreza/rest-api-generator:latest</span>
 
-<span class="comment"># Option 2: Build from source</span>
+<span class="comment"># B) Build this generator from source</span>
 <span class="cmd-line">git clone https://github.com/rrezartprebreza/rest-api-generator</span>
 <span class="cmd-line">cd rest-api-generator</span>
 <span class="cmd-line">./gradlew run --args="serve --port 8080"</span>
 
-<span class="comment"># Option 3: Generate ZIP directly from a prompt file</span>
+<span class="comment"># C) Generate your own app ZIP, then run THAT app</span>
 <span class="cmd-line">./gradlew run --args="generate-zip --file prompt.txt --out scaffold.zip"</span>
-<span class="cmd-line">unzip scaffold.zip -d my-api &amp;&amp; cd my-api &amp;&amp; ./gradlew bootRun</span></pre>
+<span class="cmd-line">unzip scaffold.zip -d my-api &amp;&amp; cd my-api</span>
+<span class="cmd-line">./gradlew bootRun   # or: docker compose up --build</span></pre>
   </div>
 </section>
 
@@ -575,6 +576,28 @@ function highlightJson(json) {
     });
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function getEntityName(entityDef, index) {
+  if (!entityDef) return 'Entity' + (index + 1);
+  const nested = entityDef.entity && entityDef.entity.name;
+  const direct = entityDef.name;
+  return (nested || direct || ('Entity' + (index + 1))).trim();
+}
+
+function getEntityFieldCount(entityDef) {
+  if (entityDef && entityDef.entity && Array.isArray(entityDef.entity.fields)) return entityDef.entity.fields.length;
+  if (entityDef && Array.isArray(entityDef.fields)) return entityDef.fields.length;
+  return 0;
+}
+
 function renderEntityTags(spec) {
   const container = document.getElementById('entityTags');
   const countEl = document.getElementById('entityCount');
@@ -583,8 +606,8 @@ function renderEntityTags(spec) {
     countEl.textContent = '0 entities';
     return;
   }
-  container.innerHTML = spec.entities.map(e =>
-    '<div class="entity-tag">' + e.name + '<span class="count">' + (e.fields||[]).length + '</span></div>'
+  container.innerHTML = spec.entities.map((e, i) =>
+    '<div class="entity-tag">' + escapeHtml(getEntityName(e, i)) + '<span class="count">' + getEntityFieldCount(e) + '</span></div>'
   ).join('');
   countEl.textContent = spec.entities.length + ' entit' + (spec.entities.length === 1 ? 'y' : 'ies');
 }
@@ -592,7 +615,7 @@ function renderEntityTags(spec) {
 function buildFileTree(spec) {
   if (!spec || !spec.entities) return '';
   const pkg = (spec.basePackage || 'com.example.generated').replace(/\./g, '/');
-  const entities = spec.entities.map(e => e.name);
+  const entities = spec.entities.map((e, i) => getEntityName(e, i));
   const lines = [];
   lines.push('<span style="color:var(--accent)">generated-api/</span>');
   lines.push('  src/main/java/' + pkg + '/');
@@ -603,7 +626,7 @@ function buildFileTree(spec) {
     if (layer === 'error') {
       ['GlobalExceptionHandler.java','ErrorResponse.java','ResourceNotFoundException.java'].forEach(f => lines.push('      ' + f));
     } else {
-      entities.forEach(name => lines.push('      ' + name + ext[layer]));
+      entities.forEach(name => lines.push('      ' + escapeHtml(name) + ext[layer]));
     }
   });
   lines.push('  src/main/resources/');
@@ -650,7 +673,7 @@ async function generateSpec() {
     setStep(3);
   } catch (err) {
     setStatus(err.message, 'error'); setStep(1);
-    document.getElementById('specOutput').innerHTML = '<div class="placeholder-msg"><div class="big">&#x26A0;&#xFE0F;</div>' + err.message + '</div>';
+    document.getElementById('specOutput').innerHTML = '<div class="placeholder-msg"><div class="big">&#x26A0;&#xFE0F;</div>' + escapeHtml(err.message) + '</div>';
   } finally { btn.disabled = false; btn.classList.remove('loading'); }
 }
 
