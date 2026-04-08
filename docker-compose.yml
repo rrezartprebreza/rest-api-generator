@@ -1,7 +1,13 @@
 # Docker Compose for running REST API Generator locally
-# Usage:
-#   docker compose up           → starts the generator UI on http://localhost:8080
-#   docker compose up --build   → rebuild after code changes
+#
+# Basic usage (deterministic parser — no LLM):
+#   docker compose up
+#
+# With Ollama LLM (free-form prompts):
+#   docker compose --profile llm up
+#
+# After first run with Ollama, pull the default model:
+#   docker exec rest-api-generator-ollama-1 ollama pull llama3.2
 
 services:
   rest-api-generator:
@@ -10,9 +16,52 @@ services:
       - "8080:8080"
     environment:
       - JAVA_OPTS=-Xmx256m
+      # Uncomment to enable LLM mode without the llm profile (point to any Ollama instance):
+      # - OLLAMA_URL=http://ollama:11434
+      # - OLLAMA_MODEL=llama3.2
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
       interval: 15s
       timeout: 3s
       retries: 3
+
+  # ── Optional Ollama sidecar ───────────────────────────────────────────────
+  # Start with: docker compose --profile llm up
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["llm"]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # Wires OLLAMA_URL when both services are started together under llm profile
+  rest-api-generator-llm:
+    build: .
+    profiles: ["llm"]
+    ports:
+      - "8080:8080"
+    environment:
+      - JAVA_OPTS=-Xmx256m
+      - OLLAMA_URL=http://ollama:11434
+      - OLLAMA_MODEL=llama3.2
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  ollama-data:

@@ -440,12 +440,15 @@
     <pre id="dockerCode"><span class="comment"># A) Run this GENERATOR app (UI + API service)</span>
 <span class="cmd-line">docker run -p 8080:8080 ghcr.io/rrezartprebreza/rest-api-generator:latest</span>
 
-<span class="comment"># B) Build this generator from source</span>
-<span class="cmd-line">git clone https://github.com/rrezartprebreza/rest-api-generator</span>
-<span class="cmd-line">cd rest-api-generator</span>
-<span class="cmd-line">./gradlew run --args="serve --port 8080"</span>
+<span class="comment"># B) With Ollama LLM (free-form prompts) — pulls llama3.2 on first run</span>
+<span class="cmd-line">docker compose --profile llm up</span>
+<span class="cmd-line">docker exec rest-api-generator-ollama-1 ollama pull llama3.2</span>
 
-<span class="comment"># C) Generate your own app ZIP, then run THAT app</span>
+<span class="comment"># C) Build this generator from source</span>
+<span class="cmd-line">git clone https://github.com/rrezartprebreza/rest-api-generator</span>
+<span class="cmd-line">cd rest-api-generator && ./gradlew run --args="serve --port 8080"</span>
+
+<span class="comment"># D) Generate your own app ZIP, then run THAT app</span>
 <span class="cmd-line">./gradlew run --args="generate-zip --file prompt.txt --out scaffold.zip"</span>
 <span class="cmd-line">unzip scaffold.zip -d my-api &amp;&amp; cd my-api</span>
 <span class="cmd-line">./gradlew bootRun   # or: docker compose up --build</span></pre>

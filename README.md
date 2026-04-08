@@ -152,17 +152,18 @@ curl -X POST http://localhost:8080/generator/code \
 ## Self-host with Docker
 
 ```bash
-# Run the published image
+# Run the published image (deterministic parser)
 docker run -p 8080:8080 ghcr.io/rrezartprebreza/rest-api-generator:latest
+
+# Or run with Ollama for free-form prompt support
+docker compose --profile llm up
+docker exec rest-api-generator-ollama-1 ollama pull llama3.2
 
 # Or build and run locally from this repo
 docker build -t rest-api-generator:local .
 docker run -p 8080:8080 rest-api-generator:local
 
-# Or use docker compose for local source changes
-docker compose up
-
-# Rebuild after changes
+# Or use docker compose (deterministic, rebuilds from source)
 docker compose up --build
 ```
 

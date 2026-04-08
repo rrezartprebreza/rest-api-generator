@@ -8,6 +8,7 @@ import com.sun.net.httpserver.HttpServer;
 import io.restapigen.codegen.CodeGenerator;
 import io.restapigen.core.config.GenerationConfig;
 import io.restapigen.core.parser.NaturalLanguagePromptParser;
+import io.restapigen.core.parser.OllamaPromptParser;
 import io.restapigen.core.parser.PromptParser;
 import io.restapigen.domain.ApiSpecification;
 import io.restapigen.generator.parser.SpecInputExtractor;
@@ -18,17 +19,20 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 import java.util.concurrent.Executors;
+import java.util.logging.Logger;
 
 public final class RestApiGeneratorServer implements AutoCloseable {
 
+    private static final Logger LOG = Logger.getLogger(RestApiGeneratorServer.class.getName());
     private static final int DEFAULT_THREAD_POOL = 8;
     private static final String APP_VERSION = loadAppVersion();
 
-    private final HttpServer     server;
-    private final PromptParser   parser;
-    private final CodeGenerator  codeGenerator;
-    private final GenerationConfig config;
-    private final ObjectMapper   mapper;
+    private final HttpServer         server;
+    private final PromptParser       parser;
+    private final OllamaPromptParser ollamaParser; // null when deterministic mode
+    private final CodeGenerator      codeGenerator;
+    private final GenerationConfig   config;
+    private final ObjectMapper       mapper;
 
     public RestApiGeneratorServer(int port) throws IOException {
         this(port, GenerationConfig.defaults());
@@ -37,10 +41,22 @@ public final class RestApiGeneratorServer implements AutoCloseable {
     public RestApiGeneratorServer(int port, GenerationConfig config) throws IOException {
         this.server        = HttpServer.create(new InetSocketAddress(port), 0);
         this.server.setExecutor(Executors.newFixedThreadPool(DEFAULT_THREAD_POOL));
-        this.parser        = new NaturalLanguagePromptParser();
-        this.codeGenerator = new CodeGenerator();
         this.config        = config == null ? GenerationConfig.defaults() : config;
         this.mapper        = new ObjectMapper().findAndRegisterModules();
+        this.codeGenerator = new CodeGenerator();
+
+        String ollamaUrl = System.getenv(OllamaPromptParser.ENV_OLLAMA_URL);
+        if (ollamaUrl != null && !ollamaUrl.isBlank()) {
+            this.ollamaParser = new OllamaPromptParser();
+            this.parser       = this.ollamaParser;
+            LOG.info("Prompt parser: Ollama at " + this.ollamaParser.getBaseUrl()
+                    + " model=" + this.ollamaParser.getModel() + " (fallback: deterministic)");
+        } else {
+            this.ollamaParser = null;
+            this.parser       = new NaturalLanguagePromptParser();
+            LOG.info("Prompt parser: deterministic (set OLLAMA_URL to enable LLM mode)");
+        }
+
         registerContexts();
     }
 
@@ -164,11 +180,16 @@ public final class RestApiGeneratorServer implements AutoCloseable {
                 respond(exchange, 405, jsonError("METHOD_NOT_ALLOWED", "Only GET is supported"), "application/json");
                 return;
             }
+            boolean llmMode = ollamaParser != null;
+            String parserMode = llmMode
+                    ? "ollama (" + ollamaParser.getBaseUrl() + ", model=" + ollamaParser.getModel() + ", fallback=deterministic)"
+                    : "deterministic";
             String aboutJson = """
                     {
                       "name": "REST API Generator",
                       "version": "%s",
                       "description": "Generate production-ready Spring Boot REST APIs from plain English in seconds.",
+                      "promptParser": "%s",
                       "endpoints": [
                         {"method": "GET",  "path": "/",                "description": "Web UI"},
                         {"method": "GET",  "path": "/about",           "description": "Project information"},
@@ -177,7 +198,7 @@ public final class RestApiGeneratorServer implements AutoCloseable {
                         {"method": "POST", "path": "/generator/code",  "description": "Generate a runnable Spring Boot ZIP from an API specification"}
                       ],
                       "repository": "https://github.com/rrezartprebreza/rest-api-generator"
-                    }""".formatted(APP_VERSION);
+                    }""".formatted(APP_VERSION, parserMode);
             respond(exchange, 200, aboutJson, "application/json");
         }
     }
