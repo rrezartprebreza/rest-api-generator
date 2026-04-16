@@ -27,14 +27,16 @@ public final class RepositoryGeneratorPlugin implements GeneratorPlugin {
         String basePackage = context.config().project().basePackage();
         String javaBase = "src/main/java/" + context.basePackagePath();
         String suffix = context.config().standards().naming().repositorySuffix();
+        String entitySuffix = context.config().standards().naming().entitySuffix();
         for (EntityDefinition definition : specification.entities) {
             String entityName = definition.entity.name;
+            String entityClass = entityName + entitySuffix;
             String className = entityName + suffix;
             String content = context.templates().render(
                     context.templatePack().templatePath("repository.java.tpl"),
                     Map.of(
                             "basePackage", basePackage,
-                            "entityName", entityName,
+                            "entityName", entityClass,
                             "className", className
                     )
             );

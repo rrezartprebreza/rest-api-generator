@@ -30,9 +30,11 @@ public final class ServiceGeneratorPlugin implements GeneratorPlugin {
         String suffix           = context.config().standards().naming().serviceSuffix();
         String repositorySuffix = context.config().standards().naming().repositorySuffix();
         String dtoSuffix        = context.config().standards().naming().dtoSuffix();
+        String entitySuffix     = context.config().standards().naming().entitySuffix();
 
         for (EntityDefinition definition : specification.entities) {
             String entityName       = definition.entity.name;
+            String entityClass      = entityName + entitySuffix;
             String className        = entityName + suffix;
             String repositoryClass  = entityName + repositorySuffix;
             String mapperClass      = entityName + "Mapper";
@@ -45,7 +47,7 @@ public final class ServiceGeneratorPlugin implements GeneratorPlugin {
                     context.templatePack().templatePath("service.java.tpl"),
                     Map.of(
                             "basePackage",      basePackage,
-                            "entityName",       entityName,
+                            "entityName",       entityClass,
                             "className",        className,
                             "repositoryClass",  repositoryClass,
                             "mapperClass",      mapperClass,

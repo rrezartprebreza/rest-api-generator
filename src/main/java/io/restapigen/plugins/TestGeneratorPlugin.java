@@ -25,9 +25,11 @@ public final class TestGeneratorPlugin implements GeneratorPlugin {
         String serviceSuffix         = context.config().standards().naming().serviceSuffix();
         String repositorySuffix      = context.config().standards().naming().repositorySuffix();
         String dtoSuffix             = context.config().standards().naming().dtoSuffix();
+        String entitySuffix          = context.config().standards().naming().entitySuffix();
 
         for (EntityDefinition definition : specification.entities) {
             String entityName      = definition.entity.name;
+            String entityClass     = entityName + entitySuffix;
             String serviceClass    = entityName + serviceSuffix;
             String repositoryClass = entityName + repositorySuffix;
             String mapperClass     = entityName + "Mapper";
@@ -40,7 +42,7 @@ public final class TestGeneratorPlugin implements GeneratorPlugin {
                     Map.of(
                             "basePackage",     basePackage,
                             "className",       testClass,
-                            "entityName",      entityName,
+                            "entityName",      entityClass,
                             "serviceClass",    serviceClass,
                             "repositoryClass", repositoryClass,
                             "mapperClass",     mapperClass,
