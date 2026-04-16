@@ -50,6 +50,7 @@ public final class DtoGeneratorPlugin implements GeneratorPlugin {
             if (!lombokModels) {
                 body.append(TemplateSupport.constructorBlock(className, definition.entity.fields));
                 body.append(TemplateSupport.gettersBlock(definition.entity.fields));
+                body.append(TemplateSupport.settersBlock(definition.entity.fields));
             }
             String content = context.templates().render(
                     context.templatePack().templatePath("dto.java.tpl"),

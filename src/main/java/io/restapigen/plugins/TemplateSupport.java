@@ -109,11 +109,27 @@ final class TemplateSupport {
         return out.toString();
     }
 
+    static String settersBlock(List<FieldSpec> fields) {
+        StringBuilder out = new StringBuilder();
+        for (FieldSpec field : fields) {
+            out.append("    public void set")
+                    .append(capitalize(field.name)).append("(")
+                    .append(field.type).append(" ").append(field.name).append(") {\n")
+                    .append("        this.").append(field.name).append(" = ").append(field.name).append(";\n")
+                    .append("    }\n\n");
+        }
+        return out.toString();
+    }
+
     static String entityGettersBlock(String idType, List<FieldSpec> fields) {
         return "    public " + idType + " getId() {\n"
                 + "        return id;\n"
                 + "    }\n\n"
-                + gettersBlock(fields);
+                + "    public void setId(" + idType + " id) {\n"
+                + "        this.id = id;\n"
+                + "    }\n\n"
+                + gettersBlock(fields)
+                + settersBlock(fields);
     }
 
     static String noArgConstructorBlock(String className) {

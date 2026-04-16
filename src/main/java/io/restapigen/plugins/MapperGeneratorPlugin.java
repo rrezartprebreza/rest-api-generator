@@ -35,16 +35,18 @@ public final class MapperGeneratorPlugin implements GeneratorPlugin {
         String basePackage = context.config().project().basePackage();
         String javaBase = "src/main/java/" + context.basePackagePath();
         String dtoSuffix = context.config().standards().naming().dtoSuffix();
+        String entitySuffix = context.config().standards().naming().entitySuffix();
 
         for (EntityDefinition definition : specification.entities) {
             String entityName = definition.entity.name;
+            String entityClass = entityName + entitySuffix;
             String className = entityName + "Mapper";
             String dtoClass = entityName + dtoSuffix;
             String content = context.templates().render(
                     context.templatePack().templatePath("mapper.java.tpl"),
                     Map.of(
                             "basePackage", basePackage,
-                            "entityName", entityName,
+                            "entityName", entityClass,
                             "className", className,
                             "dtoClass", dtoClass
                     )

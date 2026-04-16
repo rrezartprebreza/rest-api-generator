@@ -64,7 +64,6 @@ public final class ProjectScaffoldGeneratorPlugin implements GeneratorPlugin {
                 + "    implementation 'org.springframework.boot:spring-boot-starter-web'\n"
                 + "    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'\n"
                 + "    implementation 'org.springframework.boot:spring-boot-starter-validation'\n"
-                + (auditing ? "    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'\n" : "")
                 + "    implementation 'org.mapstruct:mapstruct:1.5.5.Final'\n"
                 + "    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'\n"
                 + migrationDep
@@ -222,8 +221,9 @@ public final class ProjectScaffoldGeneratorPlugin implements GeneratorPlugin {
         return switch (migrationTool == null ? "" : migrationTool.toLowerCase(Locale.ROOT)) {
             case "liquibase" -> "    implementation 'org.liquibase:liquibase-core'\n";
             case "none"      -> "";
-            default          -> "    implementation 'org.flywaydb:flyway-core'\n"
-                             + "    implementation 'org.flywaydb:flyway-database-postgresql'\n";
+            // flyway-core is sufficient for Flyway 9.x (Spring Boot 3.2.x).
+            // On Spring Boot 3.3+ (Flyway 10+) add the database-specific module manually if needed.
+            default          -> "    implementation 'org.flywaydb:flyway-core'\n";
         };
     }
 

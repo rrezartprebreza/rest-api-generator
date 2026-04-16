@@ -42,9 +42,9 @@ public final class ControllerGeneratorPlugin implements GeneratorPlugin {
             String collaboratorClass = entityName + (useServiceLayer ? serviceSuffix : repositorySuffix);
             String collaboratorPackage = basePackage + (useServiceLayer ? ".service." : ".repository.") + collaboratorClass;
             String className = entityName + controllerSuffix;
-            String createCall = useServiceLayer ? "return collaborator.create(entity);" : "throw new UnsupportedOperationException(\"Service layer required for DTO create flow\");";
-            String findByIdCall = useServiceLayer ? "return collaborator.findById(id);" : "throw new UnsupportedOperationException(\"Service layer required for DTO read flow\");";
-            String updateCall = useServiceLayer ? "return collaborator.update(id, entity);" : "throw new UnsupportedOperationException(\"Service layer required for DTO update flow\");";
+            String createCall = useServiceLayer ? "collaborator.create(dto)" : "throw new UnsupportedOperationException(\"Service layer required for DTO create flow\")";
+            String findByIdCall = useServiceLayer ? "collaborator.findById(id)" : "throw new UnsupportedOperationException(\"Service layer required for DTO read flow\")";
+            String updateCall = useServiceLayer ? "collaborator.update(id, dto)" : "throw new UnsupportedOperationException(\"Service layer required for DTO update flow\")";
             String deleteCall = useServiceLayer ? "collaborator.delete(id);" : "throw new UnsupportedOperationException(\"Service layer required for DTO delete flow\");";
             String dtoClass = entityName + dtoSuffix;
             String content = context.templates().render(

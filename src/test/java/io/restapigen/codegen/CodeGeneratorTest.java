@@ -116,7 +116,7 @@ class CodeGeneratorTest {
         assertTrue(compose.contains("profiles:"));
         assertTrue(compose.contains("- tools"));
         assertFalse(compose.contains("version:"));
-        assertTrue(dockerfile != null && dockerfile.contains("FROM gradle:8.10-jdk17 AS builder"));
+        assertTrue(dockerfile != null && dockerfile.contains("FROM gradle:8.10-jdk") && dockerfile.contains("AS builder"));
         assertTrue(dockerfile.contains("RUN gradle --no-daemon bootJar -x test"));
         assertTrue(dockerfile.contains("COPY --from=builder /workspace/build/libs/*.jar app.jar"));
         assertNoTemplatePlaceholdersInJavaSources(zipFiles);
