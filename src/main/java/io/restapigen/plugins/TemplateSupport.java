@@ -22,30 +22,45 @@ final class TemplateSupport {
 
     static Set<String> collectEntityImports(List<FieldSpec> fields, List<RelationshipSpec> relationships) {
         Set<String> imports = new LinkedHashSet<>();
+        // Always needed
         imports.add("jakarta.persistence.Entity");
         imports.add("jakarta.persistence.Table");
         imports.add("jakarta.persistence.Id");
         imports.add("jakarta.persistence.GeneratedValue");
         imports.add("jakarta.persistence.GenerationType");
-        imports.add("jakarta.persistence.ManyToOne");
-        imports.add("jakarta.persistence.OneToOne");
-        imports.add("jakarta.persistence.OneToMany");
-        imports.add("jakarta.persistence.ManyToMany");
-        imports.add("jakarta.persistence.JoinColumn");
-        imports.add("jakarta.persistence.JoinTable");
-        imports.add("jakarta.persistence.FetchType");
-        imports.add("jakarta.persistence.CascadeType");
-        imports.add("jakarta.persistence.ElementCollection");
-        imports.add("jakarta.persistence.CollectionTable");
-        imports.add("jakarta.persistence.Column");
-        imports.add("jakarta.persistence.Enumerated");
-        imports.add("jakarta.persistence.EnumType");
 
-        imports.addAll(collectImports(fields));
+        // Relationship-specific imports — only add what is actually used
+        if (!relationships.isEmpty()) {
+            for (RelationshipSpec rel : relationships) {
+                imports.add("jakarta.persistence." + rel.type);
+            }
+            imports.add("jakarta.persistence.JoinColumn");
+            boolean hasManyToMany = relationships.stream().anyMatch(r -> "ManyToMany".equals(r.type));
+            if (hasManyToMany) imports.add("jakarta.persistence.JoinTable");
+            boolean hasFetchLazy = relationships.stream().anyMatch(r -> "ManyToOne".equals(r.type) || "OneToOne".equals(r.type));
+            if (hasFetchLazy) imports.add("jakarta.persistence.FetchType");
+            boolean hasCascade = relationships.stream().anyMatch(r -> "OneToMany".equals(r.type) || "ManyToMany".equals(r.type));
+            if (hasCascade) imports.add("jakarta.persistence.CascadeType");
+        }
         if (hasCollectionRelationship(relationships)) {
             imports.add("java.util.List");
             imports.add("java.util.ArrayList");
         }
+
+        // Field-specific imports — only when those annotation types are actually used
+        boolean hasListField  = fields.stream().anyMatch(f -> f.type.startsWith("List<"));
+        boolean hasEnumField  = fields.stream().anyMatch(f -> !f.enumValues.isEmpty());
+        if (hasListField) {
+            imports.add("jakarta.persistence.ElementCollection");
+            imports.add("jakarta.persistence.CollectionTable");
+            imports.add("jakarta.persistence.Column");
+        }
+        if (hasEnumField) {
+            imports.add("jakarta.persistence.Enumerated");
+            imports.add("jakarta.persistence.EnumType");
+        }
+
+        imports.addAll(collectImports(fields));
         return imports;
     }
 

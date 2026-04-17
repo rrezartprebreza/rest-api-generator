@@ -27,13 +27,21 @@ public final class EntityGeneratorPlugin implements GeneratorPlugin {
 
         for (EntityDefinition definition : specification.entities) {
             String className = definition.entity.name + context.config().standards().naming().entitySuffix();
-            Set<String> imports = TemplateSupport.collectEntityImports(definition.entity.fields, definition.relationships);
+
+            // Filter out 'id' — it is managed exclusively by @Id / @GeneratedValue in idFieldBlock.
+            // Including it again in fieldsBlock causes duplicate declarations and clashing getId() methods.
+            List<FieldSpec> entityFields = definition.entity.fields.stream()
+                    .filter(f -> !"id".equals(f.name))
+                    .collect(Collectors.toList());
+
+            Set<String> imports = TemplateSupport.collectEntityImports(entityFields, definition.relationships);
 
             if (auditing) {
                 imports.add("org.springframework.data.annotation.CreatedDate");
                 imports.add("org.springframework.data.annotation.LastModifiedDate");
                 imports.add("org.springframework.data.jpa.domain.support.AuditingEntityListener");
                 imports.add("jakarta.persistence.EntityListeners");
+                imports.add("jakarta.persistence.Column");   // used by @Column in audit block
                 imports.add("java.time.Instant");
             }
             if (lombokModels) {
@@ -43,6 +51,8 @@ public final class EntityGeneratorPlugin implements GeneratorPlugin {
 
             String auditBlock = auditing ? buildAuditBlock() : "";
             String classAnnotations = buildClassAnnotations(lombokModels, auditing);
+            // Audit getters/setters (not needed when Lombok @Getter/@Setter is active)
+            String auditAccessors = (!lombokModels && auditing) ? buildAuditAccessors() : "";
 
             String content = context.templates().render(
                     context.templatePack().templatePath("entity.java.tpl"),
@@ -54,17 +64,17 @@ public final class EntityGeneratorPlugin implements GeneratorPlugin {
                             Map.entry("imports",              imports.stream().map(it -> "import " + it + ";").collect(Collectors.joining("\n"))),
                             Map.entry("idFieldBlock",         TemplateSupport.idFieldBlock(definition.entity.idType)),
                             Map.entry("auditBlock",           auditBlock),
-                            Map.entry("fieldsBlock",          TemplateSupport.fieldsBlock(definition.entity.fields)),
+                            Map.entry("fieldsBlock",          TemplateSupport.fieldsBlock(entityFields)),
                             Map.entry("relationshipBlock",    TemplateSupport.relationshipBlock(definition.entity.name, definition.relationships)),
                             Map.entry("classAnnotations",     classAnnotations),
                             Map.entry("noArgConstructorBlock",TemplateSupport.noArgConstructorBlock(className)),
-                            Map.entry("constructorBlock",     TemplateSupport.constructorBlock(className, definition.entity.fields)),
-                            Map.entry("gettersBlock",         lombokModels ? "" : TemplateSupport.entityGettersBlock(definition.entity.idType, definition.entity.fields))
+                            Map.entry("constructorBlock",     TemplateSupport.constructorBlock(className, entityFields)),
+                            Map.entry("gettersBlock",         lombokModels ? "" : TemplateSupport.entityGettersBlock(definition.entity.idType, entityFields) + auditAccessors)
                     )
             );
             out.add(new GeneratedFile(javaBase + "/entity/" + className + ".java", content));
 
-            // Generate enum classes
+            // Generate enum classes (use original fields, not filtered)
             for (FieldSpec field : definition.entity.fields) {
                 if (field.enumValues.isEmpty()) continue;
                 out.add(new GeneratedFile(
@@ -87,6 +97,16 @@ public final class EntityGeneratorPlugin implements GeneratorPlugin {
                     private Instant updatedAt;
 
                 """;
+    }
+
+    /** Getters and setters for the audit fields createdAt / updatedAt (non-Lombok path). */
+    private String buildAuditAccessors() {
+        return "    public Instant getCreatedAt() {\n"
+                + "        return createdAt;\n"
+                + "    }\n\n"
+                + "    public Instant getUpdatedAt() {\n"
+                + "        return updatedAt;\n"
+                + "    }\n\n";
     }
 
     private String buildClassAnnotations(boolean lombok, boolean auditing) {
