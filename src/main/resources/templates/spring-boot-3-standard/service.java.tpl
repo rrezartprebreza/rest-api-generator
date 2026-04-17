@@ -33,7 +33,7 @@ public class ${className} {
         Sort sort = "desc".equalsIgnoreCase(sortDir)
                 ? Sort.by(sortBy).descending()
                 : Sort.by(sortBy).ascending();
-        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.clamp(size, 1, 100), sort);
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.max(1, Math.min(size, 100)), sort);
         Specification<${entityClass}> spec = buildSpecification(filter);
         return repository.findAll(spec, pageable).map(mapper::toDto);
     }
