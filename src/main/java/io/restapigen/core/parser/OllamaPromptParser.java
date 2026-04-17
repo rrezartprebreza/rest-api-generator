@@ -66,6 +66,7 @@ public final class OllamaPromptParser implements PromptParser {
             5. Separate each entity block with exactly ONE blank line.
             6. Allowed field types: string, integer, decimal, boolean, date, timestamp, email.
             7. Output ONLY the structured blocks. No explanation, no markdown, no preamble.
+            8. NEVER include createdAt, updatedAt, or any audit/timestamp fields — they are added automatically.
 
             EXAMPLE INPUT:
             Blog platform: Post, User, Comment, Tag. Post has title and body. User has email and password. Comment belongs to Post and User. Tag has name, many-to-many with Post.
@@ -74,7 +75,6 @@ public final class OllamaPromptParser implements PromptParser {
             Create an API for Post with:
             - title (string, required)
             - body (string, required)
-            - publishedAt (timestamp)
             - belongs to User
             - has many Comment
             - many-to-many with Tag
@@ -82,11 +82,9 @@ public final class OllamaPromptParser implements PromptParser {
             Create an API for User with:
             - email (email, required, unique)
             - password (string, required)
-            - createdAt (timestamp)
 
             Create an API for Comment with:
             - body (string, required)
-            - createdAt (timestamp)
             - belongs to Post
             - belongs to User
 

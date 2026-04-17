@@ -28,10 +28,13 @@ public final class EntityGeneratorPlugin implements GeneratorPlugin {
         for (EntityDefinition definition : specification.entities) {
             String className = definition.entity.name + context.config().standards().naming().entitySuffix();
 
-            // Filter out 'id' — it is managed exclusively by @Id / @GeneratedValue in idFieldBlock.
-            // Including it again in fieldsBlock causes duplicate declarations and clashing getId() methods.
+            // Filter out 'id' — managed by @Id / @GeneratedValue in idFieldBlock.
+            // Also filter out createdAt/updatedAt when auditing is on — buildAuditBlock() owns those
+            // fields with @CreatedDate/@LastModifiedDate; keeping them in fieldsBlock causes duplicate
+            // declarations and compile errors in the generated project.
             List<FieldSpec> entityFields = definition.entity.fields.stream()
                     .filter(f -> !"id".equals(f.name))
+                    .filter(f -> !auditing || (!"createdAt".equals(f.name) && !"updatedAt".equals(f.name)))
                     .collect(Collectors.toList());
 
             Set<String> imports = TemplateSupport.collectEntityImports(entityFields, definition.relationships);
