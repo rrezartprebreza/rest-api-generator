@@ -6,6 +6,7 @@ import io.restapigen.core.plugin.PluginContext;
 import io.restapigen.domain.ApiSpecification;
 import io.restapigen.domain.EntityDefinition;
 import io.restapigen.domain.FieldSpec;
+import io.restapigen.domain.RelationshipSpec;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,20 +41,23 @@ public final class ServiceGeneratorPlugin implements GeneratorPlugin {
             String mapperClass      = entityName + "Mapper";
             String dtoClass         = entityName + dtoSuffix;
 
-            // Build filter predicates for string fields only
-            String filterPredicates = buildFilterPredicates(definition.entity.fields);
+            String filterPredicates       = buildFilterPredicates(definition.entity.fields);
+            String relationServiceImports = buildRelationServiceImports(basePackage, entitySuffix, definition.relationships);
+            String relationServiceMethods = buildRelationServiceMethods(entityClass, dtoClass, entitySuffix, definition.relationships);
 
             String content = context.templates().render(
                     context.templatePack().templatePath("service.java.tpl"),
                     Map.ofEntries(
-                            Map.entry("basePackage",      basePackage),
-                            Map.entry("entityName",       entityName),
-                            Map.entry("entityClass",      entityClass),
-                            Map.entry("className",        className),
-                            Map.entry("repositoryClass",  repositoryClass),
-                            Map.entry("mapperClass",      mapperClass),
-                            Map.entry("dtoClass",         dtoClass),
-                            Map.entry("filterPredicates", filterPredicates)
+                            Map.entry("basePackage",             basePackage),
+                            Map.entry("entityName",              entityName),
+                            Map.entry("entityClass",             entityClass),
+                            Map.entry("className",               className),
+                            Map.entry("repositoryClass",         repositoryClass),
+                            Map.entry("mapperClass",             mapperClass),
+                            Map.entry("dtoClass",                dtoClass),
+                            Map.entry("filterPredicates",        filterPredicates),
+                            Map.entry("relationServiceImports",  relationServiceImports),
+                            Map.entry("relationServiceMethods",  relationServiceMethods)
                     )
             );
             out.add(new GeneratedFile(javaBase + "/service/" + className + ".java", content));
@@ -65,25 +69,63 @@ public final class ServiceGeneratorPlugin implements GeneratorPlugin {
             "password", "secret", "token", "apiKey", "privateKey", "accessToken", "refreshToken"
     );
 
-    /**
-     * Generates cb.like(...) predicates for every String field in the entity.
-     * Excludes sensitive fields (password, token, secret, etc.).
-     * Falls back to a safe no-op when no String fields exist.
-     */
     private String buildFilterPredicates(List<FieldSpec> fields) {
         List<String> stringFields = fields.stream()
                 .filter(f -> "String".equals(f.type))
                 .map(f -> f.name)
                 .filter(name -> !SENSITIVE_FIELDS.contains(name))
                 .collect(Collectors.toList());
-
         if (stringFields.isEmpty()) {
-            // No searchable string fields — return a predicate that always matches
             return "cb.isTrue(cb.literal(true))";
         }
-
         return stringFields.stream()
                 .map(name -> "cb.like(cb.lower(root.get(\"" + name + "\")), likePattern)")
                 .collect(Collectors.joining(",\n            "));
+    }
+
+    private String buildRelationServiceImports(String basePackage, String entitySuffix,
+                                               List<RelationshipSpec> relationships) {
+        return relationships.stream()
+                .filter(r -> "ManyToOne".equals(r.type) || "OneToOne".equals(r.type))
+                .map(r -> "import " + basePackage + ".entity." + r.target + entitySuffix + ";")
+                .distinct()
+                .collect(Collectors.joining("\n"));
+    }
+
+    private String buildRelationServiceMethods(String entityClass, String dtoClass,
+                                               String entitySuffix,
+                                               List<RelationshipSpec> relationships) {
+        StringBuilder sb = new StringBuilder();
+        for (RelationshipSpec rel : relationships) {
+            if (!"ManyToOne".equals(rel.type) && !"OneToOne".equals(rel.type)) continue;
+            String relEntity    = rel.target + entitySuffix;
+            String fieldName    = rel.fieldName;
+            String capitalField = capitalize(fieldName);
+
+            sb.append("\n")
+              .append("    /** Get all ").append(entityClass).append(" records for a given ")
+              .append(rel.target).append(" id. */\n")
+              .append("    public List<").append(dtoClass).append("> findBy").append(capitalField)
+              .append("Id(Long ").append(fieldName).append("Id) {\n")
+              .append("        return repository.findBy").append(capitalField).append("Id(").append(fieldName).append("Id)\n")
+              .append("                .stream().map(mapper::toDto).collect(java.util.stream.Collectors.toList());\n")
+              .append("    }\n")
+              .append("\n")
+              .append("    /** Paginated: get ").append(entityClass).append(" records for a given ")
+              .append(rel.target).append(". */\n")
+              .append("    public Page<").append(dtoClass).append("> findBy").append(capitalField)
+              .append("(").append(relEntity).append(" ").append(fieldName)
+              .append(", int page, int size) {\n")
+              .append("        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.max(1, Math.min(size, 100)));\n")
+              .append("        return repository.findBy").append(capitalField).append("(").append(fieldName).append(", pageable)\n")
+              .append("                .map(mapper::toDto);\n")
+              .append("    }\n");
+        }
+        return sb.toString();
+    }
+
+    private static String capitalize(String s) {
+        if (s == null || s.isBlank()) return s;
+        return Character.toUpperCase(s.charAt(0)) + s.substring(1);
     }
 }
