@@ -39,14 +39,15 @@ public final class TestGeneratorPlugin implements GeneratorPlugin {
             // Unit test
             String unitContent = context.templates().render(
                     context.templatePack().templatePath("test.java.tpl"),
-                    Map.of(
-                            "basePackage",     basePackage,
-                            "className",       testClass,
-                            "entityName",      entityClass,
-                            "serviceClass",    serviceClass,
-                            "repositoryClass", repositoryClass,
-                            "mapperClass",     mapperClass,
-                            "dtoClass",        dtoClass
+                    Map.ofEntries(
+                            Map.entry("basePackage",     basePackage),
+                            Map.entry("className",       testClass),
+                            Map.entry("entityName",      entityName),
+                            Map.entry("entityClass",     entityClass),
+                            Map.entry("serviceClass",    serviceClass),
+                            Map.entry("repositoryClass", repositoryClass),
+                            Map.entry("mapperClass",     mapperClass),
+                            Map.entry("dtoClass",        dtoClass)
                     )
             );
             out.add(new GeneratedFile(testBase + "/service/" + testClass + ".java", unitContent));
@@ -56,12 +57,12 @@ public final class TestGeneratorPlugin implements GeneratorPlugin {
                 String integrationClass = entityName + "IntegrationTest";
                 String integrationContent = context.templates().render(
                         context.templatePack().templatePath("integration-test.java.tpl"),
-                        Map.of(
-                                "basePackage",  basePackage,
-                                "className",    integrationClass,
-                                "entityName",   entityName,
-                                "dtoClass",     dtoClass,
-                                "resourcePath", definition.api.resourcePath
+                        Map.ofEntries(
+                                Map.entry("basePackage",  basePackage),
+                                Map.entry("className",    integrationClass),
+                                Map.entry("entityName",   entityName),
+                                Map.entry("dtoClass",     dtoClass),
+                                Map.entry("resourcePath", definition.api.resourcePath)
                         )
                 );
                 out.add(new GeneratedFile(testBase + "/integration/" + integrationClass + ".java", integrationContent));

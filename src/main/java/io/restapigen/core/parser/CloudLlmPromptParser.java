@@ -1,5 +1,9 @@
 package io.restapigen.core.parser;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.restapigen.core.config.GenerationConfig;
 import io.restapigen.domain.ApiSpecification;
 
@@ -13,8 +17,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Prompt parser that calls any OpenAI-compatible chat completions API
@@ -48,6 +50,9 @@ public final class CloudLlmPromptParser implements PromptParser {
     private static final String DEFAULT_BASE_URL = "https://api.groq.com/openai/v1";
     private static final String DEFAULT_MODEL    = "llama-3.3-70b-versatile";
     private static final int    TIMEOUT_SECONDS  = 30;
+
+    /** Shared Jackson mapper. ObjectMapper is thread-safe after configuration. */
+    private static final ObjectMapper JSON = new ObjectMapper();
 
     /**
      * Ordered list of Groq free-tier models used as the rotation chain.
@@ -216,20 +221,15 @@ public final class CloudLlmPromptParser implements PromptParser {
         return extractContent(res.body());
     }
 
-    private String buildRequestBody(String model, String userPrompt) {
-        String safeSystem = jsonEscape(SYSTEM_PROMPT);
-        String safePrompt = jsonEscape(userPrompt);
-        return """
-                {
-                  "model": "%s",
-                  "messages": [
-                    {"role": "system", "content": "%s"},
-                    {"role": "user",   "content": "%s"}
-                  ],
-                  "temperature": 0.1,
-                  "max_tokens": 1024
-                }
-                """.formatted(jsonEscape(model), safeSystem, safePrompt);
+    private String buildRequestBody(String model, String userPrompt) throws IOException {
+        ObjectNode root = JSON.createObjectNode()
+                .put("model", model)
+                .put("temperature", 0.1)
+                .put("max_tokens", 1024);
+        ArrayNode messages = root.putArray("messages");
+        messages.addObject().put("role", "system").put("content", SYSTEM_PROMPT);
+        messages.addObject().put("role", "user").put("content", userPrompt);
+        return JSON.writeValueAsString(root);
     }
 
     /**
@@ -250,33 +250,17 @@ public final class CloudLlmPromptParser implements PromptParser {
     /**
      * OpenAI /chat/completions response shape:
      *   {"choices":[{"message":{"role":"assistant","content":"<text>"}}]}
-     * Extract the assistant message content.
+     * Navigate the tree via Jackson — no regex, no hand-rolled escape handling.
+     * Unlike the old regex-based extractor, this cannot match a stray
+     * {@code "content"} key elsewhere in the payload (e.g. inside tool_calls).
      */
-    private static String extractContent(String json) {
-        Pattern p = Pattern.compile("\"content\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"");
-        Matcher m = p.matcher(json);
-        if (m.find()) {
-            return unescapeJson(m.group(1));
+    private static String extractContent(String json) throws IOException {
+        JsonNode root = JSON.readTree(json);
+        JsonNode content = root.path("choices").path(0).path("message").path("content");
+        if (content.isMissingNode() || content.isNull()) {
+            return null;
         }
-        return null;
-    }
-
-    private static String jsonEscape(String s) {
-        return s
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\r", "\\r")
-                .replace("\n", "\\n")
-                .replace("\t", "\\t");
-    }
-
-    private static String unescapeJson(String s) {
-        return s
-                .replace("\\n", "\n")
-                .replace("\\t", "\t")
-                .replace("\\r", "\r")
-                .replace("\\\"", "\"")
-                .replace("\\\\", "\\");
+        return content.asText();
     }
 
     private static String envOrDefault(String key, String fallback) {

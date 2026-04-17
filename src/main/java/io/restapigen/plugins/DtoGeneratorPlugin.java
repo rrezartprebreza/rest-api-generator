@@ -50,17 +50,18 @@ public final class DtoGeneratorPlugin implements GeneratorPlugin {
             if (!lombokModels) {
                 body.append(TemplateSupport.constructorBlock(className, definition.entity.fields));
                 body.append(TemplateSupport.gettersBlock(definition.entity.fields));
+                body.append(TemplateSupport.settersBlock(definition.entity.fields));
             }
             String content = context.templates().render(
                     context.templatePack().templatePath("dto.java.tpl"),
-                    Map.of(
-                            "basePackage", basePackage,
-                            "className", className,
-                            "classAnnotations", lombokModels ? "@Getter\n@Setter\n@NoArgsConstructor\n@AllArgsConstructor\n" : "",
-                            "imports", imports.stream().map(it -> "import " + it + ";").collect(Collectors.joining("\n")),
-                            "fieldsBlock", body.toString(),
-                            "constructorBlock", "",
-                            "gettersBlock", ""
+                    Map.ofEntries(
+                            Map.entry("basePackage", basePackage),
+                            Map.entry("className", className),
+                            Map.entry("classAnnotations", lombokModels ? "@Getter\n@Setter\n@NoArgsConstructor\n@AllArgsConstructor\n" : ""),
+                            Map.entry("imports", imports.stream().map(it -> "import " + it + ";").collect(Collectors.joining("\n"))),
+                            Map.entry("fieldsBlock", body.toString()),
+                            Map.entry("constructorBlock", ""),
+                            Map.entry("gettersBlock", "")
                     )
             );
             out.add(new GeneratedFile(javaBase + "/dto/" + className + ".java", content));

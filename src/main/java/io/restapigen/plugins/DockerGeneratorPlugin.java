@@ -26,8 +26,15 @@ public final class DockerGeneratorPlugin implements GeneratorPlugin {
         }
 
         String javaVersion = context.config().project().javaVersion();
-        // Determine compatible Gradle image version — Gradle 8.10 supports Java 17+ and 21
-        String gradleTag = "8.10-jdk" + javaVersion;
+        // Determine compatible Gradle image version — Gradle 8.x requires JDK 11+.
+        // For Java 8 we must fall back to the last Gradle 7.x image that supports it.
+        String gradleTag = switch (javaVersion) {
+            case "8"  -> "7.6-jdk8";
+            case "11" -> "8.10-jdk11";
+            case "17" -> "8.10-jdk17";
+            case "21" -> "8.10-jdk21";
+            default   -> "8.10-jdk17";
+        };
         String runtimeTag = javaVersion + "-jre";
 
         String dockerfile = "FROM gradle:" + gradleTag + " AS builder\n"

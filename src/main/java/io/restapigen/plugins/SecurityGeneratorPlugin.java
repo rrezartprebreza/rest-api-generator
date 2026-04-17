@@ -28,9 +28,9 @@ public final class SecurityGeneratorPlugin implements GeneratorPlugin {
         String javaBase = "src/main/java/" + context.basePackagePath();
         String content = context.templates().render(
                 context.templatePack().templatePath("security.java.tpl"),
-                Map.of(
-                        "basePackage", basePackage,
-                        "securityType", context.config().standards().security().type()
+                Map.ofEntries(
+                        Map.entry("basePackage", basePackage),
+                        Map.entry("securityType", context.config().standards().security().type())
                 )
         );
         return List.of(new GeneratedFile(javaBase + "/security/SecurityConfig.java", content));

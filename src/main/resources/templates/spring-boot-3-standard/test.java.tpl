@@ -1,7 +1,7 @@
 package ${basePackage}.service;
 
 import ${basePackage}.dto.${dtoClass};
-import ${basePackage}.entity.${entityName};
+import ${basePackage}.entity.${entityClass};
 import ${basePackage}.error.ResourceNotFoundException;
 import ${basePackage}.mapper.${mapperClass};
 import ${basePackage}.repository.${repositoryClass};
@@ -31,12 +31,12 @@ class ${className} {
     @InjectMocks
     private ${serviceClass} service;
 
-    private ${entityName} entity;
+    private ${entityClass} entity;
     private ${dtoClass} dto;
 
     @BeforeEach
     void setUp() {
-        entity = new ${entityName}();
+        entity = new ${entityClass}();
         dto    = new ${dtoClass}();
     }
 

@@ -34,10 +34,10 @@ public final class RepositoryGeneratorPlugin implements GeneratorPlugin {
             String className = entityName + suffix;
             String content = context.templates().render(
                     context.templatePack().templatePath("repository.java.tpl"),
-                    Map.of(
-                            "basePackage", basePackage,
-                            "entityName", entityClass,
-                            "className", className
+                    Map.ofEntries(
+                            Map.entry("basePackage", basePackage),
+                            Map.entry("entityName", entityClass),
+                            Map.entry("className", className)
                     )
             );
             out.add(new GeneratedFile(javaBase + "/repository/" + className + ".java", content));

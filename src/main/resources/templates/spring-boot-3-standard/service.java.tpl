@@ -1,7 +1,7 @@
 package ${basePackage}.service;
 
 import ${basePackage}.dto.${dtoClass};
-import ${basePackage}.entity.${entityName};
+import ${basePackage}.entity.${entityClass};
 import ${basePackage}.error.ResourceNotFoundException;
 import ${basePackage}.mapper.${mapperClass};
 import ${basePackage}.repository.${repositoryClass};
@@ -34,13 +34,13 @@ public class ${className} {
                 ? Sort.by(sortBy).descending()
                 : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(Math.max(page, 0), Math.clamp(size, 1, 100), sort);
-        Specification<${entityName}> spec = buildSpecification(filter);
+        Specification<${entityClass}> spec = buildSpecification(filter);
         return repository.findAll(spec, pageable).map(mapper::toDto);
     }
 
     @Transactional
     public ${dtoClass} create(${dtoClass} dto) {
-        ${entityName} entity = mapper.toEntity(dto);
+        ${entityClass} entity = mapper.toEntity(dto);
         return mapper.toDto(repository.save(entity));
     }
 
@@ -52,7 +52,7 @@ public class ${className} {
 
     @Transactional
     public ${dtoClass} update(Long id, ${dtoClass} dto) {
-        ${entityName} entity = repository.findById(id)
+        ${entityClass} entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("${entityName}", "id", id));
         mapper.updateEntityFromDto(dto, entity);
         return mapper.toDto(repository.save(entity));
@@ -60,12 +60,12 @@ public class ${className} {
 
     @Transactional
     public void delete(Long id) {
-        ${entityName} entity = repository.findById(id)
+        ${entityClass} entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("${entityName}", "id", id));
         repository.delete(entity);
     }
 
-    private Specification<${entityName}> buildSpecification(String filter) {
+    private Specification<${entityClass}> buildSpecification(String filter) {
         if (filter == null || filter.isBlank()) {
             return Specification.where(null);
         }

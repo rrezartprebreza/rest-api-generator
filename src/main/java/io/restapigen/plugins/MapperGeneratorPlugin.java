@@ -44,11 +44,11 @@ public final class MapperGeneratorPlugin implements GeneratorPlugin {
             String dtoClass = entityName + dtoSuffix;
             String content = context.templates().render(
                     context.templatePack().templatePath("mapper.java.tpl"),
-                    Map.of(
-                            "basePackage", basePackage,
-                            "entityName", entityClass,
-                            "className", className,
-                            "dtoClass", dtoClass
+                    Map.ofEntries(
+                            Map.entry("basePackage", basePackage),
+                            Map.entry("entityName", entityClass),
+                            Map.entry("className", className),
+                            Map.entry("dtoClass", dtoClass)
                     )
             );
             out.add(new GeneratedFile(javaBase + "/mapper/" + className + ".java", content));

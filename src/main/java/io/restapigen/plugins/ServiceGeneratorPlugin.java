@@ -45,14 +45,15 @@ public final class ServiceGeneratorPlugin implements GeneratorPlugin {
 
             String content = context.templates().render(
                     context.templatePack().templatePath("service.java.tpl"),
-                    Map.of(
-                            "basePackage",      basePackage,
-                            "entityName",       entityClass,
-                            "className",        className,
-                            "repositoryClass",  repositoryClass,
-                            "mapperClass",      mapperClass,
-                            "dtoClass",         dtoClass,
-                            "filterPredicates", filterPredicates
+                    Map.ofEntries(
+                            Map.entry("basePackage",      basePackage),
+                            Map.entry("entityName",       entityName),
+                            Map.entry("entityClass",      entityClass),
+                            Map.entry("className",        className),
+                            Map.entry("repositoryClass",  repositoryClass),
+                            Map.entry("mapperClass",      mapperClass),
+                            Map.entry("dtoClass",         dtoClass),
+                            Map.entry("filterPredicates", filterPredicates)
                     )
             );
             out.add(new GeneratedFile(javaBase + "/service/" + className + ".java", content));

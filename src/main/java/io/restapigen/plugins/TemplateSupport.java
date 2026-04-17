@@ -9,12 +9,16 @@ import java.util.Map;
 import java.util.Set;
 
 final class TemplateSupport {
-    private static final Map<String, String> TYPE_IMPORTS = Map.of(
-            "BigDecimal", "java.math.BigDecimal",
-            "LocalDate", "java.time.LocalDate",
-            "LocalDateTime", "java.time.LocalDateTime",
-            "Map", "java.util.Map",
-            "List", "java.util.List"
+    private static final Map<String, String> TYPE_IMPORTS = Map.ofEntries(
+            Map.entry("BigDecimal",    "java.math.BigDecimal"),
+            Map.entry("BigInteger",    "java.math.BigInteger"),
+            Map.entry("LocalDate",     "java.time.LocalDate"),
+            Map.entry("LocalDateTime", "java.time.LocalDateTime"),
+            Map.entry("LocalTime",     "java.time.LocalTime"),
+            Map.entry("Instant",       "java.time.Instant"),
+            Map.entry("UUID",          "java.util.UUID"),
+            Map.entry("Map",           "java.util.Map"),
+            Map.entry("List",          "java.util.List")
     );
 
     private TemplateSupport() {

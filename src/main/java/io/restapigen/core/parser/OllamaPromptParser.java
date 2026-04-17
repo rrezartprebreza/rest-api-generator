@@ -1,5 +1,8 @@
 package io.restapigen.core.parser;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.restapigen.core.config.GenerationConfig;
 import io.restapigen.domain.ApiSpecification;
 
@@ -10,8 +13,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Prompt parser that calls a running Ollama instance to normalise free-form
@@ -39,6 +40,9 @@ public final class OllamaPromptParser implements PromptParser {
     private static final String DEFAULT_URL   = "http://localhost:11434";
     private static final String DEFAULT_MODEL = "llama3.2";
     private static final int    TIMEOUT_SECONDS = 30;
+
+    /** Shared Jackson mapper. ObjectMapper is thread-safe after configuration. */
+    private static final ObjectMapper JSON = new ObjectMapper();
 
     private static final String SYSTEM_PROMPT = """
             You are a precise API specification assistant.
@@ -129,51 +133,30 @@ public final class OllamaPromptParser implements PromptParser {
         return extractResponse(res.body());
     }
 
-    private String buildRequestBody(String userPrompt) {
-        // Escape for JSON — minimal, no extra dependency needed
-        String safeSystem = jsonEscape(SYSTEM_PROMPT);
-        String safePrompt = jsonEscape(userPrompt);
-        return """
-                {
-                  "model": "%s",
-                  "system": "%s",
-                  "prompt": "%s",
-                  "stream": false,
-                  "options": { "temperature": 0.1, "num_predict": 1024 }
-                }
-                """.formatted(jsonEscape(model), safeSystem, safePrompt);
+    private String buildRequestBody(String userPrompt) throws IOException {
+        ObjectNode root = JSON.createObjectNode()
+                .put("model", model)
+                .put("system", SYSTEM_PROMPT)
+                .put("prompt", userPrompt)
+                .put("stream", false);
+        root.putObject("options")
+                .put("temperature", 0.1)
+                .put("num_predict", 1024);
+        return JSON.writeValueAsString(root);
     }
 
     /**
      * Ollama /api/generate returns a single JSON object when stream=false.
-     * Extract the "response" field without pulling in an extra JSON library.
+     * Extract the "response" field via Jackson — JSON escape handling, nesting,
+     * and edge cases are the parser's problem, not ours.
      */
-    private static String extractResponse(String json) {
-        // "response":"<value>" — handles escaped quotes inside value
-        Pattern p = Pattern.compile("\"response\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"");
-        Matcher m = p.matcher(json);
-        if (m.find()) {
-            return unescapeJson(m.group(1));
+    private static String extractResponse(String json) throws IOException {
+        JsonNode root = JSON.readTree(json);
+        JsonNode response = root.path("response");
+        if (response.isMissingNode() || response.isNull()) {
+            return null;
         }
-        return null;
-    }
-
-    private static String jsonEscape(String s) {
-        return s
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\r", "\\r")
-                .replace("\n", "\\n")
-                .replace("\t", "\\t");
-    }
-
-    private static String unescapeJson(String s) {
-        return s
-                .replace("\\n", "\n")
-                .replace("\\t", "\t")
-                .replace("\\r", "\r")
-                .replace("\\\"", "\"")
-                .replace("\\\\", "\\");
+        return response.asText();
     }
 
     private static String envOrDefault(String key, String fallback) {

@@ -403,6 +403,173 @@ class CodeGeneratorTest {
         assertNoTemplatePlaceholdersInJavaSources(zipFiles);
     }
 
+    // ---------------------------------------------------------------------
+    // Regression tests for bug classes fixed in the code-review pass.
+    // Each test below targets a specific bug that shipped to users.
+    // Do not delete; they are the canary for those bug classes reappearing.
+    // ---------------------------------------------------------------------
+
+    @Test
+    void nonLombokDtoHasSetters_regression() throws IOException {
+        // Bug: when features.lombokModels=false, the generated DTO was emitted
+        // with getters but no setters. MapStruct's updateEntityFromDto calls
+        // dto.setX(...), so the generated project failed to compile.
+        ApiSpecification spec = new ApiSpecification(
+                "users-api",
+                "com.example.generated",
+                List.of(new EntityDefinition(
+                        new EntitySpec("User", "users", "Long", List.of(
+                                new FieldSpec("name", "String", List.of(), true, false, null, null, null, false, List.of(), null, null),
+                                new FieldSpec("email", "String", List.of(), true, false, null, null, null, false, List.of(), null, null)
+                        )),
+                        new ApiSpec("/api/users", true, true, true),
+                        List.of()
+                )),
+                List.of()
+        );
+
+        byte[] zip = new CodeGenerator().generateZip(spec);
+        Map<String, String> zipFiles = readZipFiles(zip);
+        String dto = zipFiles.get("src/main/java/com/example/generated/dto/UserDTO.java");
+
+        assertTrue(dto != null);
+        assertTrue(dto.contains("public void setName(String name)"),
+                () -> "DTO must expose setName for MapStruct; got:\n" + dto);
+        assertTrue(dto.contains("public void setEmail(String email)"),
+                () -> "DTO must expose setEmail for MapStruct; got:\n" + dto);
+    }
+
+    @Test
+    void serviceErrorMessagesUsePlainEntityName_regression() throws IOException {
+        // Bug: ServiceGeneratorPlugin passed entityName = entityClass (with
+        // suffix) to the template, so error messages said "UserEntity"
+        // instead of "User" when naming.entitySuffix is non-empty.
+        ApiSpecification spec = new ApiSpecification(
+                "users-api",
+                "com.example.generated",
+                List.of(new EntityDefinition(
+                        new EntitySpec("User", "users", "Long", List.of(
+                                new FieldSpec("name", "String", List.of(), true, false, null, null, null, false, List.of(), null, null)
+                        )),
+                        new ApiSpec("/api/users", true, true, true),
+                        List.of()
+                )),
+                List.of()
+        );
+
+        GenerationConfig defaults = GenerationConfig.defaults();
+        GenerationConfig config = new GenerationConfig(
+                defaults.project(),
+                new GenerationConfig.StandardsConfig(
+                        new GenerationConfig.NamingConfig("Entity", "DTO", "Repository", "Service", "Controller"),
+                        defaults.standards().layering(),
+                        defaults.standards().database(),
+                        defaults.standards().validation(),
+                        defaults.standards().documentation(),
+                        defaults.standards().testing(),
+                        defaults.standards().security(),
+                        defaults.standards().errorHandling(),
+                        defaults.standards().responseFormat()
+                ),
+                defaults.features(),
+                defaults.plugins()
+        );
+
+        byte[] zip = new CodeGenerator().generateZip(spec, config);
+        Map<String, String> zipFiles = readZipFiles(zip);
+        String service = zipFiles.get("src/main/java/com/example/generated/service/UserService.java");
+
+        assertTrue(service != null);
+        // Error-message strings: plain logical name, no suffix.
+        assertTrue(service.contains("new ResourceNotFoundException(\"User\", \"id\", id)"),
+                () -> "Service error messages must use the plain entity name; got:\n" + service);
+        assertFalse(service.contains("\"UserEntity\""),
+                () -> "Service error messages must not leak the entitySuffix; got:\n" + service);
+        // Type references: with suffix.
+        assertTrue(service.contains("UserEntity entity = "),
+                () -> "Service variable declarations must use entityClass (with suffix); got:\n" + service);
+        assertTrue(service.contains("Specification<UserEntity> spec = "),
+                () -> "Specification<T> must use entityClass (with suffix); got:\n" + service);
+    }
+
+    @Test
+    void dockerfileUsesGradle76ForJava8_regression() throws IOException {
+        // Bug: DockerGeneratorPlugin produced `gradle:8.10-jdk8`, which does
+        // not exist on Docker Hub (Gradle 8.x requires JDK 11+). Java 8 must
+        // map to the last Gradle 7.x image that supports it.
+        ApiSpecification spec = new ApiSpecification(
+                "products-api",
+                "com.example.generated",
+                List.of(new EntityDefinition(
+                        new EntitySpec("Product", "products", "Long", List.of()),
+                        new ApiSpec("/api/products", true, true, true),
+                        List.of()
+                )),
+                List.of()
+        );
+
+        GenerationConfig defaults = GenerationConfig.defaults();
+        GenerationConfig.ProjectConfig java8Project = new GenerationConfig.ProjectConfig(
+                defaults.project().name(),
+                defaults.project().basePackage(),
+                defaults.project().springBootVersion(),
+                "8",
+                defaults.project().templatePack()
+        );
+        GenerationConfig config = new GenerationConfig(
+                java8Project, defaults.standards(), defaults.features(), defaults.plugins()
+        );
+
+        byte[] zip = new CodeGenerator().generateZip(spec, config);
+        Map<String, String> zipFiles = readZipFiles(zip);
+        String dockerfile = zipFiles.get("Dockerfile");
+
+        assertTrue(dockerfile != null);
+        assertTrue(dockerfile.contains("FROM gradle:7.6-jdk8 AS builder"),
+                () -> "Java 8 must use gradle:7.6-jdk8; got:\n" + dockerfile);
+        assertFalse(dockerfile.contains("gradle:8.10-jdk8"),
+                () -> "gradle:8.10-jdk8 does not exist on Docker Hub; got:\n" + dockerfile);
+    }
+
+    @Test
+    void uuidAndBigIntegerFieldsProduceImports_regression() throws IOException {
+        // Bug: TYPE_IMPORTS in TemplateSupport was missing UUID and BigInteger.
+        // LLM-generated specs frequently use these types, and the generated
+        // entity/DTO compiled only by luck (same-package usage). Test both.
+        ApiSpecification spec = new ApiSpecification(
+                "accounts-api",
+                "com.example.generated",
+                List.of(new EntityDefinition(
+                        new EntitySpec("Account", "accounts", "Long", List.of(
+                                new FieldSpec("externalId", "UUID", List.of(), false, false, null, null, null, false, List.of(), null, null),
+                                new FieldSpec("balance", "BigInteger", List.of(), false, false, null, null, null, false, List.of(), null, null),
+                                new FieldSpec("openedAt", "Instant", List.of(), false, false, null, null, null, false, List.of(), null, null)
+                        )),
+                        new ApiSpec("/api/accounts", true, true, true),
+                        List.of()
+                )),
+                List.of()
+        );
+
+        byte[] zip = new CodeGenerator().generateZip(spec);
+        Map<String, String> zipFiles = readZipFiles(zip);
+        String dto = zipFiles.get("src/main/java/com/example/generated/dto/AccountDTO.java");
+        String entity = zipFiles.get("src/main/java/com/example/generated/entity/Account.java");
+
+        assertTrue(dto != null);
+        assertTrue(dto.contains("import java.util.UUID;"),
+                () -> "DTO must import java.util.UUID; got:\n" + dto);
+        assertTrue(dto.contains("import java.math.BigInteger;"),
+                () -> "DTO must import java.math.BigInteger; got:\n" + dto);
+        assertTrue(dto.contains("import java.time.Instant;"),
+                () -> "DTO must import java.time.Instant; got:\n" + dto);
+
+        assertTrue(entity != null);
+        assertTrue(entity.contains("import java.util.UUID;"));
+        assertTrue(entity.contains("import java.math.BigInteger;"));
+        assertTrue(entity.contains("import java.time.Instant;"));
+    }
+
     private String readAll(ZipInputStream zis) throws IOException {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         byte[] tmp = new byte[512];
