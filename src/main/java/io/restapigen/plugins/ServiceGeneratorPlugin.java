@@ -61,18 +61,24 @@ public final class ServiceGeneratorPlugin implements GeneratorPlugin {
         return out;
     }
 
+    private static final java.util.Set<String> SENSITIVE_FIELDS = java.util.Set.of(
+            "password", "secret", "token", "apiKey", "privateKey", "accessToken", "refreshToken"
+    );
+
     /**
      * Generates cb.like(...) predicates for every String field in the entity.
+     * Excludes sensitive fields (password, token, secret, etc.).
      * Falls back to a safe no-op when no String fields exist.
      */
     private String buildFilterPredicates(List<FieldSpec> fields) {
         List<String> stringFields = fields.stream()
                 .filter(f -> "String".equals(f.type))
                 .map(f -> f.name)
+                .filter(name -> !SENSITIVE_FIELDS.contains(name))
                 .collect(Collectors.toList());
 
         if (stringFields.isEmpty()) {
-            // No string fields — return a predicate that always matches
+            // No searchable string fields — return a predicate that always matches
             return "cb.isTrue(cb.literal(true))";
         }
 

@@ -48,6 +48,7 @@ public final class DtoGeneratorPlugin implements GeneratorPlugin {
                 body.append("    private ").append(field.type).append(" ").append(field.name).append(";\n\n");
             }
             if (!lombokModels) {
+                body.append(TemplateSupport.noArgConstructorBlock(className));
                 body.append(TemplateSupport.constructorBlock(className, definition.entity.fields));
                 body.append(TemplateSupport.gettersBlock(definition.entity.fields));
                 body.append(TemplateSupport.settersBlock(definition.entity.fields));
