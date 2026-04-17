@@ -12,6 +12,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.List;
+${relationServiceImports}
 
 /**
  * Service for ${entityName}.
@@ -64,7 +66,7 @@ public class ${className} {
                 .orElseThrow(() -> new ResourceNotFoundException("${entityName}", "id", id));
         repository.delete(entity);
     }
-
+${relationServiceMethods}
     private Specification<${entityClass}> buildSpecification(String filter) {
         if (filter == null || filter.isBlank()) {
             return Specification.where(null);

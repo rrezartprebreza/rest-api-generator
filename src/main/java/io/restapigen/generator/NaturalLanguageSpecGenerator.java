@@ -20,7 +20,6 @@ import java.util.Objects;
 import java.util.Set;
 
 public final class NaturalLanguageSpecGenerator {
-    private static final String DEFAULT_BASE_PACKAGE = "com.example.generated";
     private static final String DEFAULT_ID_TYPE = "Long";
     private static final String DEFAULT_ENTITY_NAME = "Item";
 
@@ -31,10 +30,11 @@ public final class NaturalLanguageSpecGenerator {
             definitions = List.of(defaultEntityDefinition(DEFAULT_ENTITY_NAME));
         }
 
-        String projectName = defaultProjectName(definitions);
+        String projectName = ProjectNaming.inferProjectName(request, definitions);
+        String basePackage = ProjectNaming.inferBasePackage(projectName);
         List<String> suggestions = hasExplicitEntityName(request) ? List.of() : EntityNameSuggester.suggest(request, projectName);
 
-        return new ApiSpecification(projectName, DEFAULT_BASE_PACKAGE, definitions, suggestions);
+        return new ApiSpecification(projectName, basePackage, definitions, suggestions);
     }
 
     private static List<EntityDefinition> buildEntityDefinitions(String request) {
@@ -190,19 +190,6 @@ public final class NaturalLanguageSpecGenerator {
             validation.add("OneOf:" + String.join("|", enumValues));
         }
         return List.copyOf(validation);
-    }
-
-    private static String defaultProjectName(List<EntityDefinition> definitions) {
-        if (definitions.isEmpty()) {
-            return defaultProjectName(DEFAULT_ENTITY_NAME);
-        }
-        String plural = Pluralizer.pluralize(NameTransforms.toKebabCase(definitions.get(0).entity.name));
-        return plural + "-api";
-    }
-
-    private static String defaultProjectName(String entityName) {
-        String plural = Pluralizer.pluralize(NameTransforms.toKebabCase(entityName));
-        return plural + "-api";
     }
 
     private static String defaultTableName(String entityName) {

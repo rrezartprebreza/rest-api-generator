@@ -16,7 +16,7 @@ class NaturalLanguageSpecGeneratorTest {
         ApiSpecification spec = new NaturalLanguageSpecGenerator().generate(request);
 
         assertEquals("users-api", spec.projectName);
-        assertEquals("com.example.generated", spec.basePackage);
+        assertEquals("io.backend.users", spec.basePackage);
 
         assertEquals(1, spec.entities.size());
         EntityDefinition definition = spec.entities.get(0);
@@ -194,5 +194,23 @@ class NaturalLanguageSpecGeneratorTest {
         assertEquals(1, product.relationships.size());
         assertEquals("ManyToOne", product.relationships.get(0).type);
         assertEquals("Category", product.relationships.get(0).target);
+    }
+
+    @Test
+    void infersProfessionalProjectAndPackageNamesFromDomainPrompt() {
+        String request = """
+                Create a complete e-commerce API with:
+
+                Category:
+                - name (string, required)
+
+                Product:
+                - name (string, required)
+                - price (decimal, required)
+                """;
+        ApiSpecification spec = new NaturalLanguageSpecGenerator().generate(request);
+
+        assertEquals("e-commerce-api", spec.projectName);
+        assertEquals("io.backend.ecommerce", spec.basePackage);
     }
 }

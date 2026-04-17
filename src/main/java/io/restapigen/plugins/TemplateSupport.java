@@ -161,6 +161,9 @@ final class TemplateSupport {
         for (RelationshipSpec relationship : relationships) {
             String target = relationship.target;
             String fieldName = relationship.fieldName;
+            // mappedBy uses the fieldName if provided, otherwise decapitalized owner class name
+            String mappedBy = (fieldName != null && !fieldName.isBlank())
+                    ? fieldName : decapitalize(ownerClassName);
             switch (relationship.type) {
                 case "ManyToOne" -> {
                     out.append("    @ManyToOne(fetch = FetchType.LAZY)\n");
@@ -173,8 +176,10 @@ final class TemplateSupport {
                     out.append("    private ").append(target).append(" ").append(fieldName).append(";\n\n");
                 }
                 case "OneToMany" -> {
-                    out.append("    @OneToMany(mappedBy = \"")
-                            .append(decapitalize(ownerClassName))
+                    // mappedBy must match the @ManyToOne field name in the target entity.
+                    // We use decapitalized owner class name as the conventional back-reference field.
+                    String backRef = decapitalize(ownerClassName);
+                    out.append("    @OneToMany(mappedBy = \"").append(backRef)
                             .append("\", cascade = {CascadeType.PERSIST, CascadeType.MERGE})\n");
                     out.append("    private List<").append(target).append("> ").append(fieldName).append(" = new ArrayList<>();\n\n");
                 }

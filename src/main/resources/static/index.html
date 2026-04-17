@@ -354,7 +354,7 @@
       <div class="panel-title"><div class="dot green"></div>PROMPT</div>
       <span class="panel-meta">Separate entities with blank lines</span>
     </div>
-    <textarea id="promptInput" placeholder="Create an API for Product with:&#10;- name (string, required)&#10;- price (decimal, required, min 0)&#10;- createdAt (timestamp)&#10;- belongs to Category&#10;&#10;Create an API for Category with:&#10;- name (string, required)&#10;- description (string)"></textarea>
+    <textarea id="promptInput" placeholder="Describe your API in plain English, for example:&#10;&#10;e-commerce: Product, User, Order, Category&#10;&#10;Or structured:&#10;&#10;Product:&#10;- name (string, required)&#10;- price (decimal, required, min 0)&#10;- status (enum: ACTIVE, ARCHIVED)&#10;- belongs to Category&#10;&#10;Category:&#10;- name (string, required, unique)&#10;&#10;&#x2192; Use the example chips below to load a ready-made prompt"></textarea>
     <div class="prompt-footer">
       <div class="examples-row">
         <button type="button" class="example-chip" data-example="ecommerce">E-commerce</button>
@@ -517,10 +517,83 @@ function resolveDefaultServerUrl() {
 serverUrlInput.value = resolveDefaultServerUrl();
 
 const examples = {
-  ecommerce: "Create an API for Product with:\n- name (string, required)\n- price (decimal, required, min 0)\n- stock (integer)\n- createdAt (timestamp)\n- belongs to Category\n\nCreate an API for Category with:\n- name (string, required)\n- description (string)\n\nCreate an API for Order with:\n- totalPrice (decimal, required)\n- status (enum: PENDING, PROCESSING, SHIPPED, DELIVERED)\n- createdAt (timestamp)\n- belongs to Customer\n\nCreate an API for Customer with:\n- firstName (string, required)\n- lastName (string, required)\n- email (valid email, required)",
-  blog: "Create an API for BlogPost with:\n- title (string, required)\n- content (string, required)\n- status (enum: DRAFT, PUBLISHED, ARCHIVED)\n- publishedAt (timestamp)\n- authorEmail (valid email)\n- belongs to Author\n\nCreate an API for Author with:\n- name (string, required)\n- bio (string)\n- email (valid email, required)\n\nCreate an API for Tag with:\n- name (string, required)\n- many-to-many with BlogPost",
-  hr: "Create an API for Employee with:\n- firstName (string, required)\n- lastName (string, required)\n- email (valid email, required)\n- salary (decimal, min 0)\n- hireDate (date)\n- belongs to Department\n\nCreate an API for Department with:\n- name (string, required)\n- budget (decimal)",
-  simple: "Create an API for User with:\n- username (string, required)\n- email (valid email, required)\n- active (boolean)\n- createdAt (timestamp)"
+  ecommerce: `e-commerce: Product, User, Order, Category, OrderItem
+
+Product:
+- name (string, required)
+- description (string)
+- price (decimal, required, min 0)
+- stock (integer, min 0)
+- status (enum: DRAFT, ACTIVE, ARCHIVED)
+- belongs to Category
+
+Category:
+- name (string, required, unique)
+- description (string)
+
+Order:
+- totalAmount (decimal, min 0)
+- status (enum: PENDING, CONFIRMED, SHIPPED, DELIVERED)
+- belongs to User
+
+OrderItem:
+- quantity (integer, min 1)
+- unitPrice (decimal, min 0)
+- belongs to Order
+- belongs to Product
+
+User:
+- email (valid email, required, unique)
+- firstName (string, required)
+- lastName (string, required)`,
+
+  blog: `blog platform: BlogPost, Author, Comment, Tag
+
+BlogPost:
+- title (string, required)
+- content (string, required)
+- status (enum: DRAFT, PUBLISHED, ARCHIVED)
+- belongs to Author
+- has many Comment
+- many-to-many with Tag
+
+Author:
+- name (string, required)
+- email (valid email, required, unique)
+- bio (string)
+
+Comment:
+- body (string, required)
+- belongs to BlogPost
+- belongs to Author
+
+Tag:
+- name (string, required, unique)`,
+
+  hr: `HR management system: Employee, Department, Position
+
+Employee:
+- firstName (string, required)
+- lastName (string, required)
+- email (valid email, required, unique)
+- salary (decimal, min 0)
+- hireDate (date)
+- belongs to Department
+- belongs to Position
+
+Department:
+- name (string, required, unique)
+- budget (decimal)
+
+Position:
+- title (string, required)
+- level (enum: JUNIOR, MID, SENIOR, LEAD)`,
+
+  simple: `Create an API for User with:
+- username (string, required, unique)
+- email (valid email, required, unique)
+- role (enum: ADMIN, USER, GUEST)
+- active (boolean)`
 };
 
 const promptInput = document.getElementById('promptInput');

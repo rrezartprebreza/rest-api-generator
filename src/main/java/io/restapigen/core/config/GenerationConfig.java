@@ -33,14 +33,14 @@ public record GenerationConfig(
     ) {
         public ProjectConfig {
             name = normalize(name, "generated-api");
-            basePackage = normalize(basePackage, "com.example.generated");
+            basePackage = normalize(basePackage, "io.backend.generated");
             springBootVersion = normalize(springBootVersion, "3.2.1");
             javaVersion = normalize(javaVersion, "17");
             templatePack = normalize(templatePack, "spring-boot-3-standard");
         }
 
         static ProjectConfig defaults() {
-            return new ProjectConfig("generated-api", "com.example.generated", "3.2.1", "17", "spring-boot-3-standard");
+            return new ProjectConfig("generated-api", "io.backend.generated", "3.2.1", "17", "spring-boot-3-standard");
         }
     }
 
@@ -271,6 +271,25 @@ public record GenerationConfig(
                 project.springBootVersion(),
                 project.javaVersion(),
                 templatePack
+        );
+        return new GenerationConfig(updatedProject, standards, features, plugins);
+    }
+
+    public boolean hasExplicitProjectName() {
+        return !ProjectConfig.defaults().name().equals(project.name());
+    }
+
+    public boolean hasExplicitBasePackage() {
+        return !ProjectConfig.defaults().basePackage().equals(project.basePackage());
+    }
+
+    public GenerationConfig withProjectIdentity(String projectName, String basePackage) {
+        ProjectConfig updatedProject = new ProjectConfig(
+                projectName,
+                basePackage,
+                project.springBootVersion(),
+                project.javaVersion(),
+                project.templatePack()
         );
         return new GenerationConfig(updatedProject, standards, features, plugins);
     }

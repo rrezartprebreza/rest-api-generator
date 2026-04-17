@@ -23,6 +23,7 @@ import java.util.zip.ZipInputStream;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class CodeGeneratorTest {
     @Test
@@ -52,6 +53,9 @@ class CodeGeneratorTest {
         String repository = null;
         String mapper = null;
         String entity = null;
+        String webConfig = null;
+        String applicationYaml = null;
+        String envExample = null;
         try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(zip))) {
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
@@ -68,6 +72,12 @@ class CodeGeneratorTest {
                     mapper = readAll(zis);
                 } else if ("src/main/java/com/example/generated/entity/Product.java".equals(entry.getName())) {
                     entity = readAll(zis);
+                } else if ("src/main/java/com/example/generated/config/WebConfig.java".equals(entry.getName())) {
+                    webConfig = readAll(zis);
+                } else if ("src/main/resources/application.yml".equals(entry.getName())) {
+                    applicationYaml = readAll(zis);
+                } else if (".env.example".equals(entry.getName())) {
+                    envExample = readAll(zis);
                 }
                 zis.closeEntry();
             }
@@ -78,6 +88,7 @@ class CodeGeneratorTest {
         assertTrue(entries.contains("settings.gradle"));
         assertTrue(entries.contains("src/main/resources/application.yml"));
         assertTrue(entries.contains("src/main/java/com/example/generated/ProductsApiApplication.java"));
+        assertTrue(entries.contains("src/main/java/com/example/generated/config/WebConfig.java"));
         assertTrue(entries.contains("src/main/java/com/example/generated/entity/Product.java"));
         assertTrue(entries.contains("src/main/java/com/example/generated/repository/ProductRepository.java"));
         assertTrue(entries.contains("src/main/java/com/example/generated/controller/ProductController.java"));
@@ -107,6 +118,11 @@ class CodeGeneratorTest {
         assertTrue(entity != null && entity.contains("@Id"));
         assertTrue(entity.contains("@GeneratedValue(strategy = GenerationType.IDENTITY)"));
         assertTrue(entity.contains("protected Product()"));
+        assertTrue(webConfig != null && webConfig.contains("implements WebMvcConfigurer"));
+        assertTrue(webConfig.contains("allowedOriginPatterns(allowedOriginPatterns)"));
+        assertTrue(webConfig.contains("allowedMethods(\"GET\", \"POST\", \"PUT\", \"PATCH\", \"DELETE\", \"OPTIONS\")"));
+        assertTrue(applicationYaml != null && applicationYaml.contains("allowed-origins: ${CORS_ALLOWED_ORIGINS:*}"));
+        assertTrue(envExample != null && envExample.contains("CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173"));
         Map<String, String> zipFiles = readZipFiles(zip);
         String compose = zipFiles.get("docker-compose.yml");
         String dockerfile = zipFiles.get("Dockerfile");
@@ -162,6 +178,29 @@ class CodeGeneratorTest {
         assertTrue(compose.contains("SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/appdb"));
         assertTrue(compose.contains("image: adminer:4"));
         assertFalse(compose.contains("version:"));
+    }
+
+    @Test
+    void usesSpecificationProjectIdentityWhenConfigOnlyHasDefaults() throws IOException {
+        ApiSpecification spec = new ApiSpecification(
+                "inventory-management-api",
+                "com.example.inventory.management",
+                List.of(new EntityDefinition(
+                        new EntitySpec("InventoryItem", "inventory_items", "Long", List.of()),
+                        new ApiSpec("/api/inventory-items", true, true, true),
+                        List.of()
+                )),
+                List.of()
+        );
+
+        byte[] zip = new CodeGenerator().generateZip(spec, GenerationConfig.defaults());
+        Map<String, String> zipFiles = readZipFiles(zip);
+
+        assertTrue(zipFiles.containsKey("src/main/java/com/example/inventory/management/InventoryManagementApiApplication.java"));
+        assertTrue(zipFiles.containsKey("src/main/java/com/example/inventory/management/config/WebConfig.java"));
+        assertTrue(zipFiles.containsKey("src/main/java/com/example/inventory/management/entity/InventoryItem.java"));
+        assertEquals("rootProject.name = 'inventory-management-api'\n", zipFiles.get("settings.gradle"));
+        assertTrue(zipFiles.get("build.gradle").contains("group = 'com.example.inventory.management'"));
     }
 
     @Test

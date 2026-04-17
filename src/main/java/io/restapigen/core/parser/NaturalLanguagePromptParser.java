@@ -3,6 +3,7 @@ package io.restapigen.core.parser;
 import io.restapigen.core.config.GenerationConfig;
 import io.restapigen.domain.ApiSpecification;
 import io.restapigen.domain.EntityDefinition;
+import io.restapigen.generator.ProjectNaming;
 import io.restapigen.generator.NaturalLanguageSpecGenerator;
 
 import java.util.ArrayList;
@@ -14,15 +15,17 @@ public final class NaturalLanguagePromptParser implements PromptParser {
     @Override
     public ApiSpecification parse(String prompt, GenerationConfig config) {
         ApiSpecification parsed = delegate.generate(prompt);
+        return applyProjectIdentity(prompt, parsed, config);
+    }
+
+    public static ApiSpecification applyProjectIdentity(String originalPrompt, ApiSpecification parsed, GenerationConfig config) {
         List<EntityDefinition> entities = new ArrayList<>(parsed.entities);
-        String projectName = config.project().name();
-        String basePackage = config.project().basePackage();
-        if (projectName == null || projectName.isBlank()) {
-            projectName = parsed.projectName;
-        }
-        if (basePackage == null || basePackage.isBlank()) {
-            basePackage = parsed.basePackage;
-        }
+        String projectName = config.hasExplicitProjectName()
+                ? config.project().name()
+                : ProjectNaming.inferProjectName(originalPrompt, entities);
+        String basePackage = config.hasExplicitBasePackage()
+                ? config.project().basePackage()
+                : ProjectNaming.inferBasePackage(projectName);
         return new ApiSpecification(projectName, basePackage, entities, parsed.suggestions);
     }
 }
