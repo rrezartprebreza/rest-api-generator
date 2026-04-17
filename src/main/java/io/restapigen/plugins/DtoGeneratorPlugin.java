@@ -34,23 +34,30 @@ public final class DtoGeneratorPlugin implements GeneratorPlugin {
         for (EntityDefinition definition : specification.entities) {
             String className = definition.entity.name + dtoSuffix;
             StringBuilder body = new StringBuilder();
-            Set<String> imports = TemplateSupport.collectImports(definition.entity.fields);
+
+            // Filter out 'id' — the DTO should not expose the PK directly;
+            // the service layer uses its own findById(Long id) parameter.
+            List<FieldSpec> dtoFields = definition.entity.fields.stream()
+                    .filter(f -> !"id".equals(f.name))
+                    .collect(java.util.stream.Collectors.toList());
+
+            Set<String> imports = TemplateSupport.collectImports(dtoFields);
             if (lombokModels) {
                 imports.add("lombok.AllArgsConstructor");
                 imports.add("lombok.Getter");
                 imports.add("lombok.NoArgsConstructor");
                 imports.add("lombok.Setter");
             }
-            for (FieldSpec field : definition.entity.fields) {
+            for (FieldSpec field : dtoFields) {
                 for (String validation : field.validation) {
                     body.append("    @").append(validationToAnnotation(validation)).append("\n");
                 }
                 body.append("    private ").append(field.type).append(" ").append(field.name).append(";\n\n");
             }
             if (!lombokModels) {
-                body.append(TemplateSupport.constructorBlock(className, definition.entity.fields));
-                body.append(TemplateSupport.gettersBlock(definition.entity.fields));
-                body.append(TemplateSupport.settersBlock(definition.entity.fields));
+                body.append(TemplateSupport.constructorBlock(className, dtoFields));
+                body.append(TemplateSupport.gettersBlock(dtoFields));
+                body.append(TemplateSupport.settersBlock(dtoFields));
             }
             String content = context.templates().render(
                     context.templatePack().templatePath("dto.java.tpl"),
