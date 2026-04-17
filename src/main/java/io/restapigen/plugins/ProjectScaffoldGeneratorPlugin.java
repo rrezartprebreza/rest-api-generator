@@ -27,6 +27,10 @@ public final class ProjectScaffoldGeneratorPlugin implements GeneratorPlugin {
                 "src/main/java/" + basePackagePath + "/" + appClass + ".java",
                 springBootApplication(basePackage, appClass, auditing)
         ));
+        out.add(new GeneratedFile(
+                "src/main/java/" + basePackagePath + "/config/WebConfig.java",
+                webConfig(basePackage)
+        ));
         out.add(new GeneratedFile("src/main/resources/application.yml",        applicationYaml(context)));
         out.add(new GeneratedFile("src/test/resources/application-test.yml",   testApplicationYaml()));
         out.add(new GeneratedFile(".env.example",                               envExample()));
@@ -117,6 +121,9 @@ public final class ProjectScaffoldGeneratorPlugin implements GeneratorPlugin {
                           enabled: false
                     server:
                       port: ${SERVER_PORT:8080}
+                    app:
+                      cors:
+                        allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
                     springdoc:
                       swagger-ui:
                         path: /swagger-ui.html
@@ -133,6 +140,9 @@ public final class ProjectScaffoldGeneratorPlugin implements GeneratorPlugin {
                         show-sql: false
                     server:
                       port: ${SERVER_PORT:8080}
+                    app:
+                      cors:
+                        allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
                     springdoc:
                       swagger-ui:
                         path: /swagger-ui.html
@@ -149,6 +159,9 @@ public final class ProjectScaffoldGeneratorPlugin implements GeneratorPlugin {
                         show-sql: false
                     server:
                       port: ${SERVER_PORT:8080}
+                    app:
+                      cors:
+                        allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
                     springdoc:
                       swagger-ui:
                         path: /swagger-ui.html
@@ -184,7 +197,37 @@ public final class ProjectScaffoldGeneratorPlugin implements GeneratorPlugin {
                 DB_USER=app
                 DB_PASSWORD=changeme
                 SERVER_PORT=8080
+                CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
                 """;
+    }
+
+    private String webConfig(String basePackage) {
+        return "package " + basePackage + ".config;\n\n"
+                + "import org.springframework.core.env.Environment;\n"
+                + "import org.springframework.context.annotation.Configuration;\n"
+                + "import org.springframework.web.servlet.config.annotation.CorsRegistry;\n"
+                + "import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;\n\n"
+                + "import java.util.Arrays;\n\n"
+                + "@Configuration\n"
+                + "public class WebConfig implements WebMvcConfigurer {\n\n"
+                + "    private final String[] allowedOriginPatterns;\n\n"
+                + "    public WebConfig(Environment environment) {\n"
+                + "        String allowedOrigins = environment.getProperty(\"app.cors.allowed-origins\", \"*\");\n"
+                + "        this.allowedOriginPatterns = Arrays.stream(allowedOrigins.split(\",\"))\n"
+                + "                .map(String::trim)\n"
+                + "                .filter(value -> !value.isEmpty())\n"
+                + "                .toArray(String[]::new);\n"
+                + "    }\n\n"
+                + "    @Override\n"
+                + "    public void addCorsMappings(CorsRegistry registry) {\n"
+                + "        registry.addMapping(\"/**\")\n"
+                + "                .allowedOriginPatterns(allowedOriginPatterns)\n"
+                + "                .allowedMethods(\"GET\", \"POST\", \"PUT\", \"PATCH\", \"DELETE\", \"OPTIONS\")\n"
+                + "                .allowedHeaders(\"*\")\n"
+                + "                .exposedHeaders(\"Location\")\n"
+                + "                .maxAge(3600);\n"
+                + "    }\n"
+                + "}\n";
     }
 
     private String gitignore() {

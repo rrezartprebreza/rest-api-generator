@@ -125,7 +125,8 @@ public final class CloudLlmPromptParser implements PromptParser {
             if (structured != null && !structured.isBlank()) {
                 LOG.info("[CloudLlmPromptParser] LLM-structured prompt length=" + structured.length()
                         + " via model=" + activeModel());
-                return fallback.parse(structured, config);
+                ApiSpecification structuredSpec = fallback.parse(structured, config);
+                return NaturalLanguagePromptParser.applyProjectIdentity(prompt, structuredSpec, config);
             }
         } catch (Exception e) {
             LOG.warning("[CloudLlmPromptParser] All models exhausted or error, using deterministic. Reason: "
@@ -273,4 +274,3 @@ public final class CloudLlmPromptParser implements PromptParser {
         RateLimitException(String message) { super(message); }
     }
 }
-

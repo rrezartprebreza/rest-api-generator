@@ -35,24 +35,26 @@ public final class GenerationOrchestrator {
     }
 
     public List<GeneratedFile> generate(ApiSpecification specification, GenerationConfig config) {
-        validator.validate(specification);
+        GenerationConfig effectiveConfig = effectiveConfig(specification, config);
+        ApiSpecification effectiveSpecification = effectiveSpecification(specification, effectiveConfig);
+        validator.validate(effectiveSpecification);
         PluginContext context = new PluginContext(
-                config,
-                config.project().basePackage().replace('.', '/'),
+                effectiveConfig,
+                effectiveConfig.project().basePackage().replace('.', '/'),
                 new TemplateEngine(),
-                TemplatePack.fromName(config.project().templatePack())
+                TemplatePack.fromName(effectiveConfig.project().templatePack())
         );
 
         List<GeneratorPlugin> ordered = orderPlugins(plugins.values().stream()
-                .filter(plugin -> config.plugins().isEnabled(plugin.getName()))
+                .filter(plugin -> effectiveConfig.plugins().isEnabled(plugin.getName()))
                 .sorted(Comparator.comparing(GeneratorPlugin::getName))
                 .toList());
 
         List<GeneratedFile> generated = new ArrayList<>();
         for (GeneratorPlugin plugin : ordered) {
             plugin.initialize(context);
-            plugin.validate(specification);
-            generated.addAll(plugin.generate(specification, context));
+            plugin.validate(effectiveSpecification);
+            generated.addAll(plugin.generate(effectiveSpecification, context));
         }
         return generated;
     }
@@ -110,5 +112,20 @@ public final class GenerationOrchestrator {
             zip.finish();
             return buffer.toByteArray();
         }
+    }
+
+    private GenerationConfig effectiveConfig(ApiSpecification specification, GenerationConfig config) {
+        String projectName = config.hasExplicitProjectName() ? config.project().name() : specification.projectName;
+        String basePackage = config.hasExplicitBasePackage() ? config.project().basePackage() : specification.basePackage;
+        return config.withProjectIdentity(projectName, basePackage);
+    }
+
+    private ApiSpecification effectiveSpecification(ApiSpecification specification, GenerationConfig config) {
+        return new ApiSpecification(
+                config.project().name(),
+                config.project().basePackage(),
+                specification.entities,
+                specification.suggestions
+        );
     }
 }

@@ -20,7 +20,8 @@ services:
       # Points at the optional ollama sidecar when --profile llm is used.
       # If Ollama is not running the server falls back to deterministic parsing automatically.
       - OLLAMA_URL=http://ollama:11434
-      - OLLAMA_MODEL=llama3.2
+      - OLLAMA_MODEL=qwen2:7b
+      - OLLAMA_TIMEOUT_SECONDS=90
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
