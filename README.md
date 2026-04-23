@@ -121,26 +121,6 @@ Create an API for Category with:
 - To enable free-form prompt support locally, start with `--profile llm` (see Self-host section above) and pull the model once.
 - The UI badge always reflects the live state: **"LLM active"**, **"LLM offline"**, or no badge (deterministic only).
 
-#### Option 2: Cloud LLM via Groq (free, works on Render / any cloud)
-
-[Groq](https://console.groq.com) offers a free API that runs Llama 3.3 70B remotely — no GPU, no local storage needed.
-
-```bash
-# 1. Get a free API key at https://console.groq.com → API Keys → Create
-# 2. Set the env var (locally or in your cloud dashboard):
-export LLM_API_KEY=gsk_...
-
-# 3. Optionally override the model (default: llama-3.3-70b-versatile)
-export LLM_MODEL=llama-3.3-70b-versatile   # or: llama3-8b-8192 (faster)
-
-# 4. Start the server — LLM mode activates automatically
-./gradlew run --args="serve --port 8080"
-```
-
-To use on **Render** (or any cloud host): add `LLM_API_KEY` as an environment variable in the service dashboard. No Docker Compose changes needed — the app detects it at startup.
-
-Priority: `OLLAMA_URL` (local Docker) → `LLM_API_KEY` (cloud) → deterministic fallback.
-
 ---
 
 ## HTTP API

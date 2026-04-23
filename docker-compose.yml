@@ -1,14 +1,25 @@
 # Docker Compose for running REST API Generator locally
 #
-# Basic usage (deterministic parser — no LLM, no extra storage needed):
+# ── Quick start (no LLM, deterministic parser):
 #   docker compose up
 #
-# With Ollama LLM (free-form prompts — needs ~2 GB disk for the model):
+# ── With Ollama LLM (recommended — free-form prompts):
 #   docker compose --profile llm up
-#   docker exec rest-api-generator-ollama-1 ollama pull llama3.2
+#
+#   Then pull a model (choose one):
+#     docker exec rest-api-generator-ollama-1 ollama pull qwen2:7b          # default, fast, 4 GB
+#     docker exec rest-api-generator-ollama-1 ollama pull llama3.2          # good alternative, 2 GB
+#     docker exec rest-api-generator-ollama-1 ollama pull mistral            # solid, 4 GB
+#     docker exec rest-api-generator-ollama-1 ollama pull codellama          # code-focused, 4 GB
+#
+# ── Switching models without rebuilding:
+#   OLLAMA_MODEL=llama3.2 docker compose --profile llm up
+#
+# ── GPU acceleration (if you have NVIDIA GPU):
+#   Uncomment the `deploy` block in the ollama service below.
 #
 # Either way, open http://localhost:8080
-# The UI shows a badge: "LLM active" or "LLM offline" and always falls back.
+# The UI shows a badge: "LLM active" or "LLM offline" and always falls back gracefully.
 
 services:
   rest-api-generator:
@@ -20,8 +31,10 @@ services:
       # Points at the optional ollama sidecar when --profile llm is used.
       # If Ollama is not running the server falls back to deterministic parsing automatically.
       - OLLAMA_URL=http://ollama:11434
-      - OLLAMA_MODEL=qwen2:7b
-      - OLLAMA_TIMEOUT_SECONDS=90
+      # Override with: OLLAMA_MODEL=llama3.2 docker compose --profile llm up
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2:7b}
+      # Increase if your machine is slow or model is large (e.g. 180 for 9B+ models)
+      - OLLAMA_TIMEOUT_SECONDS=${OLLAMA_TIMEOUT_SECONDS:-90}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
@@ -31,9 +44,7 @@ services:
 
   # ── Optional Ollama sidecar ───────────────────────────────────────────────
   # Only starts when you run: docker compose --profile llm up
-  # Requires ~2 GB disk for the default model (llama3.2).
-  # After first start, pull the model once:
-  #   docker exec rest-api-generator-ollama-1 ollama pull llama3.2
+  # Model data is persisted in the ollama-data volume between restarts.
   ollama:
     image: ollama/ollama:latest
     profiles: ["llm"]
@@ -42,6 +53,14 @@ services:
     volumes:
       - ollama-data:/root/.ollama
     restart: unless-stopped
+    # ── Uncomment to enable NVIDIA GPU acceleration ──
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
     healthcheck:
       test: ["CMD", "ollama", "list"]
       interval: 30s

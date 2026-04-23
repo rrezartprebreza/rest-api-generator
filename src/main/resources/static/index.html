@@ -3,281 +3,281 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<meta name="description" content="REST API Generator — Describe your API in plain English and get a complete, runnable Spring Boot 3 project ZIP in 30 seconds. Entity, DTO, Service, Controller, MapStruct, Docker — all generated."/>
-<meta property="og:title" content="REST API Generator — Spring Boot Scaffolding in 30s"/>
-<meta property="og:description" content="Natural language to production-ready Spring Boot 3 API. Type a prompt, download a ZIP."/>
-<meta property="og:type" content="website"/>
+<meta name="description" content="REST API Generator — Describe your API in plain English and get a complete, runnable Spring Boot 3 project ZIP in 30 seconds."/>
 <meta name="theme-color" content="#00e5a0"/>
 <title>REST API Generator — Spring Boot Scaffolding in 30s</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
 <style>
   :root {
-    --bg: #08080d;
-    --surface: #0f0f17;
-    --surface2: #171722;
-    --border: #282838;
-    --border-bright: #3a3a52;
-    --accent: #00e5a0;
-    --accent2: #7b61ff;
-    --accent3: #ff6b6b;
-    --text: #f0f0f8;
-    --text-muted: #7a7a9a;
-    --text-dim: #404056;
-    --code-bg: #0b0b11;
-    --mono: 'Space Mono', monospace;
-    --sans: 'Syne', sans-serif;
-    --radius: 10px;
-    --shadow-sm: 0 4px 16px rgba(0,0,0,0.2);
-    --nav-h: 70px;
+    --bg:#08080d; --surface:#0f0f17; --surface2:#171722;
+    --border:#282838; --border-bright:#3a3a52;
+    --accent:#00e5a0; --accent2:#7b61ff; --accent3:#ff6b6b;
+    --text:#f0f0f8; --text-muted:#7a7a9a; --text-dim:#404056;
+    --code-bg:#0b0b11;
+    --mono:'Space Mono',monospace; --sans:'Syne',sans-serif;
+    --radius:10px; --nav-h:64px;
   }
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; }
-  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; overflow-x: hidden; }
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(0,229,160,0.025) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,229,160,0.025) 1px, transparent 1px);
-    background-size: 48px 48px;
-    pointer-events: none;
-    z-index: 0;
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,160,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,160,.025) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0;}
+  .reveal{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease;}
+  .reveal.visible{opacity:1;transform:translateY(0);}
+  a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid rgba(0,229,160,.7);outline-offset:3px;border-radius:4px;}
+  /* HEADER */
+  header{position:sticky;top:0;z-index:100;padding:0 2rem;height:var(--nav-h);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:linear-gradient(180deg,rgba(8,8,13,.97) 0%,rgba(15,15,23,.93) 100%);backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);box-shadow:0 4px 24px rgba(0,0,0,.25);}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1rem;letter-spacing:-.03em;text-decoration:none;color:var(--text);transition:opacity .2s;}
+  .logo:hover{opacity:.85;}
+  .logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),#00c48a);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.68rem;color:#06100d;font-weight:800;box-shadow:0 4px 16px rgba(0,229,160,.35);flex-shrink:0;}
+  .logo-text span{color:var(--accent);}
+  .nav-links{display:flex;align-items:center;gap:1.75rem;}
+  .nav-links a{color:var(--text-muted);text-decoration:none;font-size:.86rem;font-weight:600;transition:color .2s;position:relative;padding-bottom:2px;}
+  .nav-links a::after{content:'';position:absolute;bottom:-3px;left:0;right:0;height:1.5px;background:var(--accent);border-radius:1px;transform:scaleX(0);transform-origin:center;transition:transform .25s ease;}
+  .nav-links a:hover{color:var(--text);}
+  .nav-links a:hover::after{transform:scaleX(1);}
+  .nav-badge{background:rgba(0,229,160,.1);color:var(--accent);border:1px solid rgba(0,229,160,.28);padding:3px 10px;border-radius:20px;font-family:var(--mono);font-size:.68rem;font-weight:700;letter-spacing:.5px;}
+  .nav-toggle{display:none;background:none;border:none;cursor:pointer;padding:6px;color:var(--text-muted);}
+  .nav-toggle svg{width:22px;height:22px;}
+  @media(max-width:680px){
+    header{padding:0 1.25rem;}
+    .nav-toggle{display:flex;align-items:center;justify-content:center;}
+    .nav-links{display:none;position:absolute;top:var(--nav-h);left:0;right:0;flex-direction:column;gap:0;background:rgba(8,8,13,.98);border-bottom:1px solid var(--border);backdrop-filter:blur(32px);padding:1rem 0;}
+    .nav-links.open{display:flex;}
+    .nav-links a{padding:.75rem 1.5rem;width:100%;border-bottom:1px solid var(--border);font-size:1rem;}
+    .nav-links a::after{display:none;}
+    .nav-links .nav-badge{margin:.5rem 1.5rem;}
   }
-  .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
-  .reveal.visible { opacity: 1; transform: translateY(0); }
-  a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible {
-    outline: 2px solid rgba(0,229,160,0.7); outline-offset: 3px; border-radius: 4px;
-  }
-
-  /* HEADER - STICKY */
-  header {
-    position: sticky; top: 0; z-index: 100;
-    padding: 0 2.5rem; height: var(--nav-h);
-    display: flex; align-items: center; justify-content: space-between;
-    border-bottom: 1px solid var(--border);
-    background: linear-gradient(180deg, rgba(8,8,13,0.97) 0%, rgba(15,15,23,0.93) 100%);
-    backdrop-filter: blur(32px); -webkit-backdrop-filter: blur(32px);
-    box-shadow: 0 4px 24px rgba(0,0,0,0.25);
-  }
-  .logo { display: flex; align-items: center; gap: 12px; font-weight: 800; font-size: 1.1rem; letter-spacing: -0.03em; text-decoration: none; color: var(--text); transition: opacity 0.2s; }
-  .logo:hover { opacity: 0.85; }
-  .logo-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--accent) 0%, #00c48a 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 0.72rem; color: #06100d; font-weight: 800; box-shadow: 0 4px 16px rgba(0,229,160,0.35); letter-spacing: -0.04em; flex-shrink: 0; }
-  .logo-text span { color: var(--accent); }
-  .nav-links { display: flex; align-items: center; gap: 2rem; }
-  .nav-links a { color: var(--text-muted); text-decoration: none; font-size: 0.88rem; font-weight: 600; transition: color 0.2s; letter-spacing: 0.3px; position: relative; padding-bottom: 2px; }
-  .nav-links a::after { content: ''; position: absolute; bottom: -3px; left: 0; right: 0; height: 1.5px; background: var(--accent); border-radius: 1px; transform: scaleX(0); transform-origin: center; transition: transform 0.25s ease; }
-  .nav-links a:hover { color: var(--text); }
-  .nav-links a:hover::after { transform: scaleX(1); }
-  .badge { background: rgba(0,229,160,0.1); color: var(--accent); border: 1px solid rgba(0,229,160,0.28); padding: 4px 12px; border-radius: 20px; font-family: var(--mono); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.5px; }
-  .nav-toggle { display: none; background: none; border: none; cursor: pointer; padding: 6px; color: var(--text-muted); transition: color 0.2s; }
-  .nav-toggle:hover { color: var(--text); }
-  .nav-toggle svg { width: 22px; height: 22px; }
-  @media (max-width: 680px) {
-    header { padding: 0 1.25rem; }
-    .nav-toggle { display: flex; align-items: center; justify-content: center; }
-    .nav-links { display: none; position: absolute; top: var(--nav-h); left: 0; right: 0; flex-direction: column; gap: 0; background: rgba(8,8,13,0.98); border-bottom: 1px solid var(--border); backdrop-filter: blur(32px); padding: 1rem 0; }
-    .nav-links.open { display: flex; }
-    .nav-links a { padding: 0.75rem 1.5rem; width: 100%; border-bottom: 1px solid var(--border); font-size: 1rem; }
-    .nav-links a::after { display: none; }
-    .nav-links .badge { margin: 0.5rem 1.5rem; }
-  }
-
   /* HERO */
-  .hero { position: relative; z-index: 1; text-align: center; padding: 7rem 1.5rem 5rem; background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(0,229,160,0.07) 0%, transparent 70%); }
-  .hero-eyebrow { font-family: var(--mono); font-size: 0.78rem; color: var(--accent); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 1.75rem; display: flex; align-items: center; justify-content: center; gap: 14px; font-weight: 700; }
-  .hero-eyebrow::before { content: ''; width: 48px; height: 1px; background: linear-gradient(90deg, transparent, var(--accent)); }
-  .hero-eyebrow::after  { content: ''; width: 48px; height: 1px; background: linear-gradient(90deg, var(--accent), transparent); }
-  h1 { font-size: clamp(2.6rem, 6.5vw, 4.8rem); font-weight: 800; letter-spacing: -0.035em; line-height: 1.1; margin-bottom: 1.6rem; color: var(--text); }
-  h1 .highlight { background: linear-gradient(135deg, var(--accent) 0%, #00d99f 50%, #00c4f0 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-  .hero-sub { font-size: 1.15rem; color: var(--text-muted); max-width: 640px; margin: 0 auto 1.75rem; line-height: 1.8; }
-  .hero-note { max-width: 680px; margin: 0 auto 3rem; font-family: var(--mono); font-size: 0.8rem; line-height: 1.75; color: var(--text-muted); background: rgba(0,229,160,0.04); padding: 1rem 1.5rem; border-radius: 10px; border: 1px solid rgba(0,229,160,0.1); }
-  .hero-stats { display: flex; justify-content: center; align-items: stretch; gap: 0; margin: 0 auto 3.5rem; flex-wrap: wrap; border: 1px solid var(--border); border-radius: 14px; max-width: 640px; overflow: hidden; background: var(--surface); }
-  .stat { flex: 1; min-width: 120px; text-align: center; padding: 1.25rem 1rem; border-right: 1px solid var(--border); transition: background 0.2s; }
-  .stat:last-child { border-right: none; }
-  .stat:hover { background: rgba(0,229,160,0.03); }
-  .stat-value { font-size: 1.75rem; font-weight: 800; background: linear-gradient(135deg, var(--accent), #00c48a); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-family: var(--mono); line-height: 1; }
-  .stat-label { font-size: 0.72rem; color: var(--text-muted); margin-top: 6px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; }
-  .hero-cta { display: flex; justify-content: center; align-items: center; gap: 1rem; flex-wrap: wrap; }
-  .btn-hero { display: inline-flex; align-items: center; gap: 10px; padding: 14px 36px; background: linear-gradient(135deg, var(--accent) 0%, #00c48a 100%); color: #06100d; border: none; border-radius: 10px; font-family: var(--sans); font-weight: 800; font-size: 1rem; cursor: pointer; text-decoration: none; letter-spacing: -0.01em; box-shadow: 0 8px 32px rgba(0,229,160,0.35); transition: transform 0.25s ease, box-shadow 0.25s ease; }
-  .btn-hero:hover { transform: translateY(-3px); box-shadow: 0 16px 48px rgba(0,229,160,0.5); }
-  .btn-hero-ghost { display: inline-flex; align-items: center; gap: 10px; padding: 14px 28px; background: transparent; color: var(--text-muted); border: 1px solid var(--border); border-radius: 10px; font-family: var(--sans); font-weight: 700; font-size: 0.95rem; cursor: pointer; text-decoration: none; transition: all 0.25s ease; }
-  .btn-hero-ghost:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,229,160,0.05); }
-
-  /* APP */
-  #app { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem 5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1.75rem; align-items: stretch; scroll-margin-top: calc(var(--nav-h) + 1rem); }
-  @media (max-width: 820px) { #app { grid-template-columns: 1fr; padding: 1.5rem 1.25rem 4rem; gap: 1.25rem; } }
-
-  /* PANELS */
-  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.2); transition: border-color 0.3s, box-shadow 0.3s; display: flex; flex-direction: column; }
-  .panel:hover { border-color: var(--border-bright); }
-  .panel:focus-within { border-color: rgba(0,229,160,0.4); box-shadow: 0 0 0 1px rgba(0,229,160,0.15), 0 8px 32px rgba(0,0,0,0.2); }
-  .panel-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); background: var(--surface2); }
-  .panel-title { font-family: var(--mono); font-size: 0.72rem; color: var(--text-muted); letter-spacing: 0.12em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; font-weight: 700; }
-  .panel-meta { font-family: var(--mono); font-size: 0.7rem; color: var(--text-dim); }
-  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .dot.green  { background: var(--accent);  box-shadow: 0 0 8px var(--accent); }
-  .dot.red    { background: var(--accent3); box-shadow: 0 0 8px var(--accent3); }
-  .dot.purple { background: var(--accent2); box-shadow: 0 0 8px var(--accent2); }
-  .dot.off    { background: var(--text-dim); box-shadow: none; }
-
-  /* PROMPT */
-  .prompt-area { grid-column: 1 / -1; }
-  textarea { width: 100%; min-height: 220px; background: var(--code-bg); border: none; outline: none; color: var(--text); font-family: var(--mono); font-size: 0.875rem; line-height: 1.8; padding: 22px 24px; resize: vertical; caret-color: var(--accent); display: block; }
-  textarea::placeholder { color: var(--text-dim); }
-  .prompt-footer { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-top: 1px solid var(--border); background: var(--surface2); flex-wrap: wrap; gap: 10px; }
-  .examples-row { display: flex; gap: 8px; flex-wrap: wrap; }
-  .example-chip { appearance: none; background: transparent; border: 1px solid var(--border-bright); color: var(--text-muted); font-family: var(--mono); font-size: 0.7rem; font-weight: 700; padding: 5px 13px; border-radius: 20px; cursor: pointer; transition: all 0.18s ease; white-space: nowrap; letter-spacing: 0.4px; }
-  .example-chip:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,229,160,0.07); transform: translateY(-1px); }
-  .char-count { font-family: var(--mono); font-size: 0.7rem; color: var(--text-dim); font-weight: 600; }
-
-  /* BUTTONS */
-  .actions { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 28px; border-radius: 10px; font-family: var(--sans); font-weight: 700; font-size: 0.92rem; cursor: pointer; border: none; letter-spacing: 0.01em; position: relative; overflow: hidden; flex-shrink: 0; transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s, color 0.2s, border-color 0.2s; }
-  .btn::after { content: ''; position: absolute; inset: 0; background: rgba(255,255,255,0); transition: background 0.15s; }
-  .btn:active::after { background: rgba(255,255,255,0.08); }
-  .btn svg { width: 15px; height: 15px; flex-shrink: 0; }
-  .btn-primary { background: linear-gradient(135deg, var(--accent) 0%, #00c48a 100%); color: #06100d; box-shadow: 0 6px 20px rgba(0,229,160,0.3); }
-  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(0,229,160,0.45); }
-  .btn-primary:active { transform: translateY(0); }
-  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
-  .btn-secondary { background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
-  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,229,160,0.05); }
-  .btn-secondary:disabled { opacity: 0.35; cursor: not-allowed; }
-  .btn-download { background: linear-gradient(135deg, var(--accent2) 0%, #5e3fc4 100%); color: #fff; box-shadow: 0 6px 20px rgba(123,97,255,0.32); }
-  .btn-download:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(123,97,255,0.48); }
-  .btn-download:active { transform: translateY(0); }
-  .btn-download:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
-  .kbd-hint { font-family: var(--mono); font-size: 0.68rem; color: var(--text-dim); margin-left: auto; white-space: nowrap; display: flex; align-items: center; gap: 4px; }
-  .kbd { background: var(--surface2); border: 1px solid var(--border-bright); border-radius: 4px; padding: 2px 6px; font-size: 0.65rem; color: var(--text-muted); font-weight: 700; }
-  .spinner { width: 15px; height: 15px; border: 2px solid rgba(0,0,0,0.15); border-top-color: currentColor; border-radius: 50%; animation: spin 0.6s linear infinite; display: none; flex-shrink: 0; }
-  .loading .spinner { display: block; }
-  .loading .btn-icon { display: none; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* STATUS BAR */
-  .status-bar { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; padding: 11px 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); font-family: var(--mono); font-size: 0.78rem; color: var(--text-muted); min-height: 46px; transition: border-color 0.3s, background 0.3s, color 0.3s, box-shadow 0.3s; }
-  .status-bar.success { border-color: rgba(0,229,160,0.4); background: rgba(0,229,160,0.06); color: var(--accent); box-shadow: 0 0 0 1px rgba(0,229,160,0.1); }
-  .status-bar.error   { border-color: rgba(255,107,107,0.4); background: rgba(255,107,107,0.06); color: var(--accent3); }
-  .status-bar.loading { border-color: rgba(123,97,255,0.4); background: rgba(123,97,255,0.06); color: var(--accent2); }
-
-  /* STEPS */
-  .steps { grid-column: 1 / -1; display: flex; gap: 0; }
-  .step { flex: 1; padding: 14px 18px; background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; gap: 12px; transition: background 0.2s, border-color 0.2s; }
-  .step:first-child { border-radius: var(--radius) 0 0 var(--radius); }
-  .step:last-child  { border-radius: 0 var(--radius) var(--radius) 0; }
-  .step + .step     { border-left: none; }
-  .step.active { border-color: var(--accent); background: rgba(0,229,160,0.04); }
-  .step.done   { border-color: rgba(0,229,160,0.25); background: rgba(0,229,160,0.02); }
-  .step-num { width: 30px; height: 30px; border-radius: 50%; background: var(--border); color: var(--text-muted); font-family: var(--mono); font-size: 0.78rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.3s, color 0.3s, box-shadow 0.3s; }
-  .step.active .step-num { background: var(--accent); color: #06100d; box-shadow: 0 0 14px rgba(0,229,160,0.5); }
-  .step.done   .step-num { background: rgba(0,229,160,0.15); color: var(--accent); }
-  .step-info { flex: 1; min-width: 0; }
-  .step-label { font-size: 0.76rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; }
-  .step.active .step-label { color: var(--accent); }
-  .step.done   .step-label { color: var(--text); }
-  .step-desc { font-size: 0.7rem; color: var(--text-dim); margin-top: 2px; font-family: var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  @media (max-width: 560px) { .step-desc { display: none; } .step { padding: 12px 10px; gap: 8px; } }
-
+  .hero{position:relative;z-index:1;text-align:center;padding:6rem 1.5rem 4.5rem;background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(0,229,160,.07) 0%,transparent 70%);}
+  .hero-eyebrow{font-family:var(--mono);font-size:.76rem;color:var(--accent);letter-spacing:.2em;text-transform:uppercase;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:center;gap:14px;font-weight:700;}
+  .hero-eyebrow::before{content:'';width:48px;height:1px;background:linear-gradient(90deg,transparent,var(--accent));}
+  .hero-eyebrow::after{content:'';width:48px;height:1px;background:linear-gradient(90deg,var(--accent),transparent);}
+  h1{font-size:clamp(2.4rem,6vw,4.4rem);font-weight:800;letter-spacing:-.035em;line-height:1.1;margin-bottom:1.4rem;color:var(--text);}
+  h1 .highlight{background:linear-gradient(135deg,var(--accent) 0%,#00d99f 50%,#00c4f0 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  .hero-sub{font-size:1.1rem;color:var(--text-muted);max-width:620px;margin:0 auto 1.5rem;line-height:1.8;}
+  .hero-note{max-width:660px;margin:0 auto 2.75rem;font-family:var(--mono);font-size:.78rem;line-height:1.75;color:var(--text-muted);background:rgba(0,229,160,.04);padding:.9rem 1.4rem;border-radius:10px;border:1px solid rgba(0,229,160,.1);}
+  .hero-stats{display:flex;justify-content:center;align-items:stretch;gap:0;margin:0 auto 3rem;flex-wrap:wrap;border:1px solid var(--border);border-radius:14px;max-width:600px;overflow:hidden;background:var(--surface);}
+  .stat{flex:1;min-width:110px;text-align:center;padding:1.1rem .75rem;border-right:1px solid var(--border);transition:background .2s;}
+  .stat:last-child{border-right:none;}
+  .stat:hover{background:rgba(0,229,160,.03);}
+  .stat-value{font-size:1.6rem;font-weight:800;background:linear-gradient(135deg,var(--accent),#00c48a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-family:var(--mono);line-height:1;}
+  .stat-label{font-size:.68rem;color:var(--text-muted);margin-top:5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;}
+  .hero-cta{display:flex;justify-content:center;align-items:center;gap:1rem;flex-wrap:wrap;}
+  .btn-hero{display:inline-flex;align-items:center;gap:10px;padding:13px 32px;background:linear-gradient(135deg,var(--accent),#00c48a);color:#06100d;border:none;border-radius:10px;font-family:var(--sans);font-weight:800;font-size:.97rem;cursor:pointer;text-decoration:none;box-shadow:0 8px 32px rgba(0,229,160,.35);transition:transform .25s ease,box-shadow .25s ease;}
+  .btn-hero:hover{transform:translateY(-3px);box-shadow:0 16px 48px rgba(0,229,160,.5);}
+  .btn-hero-ghost{display:inline-flex;align-items:center;gap:10px;padding:13px 26px;background:transparent;color:var(--text-muted);border:1px solid var(--border);border-radius:10px;font-family:var(--sans);font-weight:700;font-size:.92rem;cursor:pointer;text-decoration:none;transition:all .25s ease;}
+  .btn-hero-ghost:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,229,160,.05);}
+  /* APP GRID */
+  #app{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:2rem 1.5rem 5rem;display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;scroll-margin-top:calc(var(--nav-h) + 1rem);}
+  @media(max-width:820px){#app{grid-template-columns:1fr;padding:1.5rem 1rem 4rem;gap:1.25rem;}}
   /* SERVER CONFIG */
-  .server-config { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 14px; }
-  .server-config label { font-family: var(--mono); font-size: 0.68rem; color: var(--text-dim); white-space: nowrap; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; flex-shrink: 0; }
-  .server-config input { flex: 1; background: transparent; border: none; color: var(--text); font-family: var(--mono); font-size: 0.82rem; outline: none; min-width: 0; padding: 4px 0; }
-  .server-divider { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
-  .online-badge { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 0.7rem; color: var(--text-dim); white-space: nowrap; font-weight: 600; flex-shrink: 0; }
-  .llm-badge { display: none; align-items: center; gap: 6px; font-family: var(--mono); font-size: 0.7rem; white-space: nowrap; font-weight: 700; padding: 3px 10px; border-radius: 20px; flex-shrink: 0; }
-  .llm-badge.active  { color: var(--accent2); background: rgba(123,97,255,0.10); border: 1px solid rgba(123,97,255,0.28); }
-  .llm-badge.offline { color: var(--text-dim); background: transparent; border: 1px solid var(--border); }
-  .parser-note { grid-column: 1 / -1; font-family: var(--mono); font-size: 0.72rem; padding: 9px 16px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface2); color: var(--text-muted); display: none; align-items: center; gap: 10px; }
-  .parser-note.show { display: flex; }
-  .parser-note.llm-active  { border-color: rgba(123,97,255,0.3); background: rgba(123,97,255,0.06); color: var(--accent2); }
-  .parser-note.llm-offline { border-color: rgba(255,107,107,0.2); background: rgba(255,107,107,0.04); color: var(--text-muted); }
-  .pulse { width: 7px; height: 7px; background: var(--accent); border-radius: 50%; animation: pulse-anim 2s ease infinite; flex-shrink: 0; }
-  @keyframes pulse-anim { 0%, 100% { box-shadow: 0 0 0 0 rgba(0,229,160,0.4); } 50% { box-shadow: 0 0 0 5px rgba(0,229,160,0); } }
-
+  .server-config{grid-column:1/-1;display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 16px;font-family:var(--mono);}
+  .server-config label{font-size:.7rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;}
+  .server-config input[type="text"]{flex:1;min-width:200px;background:var(--code-bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:.78rem;padding:6px 10px;outline:none;transition:border-color .2s;}
+  .server-config input[type="text"]:focus{border-color:rgba(0,229,160,.4);}
+  .server-divider{width:1px;height:20px;background:var(--border);flex-shrink:0;}
+  .online-badge{display:inline-flex;align-items:center;gap:7px;font-size:.72rem;font-weight:700;color:var(--text-muted);padding:4px 10px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid var(--border);white-space:nowrap;}
+  .pulse{width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0;animation:pulse-ring 1.6s ease-out infinite;}
+  @keyframes pulse-ring{0%{box-shadow:0 0 0 0 rgba(0,229,160,.5);}70%{box-shadow:0 0 0 6px rgba(0,229,160,0);}100%{box-shadow:0 0 0 0 rgba(0,229,160,0);}}
+  .llm-badge{display:none;align-items:center;gap:6px;font-size:.72rem;font-weight:700;padding:4px 12px;border-radius:20px;white-space:nowrap;font-family:var(--mono);}
+  .llm-badge.active{display:inline-flex;background:rgba(0,229,160,.1);color:var(--accent);border:1px solid rgba(0,229,160,.3);}
+  .llm-badge.offline{display:inline-flex;background:rgba(255,107,107,.08);color:var(--accent3);border:1px solid rgba(255,107,107,.25);}
+  .confidence-badge{display:none;align-items:center;gap:6px;font-size:.72rem;font-weight:700;padding:4px 12px;border-radius:20px;white-space:nowrap;font-family:var(--mono);}
+  .confidence-badge.show{display:inline-flex;}
+  .confidence-badge.pass{background:rgba(0,229,160,.1);color:var(--accent);border:1px solid rgba(0,229,160,.3);}
+  .confidence-badge.warn{background:rgba(255,179,71,.12);color:#ffb347;border:1px solid rgba(255,179,71,.3);}
+  .confidence-badge.fail{background:rgba(255,107,107,.12);color:var(--accent3);border:1px solid rgba(255,107,107,.35);}
+  .server-version{font-size:.66rem;color:var(--text-dim);white-space:nowrap;font-family:var(--mono);margin-left:auto;}
+  /* PARSER NOTE */
+  .parser-note{grid-column:1/-1;display:none;padding:11px 16px;border-radius:var(--radius);font-family:var(--mono);font-size:.78rem;line-height:1.6;border:1px solid transparent;}
+  .parser-note.show{display:block;}
+  .parser-note.llm-active{background:rgba(0,229,160,.05);border-color:rgba(0,229,160,.2);color:var(--text-muted);}
+  .parser-note.llm-active strong{color:var(--accent);}
+  .parser-note.llm-offline{background:rgba(255,183,71,.05);border-color:rgba(255,183,71,.2);color:#d4a030;}
+  .parser-note.llm-offline strong{color:#ffb347;}
+  .parser-note code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:4px;font-size:.75rem;}
+  /* STEPS */
+  .steps{grid-column:1/-1;display:flex;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+  .step{flex:1;display:flex;align-items:center;gap:12px;padding:14px 18px;border-right:1px solid var(--border);transition:background .2s;cursor:default;}
+  .step:last-child{border-right:none;}
+  .step-num{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.75rem;font-weight:700;background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);transition:all .3s;}
+  .step-info{display:flex;flex-direction:column;gap:2px;}
+  .step-label{font-size:.84rem;font-weight:700;color:var(--text-dim);transition:color .3s;}
+  .step-desc{font-family:var(--mono);font-size:.65rem;color:var(--text-dim);transition:color .3s;}
+  .step.active{background:rgba(0,229,160,.04);}
+  .step.active .step-num{background:rgba(0,229,160,.15);border-color:rgba(0,229,160,.45);color:var(--accent);box-shadow:0 0 14px rgba(0,229,160,.2);}
+  .step.active .step-label{color:var(--accent);}
+  .step.active .step-desc{color:rgba(0,229,160,.6);}
+  .step.done .step-num{background:rgba(0,229,160,.1);border-color:rgba(0,229,160,.3);color:var(--accent);font-size:0;}
+  .step.done .step-num::before{content:'\2713';font-size:.8rem;}
+  .step.done .step-label{color:var(--text-muted);}
+  .step.done .step-desc{color:var(--text-dim);}
+  @media(max-width:540px){.step{padding:10px 12px;gap:8px;}.step-desc{display:none;}}
+  /* PANELS */
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.2);transition:border-color .3s,box-shadow .3s;display:flex;flex-direction:column;}
+  .panel:hover{border-color:var(--border-bright);}
+  .panel:focus-within{border-color:rgba(0,229,160,.4);box-shadow:0 0 0 1px rgba(0,229,160,.12),0 8px 32px rgba(0,0,0,.2);}
+  .panel-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface2);flex-shrink:0;}
+  .panel-title{font-family:var(--mono);font-size:.7rem;color:var(--text-muted);letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center;gap:8px;font-weight:700;}
+  .panel-meta{font-family:var(--mono);font-size:.68rem;color:var(--text-dim);}
+  .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .dot.green{background:var(--accent);box-shadow:0 0 8px var(--accent);}
+  .dot.red{background:var(--accent3);box-shadow:0 0 8px var(--accent3);}
+  .dot.purple{background:var(--accent2);box-shadow:0 0 8px var(--accent2);}
+  .dot.off{background:var(--text-dim);box-shadow:none;}
+  /* PROMPT */
+  .prompt-area{grid-column:1/-1;}
+  textarea{width:100%;min-height:200px;background:var(--code-bg);border:none;outline:none;color:var(--text);font-family:var(--mono);font-size:.86rem;line-height:1.8;padding:20px 22px;resize:vertical;caret-color:var(--accent);display:block;}
+  textarea::placeholder{color:var(--text-dim);}
+  .prompt-footer{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid var(--border);background:var(--surface2);flex-wrap:wrap;gap:8px;flex-shrink:0;}
+  .examples-row{display:flex;gap:7px;flex-wrap:wrap;}
+  .example-chip{appearance:none;background:transparent;border:1px solid var(--border-bright);color:var(--text-muted);font-family:var(--mono);font-size:.68rem;font-weight:700;padding:4px 12px;border-radius:20px;cursor:pointer;transition:all .18s ease;white-space:nowrap;}
+  .example-chip:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,229,160,.07);transform:translateY(-1px);}
+  .char-count{font-family:var(--mono);font-size:.68rem;color:var(--text-dim);font-weight:600;}
+  /* ENTITY TAGS */
+  .entities-row{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface2);min-height:44px;align-items:center;flex-shrink:0;}
+  .entity-tag{display:inline-flex;align-items:center;gap:6px;background:rgba(0,229,160,.08);color:var(--accent);border:1px solid rgba(0,229,160,.2);border-radius:20px;font-family:var(--mono);font-size:.68rem;font-weight:700;padding:3px 10px;}
+  .entity-tag .count{background:rgba(0,229,160,.15);color:var(--accent);border-radius:10px;padding:0 5px;font-size:.6rem;font-weight:700;}
   /* OUTPUT */
-  .output-scroll { flex: 1; min-height: 280px; max-height: 420px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(0,229,160,0.25) transparent; }
-  .output-scroll::-webkit-scrollbar { width: 6px; }
-  .output-scroll::-webkit-scrollbar-track { background: transparent; }
-  .output-scroll::-webkit-scrollbar-thumb { background: rgba(0,229,160,0.25); border-radius: 3px; }
-  .output-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0,229,160,0.45); }
-  pre { font-family: var(--mono); font-size: 0.8rem; line-height: 1.8; padding: 20px; color: var(--text); background: var(--code-bg); white-space: pre-wrap; word-break: break-all; }
-  .placeholder-msg { padding: 48px 20px; text-align: center; color: var(--text-dim); font-family: var(--mono); font-size: 0.78rem; line-height: 1.7; background: var(--code-bg); }
-  .placeholder-msg .big { font-size: 2.4rem; margin-bottom: 12px; display: block; opacity: 0.7; }
-  .entities-row { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 18px; border-bottom: 1px solid var(--border); min-height: 52px; align-items: center; background: var(--surface); }
-  .entity-tag { background: rgba(0,229,160,0.08); border: 1px solid rgba(0,229,160,0.22); color: var(--accent); font-family: var(--mono); font-size: 0.72rem; padding: 4px 12px; border-radius: 20px; display: flex; align-items: center; gap: 6px; animation: pop 0.25s ease; font-weight: 600; }
-  @keyframes pop { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-  .entity-tag .count { background: rgba(0,229,160,0.2); width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.62rem; font-weight: 700; }
-  .json-key    { color: #9580ff; }
-  .json-string { color: #00e5a0; }
-  .json-number { color: #ffb347; }
-  .json-bool   { color: #ff6b6b; }
-  .progress-bar { height: 3px; background: rgba(0,229,160,0.08); overflow: hidden; }
-  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #00c48a); width: 0%; transition: width 0.4s ease; box-shadow: 0 0 10px rgba(0,229,160,0.5); }
-
+  .output-scroll{flex:1;overflow:auto;min-height:220px;max-height:420px;}
+  .output-scroll pre{padding:18px 20px;font-family:var(--mono);font-size:.78rem;line-height:1.75;color:var(--text);white-space:pre-wrap;word-break:break-all;}
+  .placeholder-msg{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:220px;gap:10px;color:var(--text-dim);font-family:var(--mono);font-size:.78rem;text-align:center;padding:2rem;}
+  .placeholder-msg .big{font-size:2.2rem;line-height:1;}
+  /* JSON HIGHLIGHT */
+  .json-key{color:#7dd3fc;}.json-string{color:#86efac;}.json-bool{color:#fb923c;}.json-number{color:#c084fc;}
+  /* ACTIONS */
+  .actions{grid-column:1/-1;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 24px;border-radius:10px;font-family:var(--sans);font-weight:700;font-size:.9rem;cursor:pointer;border:none;position:relative;overflow:hidden;flex-shrink:0;transition:transform .2s ease,box-shadow .2s ease,background .2s,color .2s,border-color .2s;}
+  .btn::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,0);transition:background .15s;}
+  .btn:active::after{background:rgba(255,255,255,.08);}
+  .btn svg{width:14px;height:14px;flex-shrink:0;}
+  .btn-primary{background:linear-gradient(135deg,var(--accent),#00c48a);color:#06100d;box-shadow:0 6px 20px rgba(0,229,160,.3);}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(0,229,160,.45);}
+  .btn-primary:active{transform:translateY(0);}
+  .btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none;}
+  .btn-secondary{background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);}
+  .btn-secondary:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,229,160,.05);}
+  .btn-secondary:disabled{opacity:.35;cursor:not-allowed;}
+  .btn-download{background:linear-gradient(135deg,var(--accent2),#5e3fc4);color:#fff;box-shadow:0 6px 20px rgba(123,97,255,.32);}
+  .btn-download:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(123,97,255,.48);}
+  .btn-download:active{transform:translateY(0);}
+  .btn-download:disabled{opacity:.35;cursor:not-allowed;transform:none;}
+  .kbd-hint{font-family:var(--mono);font-size:.66rem;color:var(--text-dim);margin-left:auto;white-space:nowrap;display:flex;align-items:center;gap:4px;}
+  .kbd{background:var(--surface2);border:1px solid var(--border-bright);border-radius:4px;padding:2px 6px;font-size:.63rem;color:var(--text-muted);font-weight:700;}
+  .spinner{width:14px;height:14px;border:2px solid rgba(0,0,0,.15);border-top-color:currentColor;border-radius:50%;animation:spin .6s linear infinite;display:none;flex-shrink:0;}
+  .loading .spinner{display:block;}.loading .btn-icon{display:none;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  /* STATUS BAR */
+  .status-bar{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:11px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);font-family:var(--mono);font-size:.76rem;color:var(--text-muted);min-height:44px;transition:border-color .3s,background .3s,color .3s,box-shadow .3s;}
+  .status-bar.success{border-color:rgba(0,229,160,.4);background:rgba(0,229,160,.06);color:var(--accent);box-shadow:0 0 0 1px rgba(0,229,160,.08);}
+  .status-bar.error{border-color:rgba(255,107,107,.4);background:rgba(255,107,107,.06);color:var(--accent3);}
+  .status-bar.loading{border-color:rgba(123,97,255,.4);background:rgba(123,97,255,.06);color:var(--accent2);}
+  /* HISTORY */
+  .history-panel{grid-column:1/-1;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);overflow:hidden;}
+  .history-header{padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface2);font-family:var(--mono);font-size:.68rem;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase;font-weight:700;display:flex;align-items:center;gap:8px;}
+  .history-meta{margin-left:auto;display:flex;align-items:center;gap:8px;}
+  .history-count{font-size:.62rem;color:var(--text-dim);}
+  .history-clear{background:transparent;border:1px solid var(--border);color:var(--text-muted);font-family:var(--mono);font-size:.62rem;padding:2px 8px;border-radius:6px;cursor:pointer;}
+  .history-clear:hover{border-color:var(--accent);color:var(--accent);}
+  .history-body{padding:8px 12px;display:flex;flex-direction:column;gap:8px;max-height:260px;overflow:auto;}
+  .history-empty{font-family:var(--mono);font-size:.72rem;color:var(--text-dim);padding:8px 4px;}
+  .history-item{display:flex;align-items:flex-start;gap:10px;padding:8px;border:1px solid rgba(255,255,255,.04);border-radius:8px;background:rgba(255,255,255,.02);}
+  .history-item:hover{border-color:rgba(0,229,160,.22);}
+  .history-main{min-width:0;flex:1;display:flex;flex-direction:column;gap:4px;}
+  .history-preview{font-family:var(--mono);font-size:.71rem;color:var(--text);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .history-sub{font-family:var(--mono);font-size:.62rem;color:var(--text-dim);display:flex;gap:10px;flex-wrap:wrap;}
+  .history-actions{display:flex;gap:6px;flex-shrink:0;}
+  .history-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);font-family:var(--mono);font-size:.62rem;padding:3px 9px;border-radius:6px;cursor:pointer;}
+  .history-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .history-btn.delete:hover{border-color:var(--accent3);color:var(--accent3);}
+  /* GRAPH */
+  .graph-panel{grid-column:1/-1;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);overflow:hidden;}
+  .graph-header{padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface2);font-family:var(--mono);font-size:.68rem;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase;font-weight:700;display:flex;align-items:center;gap:8px;}
+  .graph-meta{margin-left:auto;font-size:.62rem;color:var(--text-dim);}
+  .graph-body{height:280px;position:relative;background:linear-gradient(180deg,rgba(0,229,160,.02),transparent);}
+  .graph-svg{width:100%;height:100%;display:block;}
+  .graph-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.72rem;color:var(--text-dim);}
+  /* VALIDATION */
+  .validation-panel{grid-column:1/-1;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);overflow:hidden;}
+  .validation-header{padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface2);font-family:var(--mono);font-size:.68rem;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase;font-weight:700;display:flex;align-items:center;gap:8px;}
+  .validation-header-counts{display:flex;gap:6px;margin-left:auto;}
+  .vcnt{font-size:.6rem;font-weight:700;padding:2px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:.04em;}
+  .vcnt.err{background:rgba(255,107,107,.15);color:#ff6b6b;border:1px solid rgba(255,107,107,.25);}
+  .vcnt.warn{background:rgba(255,179,71,.15);color:#ffb347;border:1px solid rgba(255,179,71,.25);}
+  .vcnt.ok{background:rgba(0,229,160,.1);color:var(--accent);border:1px solid rgba(0,229,160,.2);}
+  .validation-body{padding:12px 16px;font-family:var(--mono);font-size:.74rem;color:var(--text-muted);}
+  /* group by entity */
+  .vgroup{margin-bottom:10px;}
+  .vgroup:last-child{margin-bottom:0;}
+  .vgroup-label{font-size:.63rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:4px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,.04);}
+  .validation-row{padding:5px 0;border-bottom:1px dashed rgba(122,122,154,.15);display:flex;align-items:baseline;gap:8px;}
+  .validation-row:last-child{border-bottom:none;}
+  .validation-row.warn{color:#ffb347;}.validation-row.err{color:#ff6b6b;}
+  .vbadge{font-size:.6rem;font-weight:700;padding:1px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.06em;flex-shrink:0;}
+  .vbadge.err{background:rgba(255,107,107,.15);color:#ff6b6b;}
+  .vbadge.warn{background:rgba(255,179,71,.15);color:#ffb347;}
+  .fix-suggestions{margin-top:10px;display:flex;flex-wrap:wrap;gap:7px;}
+  .fix-btn{background:rgba(123,97,255,.10);color:#c6bcff;border:1px solid rgba(123,97,255,.3);border-radius:16px;padding:4px 12px;font-family:var(--mono);font-size:.68rem;cursor:pointer;transition:background .2s,opacity .2s;}
+  .fix-btn:hover{background:rgba(123,97,255,.22);}
+  .fix-btn:disabled{opacity:.4;cursor:not-allowed;}
+  /* PROGRESS */
+  .progress-bar{height:3px;background:var(--border);flex-shrink:0;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:3px;width:0%;transition:width .3s ease;}
   /* HOW IT WORKS */
-  .how-it-works { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 5rem 1.5rem; border-top: 1px solid var(--border); scroll-margin-top: var(--nav-h); }
-  .section-eyebrow { font-family: var(--mono); font-size: 0.72rem; color: var(--accent); letter-spacing: 0.2em; text-transform: uppercase; font-weight: 700; margin-bottom: 0.6rem; display: block; text-align: center; }
-  .section-heading { font-size: clamp(1.75rem, 3vw, 2.4rem); font-weight: 800; text-align: center; letter-spacing: -0.025em; color: var(--text); margin-bottom: 0.75rem; }
-  .section-sub { text-align: center; color: var(--text-muted); font-size: 1rem; line-height: 1.7; max-width: 560px; margin: 0 auto 3.5rem; }
-  .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; }
-  .feature-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.12); transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease; position: relative; overflow: hidden; }
-  .feature-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, rgba(0,229,160,0.5), transparent); opacity: 0; transition: opacity 0.3s; }
-  .feature-card:hover { border-color: rgba(0,229,160,0.28); transform: translateY(-4px); box-shadow: 0 12px 36px rgba(0,229,160,0.08), 0 4px 20px rgba(0,0,0,0.15); }
-  .feature-card:hover::before { opacity: 1; }
-  .feature-icon { font-size: 1.75rem; margin-bottom: 14px; display: block; line-height: 1; }
-  .feature-title { font-weight: 700; font-size: 1rem; margin-bottom: 8px; color: var(--text); letter-spacing: -0.01em; }
-  .feature-desc { font-size: 0.83rem; color: var(--text-muted); line-height: 1.7; font-family: var(--mono); }
-
+  .how-it-works{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:5rem 1.5rem;border-top:1px solid var(--border);scroll-margin-top:var(--nav-h);}
+  .section-eyebrow{font-family:var(--mono);font-size:.7rem;color:var(--accent);letter-spacing:.2em;text-transform:uppercase;font-weight:700;margin-bottom:.5rem;display:block;text-align:center;}
+  .section-heading{font-size:clamp(1.7rem,3vw,2.3rem);font-weight:800;text-align:center;letter-spacing:-.025em;color:var(--text);margin-bottom:.65rem;}
+  .section-sub{text-align:center;color:var(--text-muted);font-size:.97rem;line-height:1.7;max-width:540px;margin:0 auto 3rem;}
+  .features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1.1rem;}
+  .feature-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;box-shadow:0 4px 20px rgba(0,0,0,.12);transition:border-color .25s,transform .25s,box-shadow .25s;position:relative;overflow:hidden;}
+  .feature-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(0,229,160,.5),transparent);opacity:0;transition:opacity .3s;}
+  .feature-card:hover{border-color:rgba(0,229,160,.28);transform:translateY(-4px);box-shadow:0 12px 36px rgba(0,229,160,.07),0 4px 20px rgba(0,0,0,.15);}
+  .feature-card:hover::before{opacity:1;}
+  .feature-icon{font-size:1.6rem;margin-bottom:12px;display:block;line-height:1;}
+  .feature-title{font-weight:700;font-size:.97rem;margin-bottom:7px;color:var(--text);}
+  .feature-desc{font-size:.8rem;color:var(--text-muted);line-height:1.7;font-family:var(--mono);}
   /* DOCKER */
-  .docker-section { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 0 1.5rem 5rem; scroll-margin-top: var(--nav-h); }
-  .code-block { background: var(--code-bg); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
-  .code-block-header { display: flex; align-items: center; justify-content: space-between; padding: 11px 18px; border-bottom: 1px solid var(--border); background: var(--surface2); font-family: var(--mono); font-size: 0.72rem; color: var(--text-muted); font-weight: 600; }
-  .code-block-dots { display: flex; gap: 6px; margin-right: 10px; }
-  .code-block-dots span { width: 10px; height: 10px; border-radius: 50%; display: block; }
-  .code-block-dots .d1 { background: #ff6b6b; }
-  .code-block-dots .d2 { background: #ffb347; }
-  .code-block-dots .d3 { background: #00e5a0; }
-  .code-block-title { display: flex; align-items: center; }
-  .copy-btn { background: transparent; border: 1px solid var(--border); color: var(--text-muted); font-family: var(--mono); font-size: 0.68rem; padding: 4px 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: 600; display: flex; align-items: center; gap: 5px; }
-  .copy-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,229,160,0.05); }
-  .copy-btn svg { width: 12px; height: 12px; }
-  .code-block pre { padding: 22px 24px; font-size: 0.84rem; background: transparent; color: var(--text); line-height: 1.85; }
-  .code-block .cmd-line { color: var(--accent); font-weight: 600; }
-  .code-block .comment  { color: var(--text-dim); font-style: italic; }
-
+  .docker-section{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:0 1.5rem 5rem;scroll-margin-top:var(--nav-h);}
+  .code-block{background:var(--code-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.2);}
+  .code-block-header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface2);font-family:var(--mono);font-size:.7rem;color:var(--text-muted);font-weight:600;}
+  .code-block-dots{display:flex;gap:6px;margin-right:10px;}
+  .code-block-dots span{width:10px;height:10px;border-radius:50%;display:block;}
+  .code-block-dots .d1{background:#ff6b6b;}.code-block-dots .d2{background:#ffb347;}.code-block-dots .d3{background:#00e5a0;}
+  .code-block-title{display:flex;align-items:center;}
+  .copy-btn{background:transparent;border:1px solid var(--border);color:var(--text-muted);font-family:var(--mono);font-size:.67rem;padding:4px 11px;border-radius:6px;cursor:pointer;transition:all .2s;font-weight:600;display:flex;align-items:center;gap:5px;}
+  .copy-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,229,160,.05);}
+  .copy-btn svg{width:11px;height:11px;}
+  .code-block pre{padding:20px 22px;font-size:.82rem;background:transparent;color:var(--text);line-height:1.85;}
+  .code-block .cmd-line{color:var(--accent);font-weight:600;}
+  .code-block .comment{color:var(--text-dim);font-style:italic;}
   /* CLOSING */
-  .closing-copy { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 0 1.5rem 4rem; }
-  .closing-card { background: linear-gradient(135deg, rgba(0,229,160,0.05) 0%, rgba(123,97,255,0.04) 100%); border: 1px solid rgba(0,229,160,0.18); border-radius: 16px; padding: 3rem 2rem; box-shadow: 0 0 60px rgba(0,229,160,0.07); text-align: center; }
-  .closing-title { font-size: 1.75rem; font-weight: 800; color: var(--text); margin-bottom: 1.25rem; letter-spacing: -0.025em; }
-  .closing-text { max-width: 720px; color: var(--text-muted); line-height: 1.8; margin: 0 auto; font-size: 0.95rem; }
-  .closing-text + .closing-text { margin-top: 0.75rem; }
-
+  .closing-copy{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:0 1.5rem 4rem;}
+  .closing-card{background:linear-gradient(135deg,rgba(0,229,160,.05) 0%,rgba(123,97,255,.04) 100%);border:1px solid rgba(0,229,160,.16);border-radius:16px;padding:2.75rem 2rem;text-align:center;}
+  .closing-title{font-size:1.65rem;font-weight:800;color:var(--text);margin-bottom:1.1rem;letter-spacing:-.025em;}
+  .closing-text{max-width:700px;color:var(--text-muted);line-height:1.8;margin:0 auto;font-size:.93rem;}
+  .closing-text+.closing-text{margin-top:.65rem;}
   /* FOOTER */
-  footer { position: relative; z-index: 1; border-top: 1px solid var(--border); padding: 3rem 2rem 2.5rem; display: flex; flex-direction: column; align-items: center; gap: 1.5rem; font-family: var(--mono); font-size: 0.75rem; color: var(--text-muted); background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.3) 100%); }
-  .footer-copy { display: flex; flex-direction: column; gap: 0.4rem; text-align: center; }
-  .footer-logo { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 0.5rem; }
-  .footer-logo-icon { width: 28px; height: 28px; background: linear-gradient(135deg, var(--accent), #00c48a); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.62rem; font-weight: 800; color: #06100d; }
-  .footer-logo-text { font-weight: 700; color: var(--text); font-size: 0.8rem; }
-  .footer-meta { color: var(--text-muted); font-size: 0.72rem; }
-  .footer-divider { width: 40px; height: 1px; background: var(--border); margin: 0.25rem auto; }
-  .footer-legal { color: var(--text-dim); font-size: 0.68rem; }
-  .footer-friendly { color: var(--text-muted); font-size: 0.72rem; }
-  .footer-links { display: flex; align-items: center; gap: 0.25rem; flex-wrap: wrap; justify-content: center; }
-  .footer-link { color: var(--text-muted); text-decoration: none; padding: 4px 10px; border-radius: 6px; transition: color 0.2s, background 0.2s; font-weight: 600; }
-  .footer-link:hover { color: var(--accent); background: rgba(0,229,160,0.07); }
-  .footer-sep { color: var(--text-dim); font-size: 0.65rem; user-select: none; }
-
+  footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:2.75rem 2rem 2.25rem;display:flex;flex-direction:column;align-items:center;gap:1.25rem;font-family:var(--mono);font-size:.73rem;color:var(--text-muted);background:linear-gradient(180deg,transparent 0%,rgba(0,0,0,.3) 100%);}
+  .footer-copy{display:flex;flex-direction:column;gap:.35rem;text-align:center;}
+  .footer-logo{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:.4rem;}
+  .footer-logo-icon{width:26px;height:26px;background:linear-gradient(135deg,var(--accent),#00c48a);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:800;color:#06100d;}
+  .footer-logo-text{font-weight:700;color:var(--text);font-size:.78rem;}
+  .footer-meta{color:var(--text-muted);font-size:.7rem;}
+  .footer-divider{width:36px;height:1px;background:var(--border);margin:.2rem auto;}
+  .footer-legal{color:var(--text-dim);font-size:.66rem;}
+  .footer-links{display:flex;align-items:center;gap:.2rem;flex-wrap:wrap;justify-content:center;}
+  .footer-link{color:var(--text-muted);text-decoration:none;padding:4px 9px;border-radius:6px;transition:color .2s,background .2s;font-weight:600;}
+  .footer-link:hover{color:var(--accent);background:rgba(0,229,160,.07);}
+  .footer-sep{color:var(--text-dim);font-size:.62rem;user-select:none;}
   /* BACK TO TOP */
-  #back-to-top { position: fixed; bottom: 2rem; right: 2rem; width: 42px; height: 42px; background: var(--surface2); border: 1px solid var(--border-bright); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 90; opacity: 0; transform: translateY(12px); transition: opacity 0.3s, transform 0.3s, border-color 0.2s, background 0.2s; pointer-events: none; box-shadow: var(--shadow-sm); }
-  #back-to-top.visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
-  #back-to-top:hover { border-color: var(--accent); background: rgba(0,229,160,0.08); }
-  #back-to-top svg { width: 16px; height: 16px; color: var(--text-muted); }
-  #back-to-top:hover svg { color: var(--accent); }
-
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-  .fade-in { animation: fadeIn 0.45s ease forwards; }
+  #back-to-top{position:fixed;bottom:1.75rem;right:1.75rem;width:40px;height:40px;background:var(--surface2);border:1px solid var(--border-bright);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:90;opacity:0;transform:translateY(12px);transition:opacity .3s,transform .3s,border-color .2s;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.2);}
+  #back-to-top.visible{opacity:1;transform:translateY(0);pointer-events:auto;}
+  #back-to-top:hover{border-color:var(--accent);background:rgba(0,229,160,.08);}
+  #back-to-top svg{width:15px;height:15px;color:var(--text-muted);}
+  #back-to-top:hover svg{color:var(--accent);}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+  .fade-in{animation:fadeIn .45s ease forwards;}
 </style>
 </head>
 <body>
@@ -291,14 +291,16 @@
     <div class="logo-icon">RAG</div>
     <span class="logo-text">REST API <span>Generator</span></span>
   </a>
-  <nav class="nav-links" id="navLinks" aria-label="Primary navigation">
-    <span class="badge">Spring Boot 3</span>
+  <nav class="nav-links" id="navLinks">
+    <span class="nav-badge">Spring Boot 3</span>
     <a href="#how-it-works">How it works</a>
     <a href="#docker">Self-host</a>
     <a href="https://github.com/rrezartprebreza/rest-api-generator" target="_blank" rel="noopener noreferrer">GitHub &#x2197;</a>
   </nav>
   <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
   </button>
 </header>
 
@@ -306,16 +308,16 @@
   <div class="hero-eyebrow">Natural language &#x2192; Production-ready API</div>
   <h1>Generate Spring Boot APIs<br/><span class="highlight">in 30 seconds</span></h1>
   <p class="hero-sub">Type a plain-English description. Get a complete ZIP with Entity, DTO, Service, Controller, Repository, MapStruct mapper, pagination, error handling, and Docker setup.</p>
-  <p class="hero-note">Designed for developers who want to move from idea to runnable backend faster &#x2014; with less repetitive setup and a smoother starting point.</p>
+  <p class="hero-note">Designed for developers who want to move from idea to runnable backend faster &mdash; with less repetitive setup and a smoother starting point.</p>
   <div class="hero-stats">
-    <div class="stat"><div class="stat-value">~30s</div><div class="stat-label">vs 2&#x2013;3 hrs manual</div></div>
+    <div class="stat"><div class="stat-value">~30s</div><div class="stat-label">vs 2&ndash;3 hrs manual</div></div>
     <div class="stat"><div class="stat-value">8+</div><div class="stat-label">layers generated</div></div>
     <div class="stat"><div class="stat-value">100%</div><div class="stat-label">runnable output</div></div>
     <div class="stat"><div class="stat-value">0</div><div class="stat-label">install needed</div></div>
   </div>
   <div class="hero-cta">
     <a href="#app" class="btn-hero">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;transform:rotate(180deg)"><polyline points="18 15 12 9 6 15"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;transform:rotate(180deg)"><polyline points="18 15 12 9 6 15"/></svg>
       Start Building
     </a>
     <a href="#how-it-works" class="btn-hero-ghost">See what gets generated</a>
@@ -326,10 +328,11 @@
   <div class="server-config">
     <label for="serverUrl">Server</label>
     <div class="server-divider"></div>
-    <input type="text" id="serverUrl" placeholder="Auto-detected from current site" autocomplete="off" spellcheck="false"/>
+    <input type="text" id="serverUrl" placeholder="Auto-detected" autocomplete="off" spellcheck="false"/>
     <div class="server-divider"></div>
-    <div class="online-badge" id="onlineBadge"><div class="pulse"></div>checking&#x2026;</div>
+    <div class="online-badge" id="onlineBadge"><div class="pulse"></div>checking&hellip;</div>
     <div id="llmBadge" class="llm-badge"></div>
+    <span class="server-version" id="serverVersion"></span>
   </div>
 
   <div class="parser-note" id="parserNote"></div>
@@ -354,7 +357,7 @@
       <div class="panel-title"><div class="dot green"></div>PROMPT</div>
       <span class="panel-meta">Separate entities with blank lines</span>
     </div>
-    <textarea id="promptInput" placeholder="Describe your API in plain English, for example:&#10;&#10;e-commerce: Product, User, Order, Category&#10;&#10;Or structured:&#10;&#10;Product:&#10;- name (string, required)&#10;- price (decimal, required, min 0)&#10;- status (enum: ACTIVE, ARCHIVED)&#10;- belongs to Category&#10;&#10;Category:&#10;- name (string, required, unique)&#10;&#10;&#x2192; Use the example chips below to load a ready-made prompt"></textarea>
+    <textarea id="promptInput" placeholder="Describe your API in plain English&#10;&#10;Example:&#10;Product:&#10;- name (string, required)&#10;- price (decimal, required, min 0)&#10;- status (enum: ACTIVE, ARCHIVED)&#10;- belongs to Category&#10;&#10;Category:&#10;- name (string, required, unique)&#10;&#10;&#x2192; Use the example chips below to load a ready-made prompt"></textarea>
     <div class="prompt-footer">
       <div class="examples-row">
         <button type="button" class="example-chip" data-example="ecommerce">E-commerce</button>
@@ -368,103 +371,119 @@
 
   <div class="actions">
     <button class="btn btn-primary" id="genSpecBtn" type="button">
-      <span class="btn-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-      </span>
-      <div class="spinner"></div>
-      Generate Spec
+      <span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
+      <div class="spinner"></div>Generate Spec
     </button>
     <button class="btn btn-download" id="genZipBtn" type="button" disabled>
-      <span class="btn-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      </span>
-      <div class="spinner"></div>
-      Download ZIP
+      <span class="btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
+      <div class="spinner"></div>Download ZIP
     </button>
     <button class="btn btn-secondary" id="clearBtn" type="button">Clear</button>
     <button class="btn btn-secondary" id="copySpecBtn" type="button" disabled>Copy JSON</button>
-    <span class="kbd-hint"><span class="kbd">&#x2318;</span><span class="kbd">&#x23CE;</span>&nbsp;to generate</span>
+    <div class="confidence-badge" id="confidenceBadge"></div>
+    <span class="kbd-hint"><span class="kbd">&#x2318;</span><span class="kbd">&#x23CE;</span>&nbsp;generate</span>
   </div>
 
-  <div class="status-bar" id="statusBar"><span>Ready &#x2014; write a prompt and click Generate Spec</span></div>
+  <div class="status-bar" id="statusBar"><span>Ready &mdash; write a prompt and click Generate Spec</span></div>
+
+  <div class="history-panel">
+    <div class="history-header">
+      <div class="dot purple"></div>Prompt &amp; Spec History
+      <div class="history-meta">
+        <span class="history-count" id="historyCount">0 / 20</span>
+        <button type="button" class="history-clear" id="clearHistoryBtn">Clear history</button>
+      </div>
+    </div>
+    <div class="history-body" id="historyList">
+      <div class="history-empty">No history yet. Generate a spec to save it.</div>
+    </div>
+  </div>
+
+  <div class="graph-panel">
+    <div class="graph-header">
+      <div class="dot green"></div>Entity Relationship Graph
+      <span class="graph-meta" id="graphMeta">No spec loaded</span>
+    </div>
+    <div class="graph-body" id="graphBody">
+      <div class="graph-empty" id="graphEmpty">Generate a spec to see entity relationships.</div>
+      <svg class="graph-svg" id="graphSvg" viewBox="0 0 960 280" aria-label="Entity relationship graph"></svg>
+    </div>
+  </div>
+
+  <div class="validation-panel">
+    <div class="validation-header">
+      <div class="dot off" id="validationDot"></div>Validation &amp; Diagnostics
+      <div class="validation-header-counts" id="validationCounts"></div>
+    </div>
+    <div class="validation-body" id="validationOutput">No validation issues yet.</div>
+    <div class="validation-body" id="fixSuggestionsOutput" style="border-top:1px solid var(--border)">No fix suggestions yet.</div>
+  </div>
 
   <div class="panel">
     <div class="panel-header">
       <div class="panel-title"><div class="dot purple"></div>JSON SPEC</div>
-      <span id="entityCount" class="panel-meta">&#x2013;</span>
+      <span id="entityCount" class="panel-meta">&ndash;</span>
     </div>
-    <div class="entities-row" id="entityTags">
-      <span style="font-family:var(--mono);font-size:0.7rem;color:var(--text-dim)">Entities will appear here&#x2026;</span>
-    </div>
-    <div class="output-scroll">
-      <div id="specOutput" class="placeholder-msg"><div class="big">&#x1F4CB;</div>JSON specification will appear here</div>
-    </div>
+    <div class="entities-row" id="entityTags"><span style="font-family:var(--mono);font-size:.68rem;color:var(--text-dim)">Entities will appear here&hellip;</span></div>
+    <div class="output-scroll"><div id="specOutput" class="placeholder-msg"><div class="big">&#x1F4CB;</div>JSON specification will appear here</div></div>
   </div>
 
   <div class="panel">
     <div class="panel-header">
       <div class="panel-title"><div class="dot red"></div>GENERATED FILES</div>
-      <span id="fileCount" class="panel-meta">&#x2013;</span>
+      <span id="fileCount" class="panel-meta">&ndash;</span>
     </div>
-    <div class="entities-row" id="techTags">
-      <span style="font-family:var(--mono);font-size:0.7rem;color:var(--text-dim)">File tree will appear here&#x2026;</span>
-    </div>
-    <div class="output-scroll">
-      <div id="fileTree" class="placeholder-msg"><div class="big">&#x1F4C1;</div>Generated file tree will appear here</div>
-    </div>
+    <div class="entities-row" id="techTags"><span style="font-family:var(--mono);font-size:.68rem;color:var(--text-dim)">File tree will appear here&hellip;</span></div>
+    <div class="output-scroll"><div id="fileTree" class="placeholder-msg"><div class="big">&#x1F4C1;</div>Generated file tree will appear here</div></div>
     <div class="progress-bar" id="progressBar" style="display:none"><div class="progress-fill" id="progressFill"></div></div>
   </div>
 </main>
 
 <section class="how-it-works reveal" id="how-it-works">
   <span class="section-eyebrow">// what gets generated</span>
-  <h2 class="section-heading">Everything you'd write by hand &#x2014; done for you</h2>
+  <h2 class="section-heading">Everything you&rsquo;d write by hand &mdash; done for you</h2>
   <p class="section-sub">Every layer of a production Spring Boot 3 API, generated and wired together from a single plain-English prompt.</p>
   <div class="features-grid">
-    <div class="feature-card"><span class="feature-icon">&#x1F3D7;&#xFE0F;</span><div class="feature-title">Full Layer Stack</div><div class="feature-desc">Entity &middot; DTO &middot; Repository &middot; Service &middot; Controller &mdash; all wired together, ready to run.</div></div>
-    <div class="feature-card"><span class="feature-icon">&#x1F517;</span><div class="feature-title">JPA Relationships</div><div class="feature-desc">@ManyToOne &middot; @OneToMany &middot; @ManyToMany with join tables, FetchType.LAZY, and cascade.</div></div>
-    <div class="feature-card"><span class="feature-icon">&#x2705;</span><div class="feature-title">Bean Validation</div><div class="feature-desc">@NotNull &middot; @Email &middot; @Min &middot; @Max &middot; @Size &mdash; extracted from your prompt automatically.</div></div>
-    <div class="feature-card"><span class="feature-icon">&#x1F4C4;</span><div class="feature-title">Pagination &amp; Filtering</div><div class="feature-desc">JpaSpecificationExecutor + PagedResponse wrapper. Sortable, filterable endpoints.</div></div>
-    <div class="feature-card"><span class="feature-icon">&#x1F5FA;&#xFE0F;</span><div class="feature-title">MapStruct Mappers</div><div class="feature-desc">Generated &lt;Entity&gt;Mapper interface for clean DTO &#x2194; Entity conversion.</div></div>
-    <div class="feature-card"><span class="feature-icon">&#x1F433;</span><div class="feature-title">Docker Ready</div><div class="feature-desc">Dockerfile + docker-compose.yml with PostgreSQL/MySQL + optional Adminer UI.</div></div>
-    <div class="feature-card"><span class="feature-icon">&#x1F6A8;</span><div class="feature-title">Error Handling</div><div class="feature-desc">GlobalExceptionHandler &middot; ErrorResponse &middot; ResourceNotFoundException &mdash; all pre-wired.</div></div>
-    <div class="feature-card"><span class="feature-icon">&#x1F9EA;</span><div class="feature-title">Test Scaffolding</div><div class="feature-desc">Generated unit and integration test stubs per entity, ready to fill with logic.</div></div>
+    <div class="feature-card"><span class="feature-icon">&#x1F3D7;&#xFE0F;</span><div class="feature-title">Full Layer Stack</div><div class="feature-desc">Entity &middot; DTO &middot; Repository &middot; Service &middot; Controller &mdash; all wired, ready to run.</div></div>
+    <div class="feature-card"><span class="feature-icon">&#x1F517;</span><div class="feature-title">JPA Relationships</div><div class="feature-desc">@ManyToOne &middot; @OneToMany &middot; @ManyToMany with join tables, FetchType.LAZY, cascade.</div></div>
+    <div class="feature-card"><span class="feature-icon">&#x2705;</span><div class="feature-title">Bean Validation</div><div class="feature-desc">@NotNull &middot; @Email &middot; @Min &middot; @Max &middot; @Size &mdash; extracted automatically.</div></div>
+    <div class="feature-card"><span class="feature-icon">&#x1F4C4;</span><div class="feature-title">Pagination &amp; Filtering</div><div class="feature-desc">JpaSpecificationExecutor + PagedResponse. Sortable, filterable endpoints.</div></div>
+    <div class="feature-card"><span class="feature-icon">&#x1F5FA;&#xFE0F;</span><div class="feature-title">MapStruct Mappers</div><div class="feature-desc">Generated &lt;Entity&gt;Mapper interface for clean DTO &harr; Entity conversion.</div></div>
+    <div class="feature-card"><span class="feature-icon">&#x1F433;</span><div class="feature-title">Docker Ready</div><div class="feature-desc">Dockerfile + docker-compose.yml with PostgreSQL/MySQL + Adminer UI.</div></div>
+    <div class="feature-card"><span class="feature-icon">&#x1F6A8;</span><div class="feature-title">Error Handling</div><div class="feature-desc">GlobalExceptionHandler &middot; ErrorResponse &middot; ResourceNotFoundException &mdash; pre-wired.</div></div>
+    <div class="feature-card"><span class="feature-icon">&#x1F9EA;</span><div class="feature-title">Test Scaffolding</div><div class="feature-desc">Generated unit and integration test stubs per entity, ready to fill.</div></div>
   </div>
 </section>
 
 <section class="docker-section reveal" id="docker">
   <span class="section-eyebrow" style="text-align:center;display:block">// self-host</span>
   <h2 class="section-heading">Run it your way</h2>
-  <p class="section-sub">Docker with Ollama, cloud LLM via Groq, source build &#x2014; your choice.</p>
+  <p class="section-sub">Docker with Ollama or source build &mdash; simple local setup.</p>
   <div class="code-block">
     <div class="code-block-header">
       <div class="code-block-title">
         <div class="code-block-dots"><span class="d1"></span><span class="d2"></span><span class="d3"></span></div>
-        <span>Run locally &#x2014; how to start</span>
+        <span>Run locally &mdash; how to start</span>
       </div>
       <button class="copy-btn" id="copyDockerBtn" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
         Copy
       </button>
     </div>
-    <pre id="dockerCode"><span class="comment"># A) Run this GENERATOR app — no LLM, no extra storage needed</span>
+    <pre id="dockerCode"><span class="comment"># A) Run this GENERATOR app</span>
 <span class="cmd-line">docker run -p 8080:8080 ghcr.io/rrezartprebreza/rest-api-generator:latest</span>
 
-<span class="comment"># B) Same, but with Ollama LLM — write prompts in any plain English (~2 GB disk)</span>
+<span class="comment"># B) With Ollama LLM (~2 GB disk)</span>
 <span class="cmd-line">docker compose --profile llm up --build</span>
 <span class="cmd-line">docker exec rest-api-generator-ollama-1 ollama pull llama3.2</span>
 
-<span class="comment"># C) Build and run this generator from source</span>
+<span class="comment"># C) Build from source</span>
 <span class="cmd-line">git clone https://github.com/rrezartprebreza/rest-api-generator</span>
-<span class="cmd-line">cd rest-api-generator && ./gradlew run --args="serve --port 8080"</span>
+<span class="cmd-line">cd rest-api-generator &amp;&amp; ./gradlew run --args="serve --port 8080"</span>
 
-<span class="comment"># D) Cloud LLM via Groq (free API key — works on Render and any cloud host)</span>
-<span class="comment">#   Get a free key at https://console.groq.com → API Keys → Create</span>
-<span class="cmd-line">LLM_API_KEY=gsk_... ./gradlew run --args="serve --port 8080"</span>
-
-<span class="comment"># E) After generating: unzip and run YOUR generated Spring Boot app</span>
-<span class="cmd-line">unzip scaffold.zip -d my-api && cd my-api</span>
-<span class="cmd-line">./gradlew bootRun   # or: docker compose up --build</span></pre>
+<span class="comment"># D) Run YOUR generated Spring Boot app</span>
+<span class="cmd-line">unzip scaffold.zip -d my-api &amp;&amp; cd my-api</span>
+<span class="cmd-line">./gradlew bootRun</span></pre>
   </div>
 </section>
 
@@ -472,7 +491,7 @@
   <div class="closing-card">
     <div class="closing-title">From prompt to project, with less friction.</div>
     <p class="closing-text">This tool is built to help you spend less time on repetitive scaffolding and more time on domain logic, architecture, and shipping useful features.</p>
-    <p class="closing-text">Run it locally, self-host it for your team, explore the generated project, and enjoy building.</p>
+    <p class="closing-text">Run it locally, self-host it for your team, and enjoy building.</p>
   </div>
 </section>
 
@@ -486,7 +505,6 @@
     <span class="footer-meta">Java 17+ &middot; Spring Boot 3 &middot; Gradle &middot; Docker</span>
     <div class="footer-divider"></div>
     <span class="footer-legal">&copy; 2026 Rrezart Prebreza. All rights reserved.</span>
-    <span class="footer-friendly">Built for developers. Enjoy building.</span>
   </div>
   <div class="footer-links">
     <a href="https://github.com/rrezartprebreza/rest-api-generator" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub &#x2197;</a>
@@ -498,396 +516,466 @@
 </footer>
 
 <script>
-let specData = null;
-let zipBlob = null;
-
-const serverUrlInput = document.getElementById('serverUrl');
-
-function resolveDefaultServerUrl() {
-  const origin = window.location.origin;
-  if (!origin || origin === 'null') {
-    return 'http://localhost:8080';
-  }
-  if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-    return 'http://localhost:8080';
-  }
-  return origin;
-}
-
-serverUrlInput.value = resolveDefaultServerUrl();
-
-const examples = {
-  ecommerce: `e-commerce: Product, User, Order, Category, OrderItem
-
-Product:
-- name (string, required)
-- description (string)
-- price (decimal, required, min 0)
-- stock (integer, min 0)
-- status (enum: DRAFT, ACTIVE, ARCHIVED)
-- belongs to Category
-
-Category:
-- name (string, required, unique)
-- description (string)
-
-Order:
-- totalAmount (decimal, min 0)
-- status (enum: PENDING, CONFIRMED, SHIPPED, DELIVERED)
-- belongs to User
-
-OrderItem:
-- quantity (integer, min 1)
-- unitPrice (decimal, min 0)
-- belongs to Order
-- belongs to Product
-
-User:
-- email (valid email, required, unique)
-- firstName (string, required)
-- lastName (string, required)`,
-
-  blog: `blog platform: BlogPost, Author, Comment, Tag
-
-BlogPost:
-- title (string, required)
-- content (string, required)
-- status (enum: DRAFT, PUBLISHED, ARCHIVED)
-- belongs to Author
-- has many Comment
-- many-to-many with Tag
-
-Author:
-- name (string, required)
-- email (valid email, required, unique)
-- bio (string)
-
-Comment:
-- body (string, required)
-- belongs to BlogPost
-- belongs to Author
-
-Tag:
-- name (string, required, unique)`,
-
-  hr: `HR management system: Employee, Department, Position
-
-Employee:
-- firstName (string, required)
-- lastName (string, required)
-- email (valid email, required, unique)
-- salary (decimal, min 0)
-- hireDate (date)
-- belongs to Department
-- belongs to Position
-
-Department:
-- name (string, required, unique)
-- budget (decimal)
-
-Position:
-- title (string, required)
-- level (enum: JUNIOR, MID, SENIOR, LEAD)`,
-
-  simple: `Create an API for User with:
-- username (string, required, unique)
-- email (valid email, required, unique)
-- role (enum: ADMIN, USER, GUEST)
-- active (boolean)`
+var specData=null,zipBlob=null,latestFix=[],confidenceFailPolicyEnabled=false;
+var HISTORY_KEY='rag.promptSpecHistory.v1',HISTORY_LIMIT=20,historyEntries=[];
+var su=document.getElementById('serverUrl');
+function baseUrl(){var o=window.location.origin;return(!o||o==='null'||o.includes('localhost')||o.includes('127.0.0.1'))?'http://localhost:8080':o;}
+su.value=baseUrl();
+var examples={
+  ecommerce:"e-commerce: Product, User, Order, Category, OrderItem\n\nProduct:\n- name (string, required)\n- description (string)\n- price (decimal, required, min 0)\n- stock (integer, min 0)\n- status (enum: DRAFT, ACTIVE, ARCHIVED)\n- belongs to Category\n\nCategory:\n- name (string, required, unique)\n- description (string)\n\nOrder:\n- totalAmount (decimal, min 0)\n- status (enum: PENDING, CONFIRMED, SHIPPED, DELIVERED)\n- belongs to User\n\nOrderItem:\n- quantity (integer, min 1)\n- unitPrice (decimal, min 0)\n- belongs to Order\n- belongs to Product\n\nUser:\n- email (valid email, required, unique)\n- firstName (string, required)\n- lastName (string, required)",
+  blog:"blog platform: BlogPost, Author, Comment, Tag\n\nBlogPost:\n- title (string, required)\n- content (string, required)\n- status (enum: DRAFT, PUBLISHED, ARCHIVED)\n- belongs to Author\n- has many Comment\n- many-to-many with Tag\n\nAuthor:\n- name (string, required)\n- email (valid email, required, unique)\n\nComment:\n- body (string, required)\n- belongs to BlogPost\n\nTag:\n- name (string, required, unique)",
+  hr:"HR management system: Employee, Department, Position\n\nEmployee:\n- firstName (string, required)\n- lastName (string, required)\n- email (valid email, required, unique)\n- salary (decimal, min 0)\n- belongs to Department\n\nDepartment:\n- name (string, required, unique)\n\nPosition:\n- title (string, required)\n- level (enum: JUNIOR, MID, SENIOR, LEAD)",
+  simple:"Create an API for User with:\n- username (string, required, unique)\n- email (valid email, required, unique)\n- role (enum: ADMIN, USER, GUEST)\n- active (boolean)"
 };
+var pi=document.getElementById('promptInput');
+pi.addEventListener('input',function(){document.getElementById('charCount').textContent=pi.value.length+' chars';setStep(1);});
+document.querySelectorAll('.example-chip').forEach(function(c){c.addEventListener('click',function(){pi.value=examples[c.dataset.example];document.getElementById('charCount').textContent=pi.value.length+' chars';setStep(1);pi.focus();});});
+function setStep(n){for(var i=1;i<=3;i++){var e=document.getElementById('step'+i);e.classList.remove('active','done');if(i<n)e.classList.add('done');if(i===n)e.classList.add('active');}}
 
-const promptInput = document.getElementById('promptInput');
-promptInput.addEventListener('input', () => {
-  document.getElementById('charCount').textContent = promptInput.value.length + ' chars';
-  setStep(1);
-});
-
-function loadExample(key) {
-  promptInput.value = examples[key];
-  document.getElementById('charCount').textContent = promptInput.value.length + ' chars';
-  setStep(1);
-  promptInput.focus();
-}
-document.querySelectorAll('.example-chip').forEach(chip => {
-  chip.addEventListener('click', () => loadExample(chip.dataset.example));
-});
-
-function setStep(n) {
-  for (let i = 1; i <= 3; i++) {
-    const el = document.getElementById('step' + i);
-    el.classList.remove('active', 'done');
-    if (i < n) el.classList.add('done');
-    if (i === n) el.classList.add('active');
-  }
+// ── /about label helpers ──────────────────────────────────────────────────────
+function parserLabel(mode){
+  if(!mode)return'\uD83E\uDDE0 LLM';
+  if(mode==='ollama'||mode.startsWith('ollama'))return'\uD83E\uDDE0 Ollama';
+  if(mode==='groq')return'\u26A1 Groq';
+  if(mode==='openai')return'\uD83E\uDD16 OpenAI';
+  if(mode==='cloud-llm'||mode.startsWith('cloud'))return'\u2601\uFE0F Cloud LLM';
+  return'\uD83E\uDDE0 LLM';
 }
 
-async function checkServer() {
-  const badge    = document.getElementById('onlineBadge');
-  const llmBadge = document.getElementById('llmBadge');
-  const note     = document.getElementById('parserNote');
-  const url      = serverUrlInput.value.trim() || resolveDefaultServerUrl();
-  try {
-    const res = await fetch(url + '/about', { signal: AbortSignal.timeout(3000) });
-    if (res.ok) {
-      badge.innerHTML = '<div class="pulse"></div>online';
-      badge.style.color = 'var(--accent)';
-      try {
-        const info = await res.json();
-        const configured = !!info.llmConfigured;
-        const available  = !!info.llmAvailable;
-        if (configured && available) {
-          llmBadge.className = 'llm-badge active';
-          llmBadge.style.display = 'inline-flex';
-          llmBadge.textContent = '\u{1F9E0} LLM active';
-          llmBadge.title = 'Ollama is running \u2014 free-form prompts are supported';
-          note.className = 'parser-note show llm-active';
-          note.innerHTML = '\u{1F9E0} <strong>LLM mode active</strong> &mdash; write your API description in plain English, any style. Deterministic parser is used as fallback if needed.';
-          promptInput.placeholder = 'Describe your API in any way you like \u2014 LLM mode is active.\n\nExamples:\n"A blog platform with posts, authors, and tags"\n"E-commerce: products, orders, customers, reviews"\n"HR app with employees, departments and leave requests"';
-        } else if (configured && !available) {
-          llmBadge.className = 'llm-badge offline';
-          llmBadge.style.display = 'inline-flex';
-          llmBadge.textContent = '\u{1F9E0} LLM offline';
-          llmBadge.title = 'Ollama configured but not reachable \u2014 using deterministic parser';
-          note.className = 'parser-note show llm-offline';
-          note.innerHTML = '\u26A0\uFE0F <strong>LLM configured but not reachable</strong> &mdash; using deterministic parser. The tool works fully without LLM. To enable: start Ollama and run <code>ollama pull llama3.2</code>.';
-          promptInput.placeholder = 'Create an API for Product with:\n- name (string, required)\n- price (decimal, required, min 0)\n- createdAt (timestamp)\n- belongs to Category\n\nCreate an API for Category with:\n- name (string, required)\n- description (string)';
-        } else {
-          llmBadge.style.display = 'none';
-          note.className = 'parser-note';
-          promptInput.placeholder = 'Create an API for Product with:\n- name (string, required)\n- price (decimal, required, min 0)\n- createdAt (timestamp)\n- belongs to Category\n\nCreate an API for Category with:\n- name (string, required)\n- description (string)';
-        }
-      } catch { llmBadge.style.display = 'none'; note.className = 'parser-note'; }
-    } else {
-      badge.innerHTML = '<div class="pulse" style="background:var(--accent3)"></div>error';
-      badge.style.color = 'var(--accent3)';
-      llmBadge.style.display = 'none'; note.className = 'parser-note';
-    }
-  } catch {
-    badge.innerHTML = '<div class="pulse" style="background:var(--accent3);animation:none"></div>offline';
-    badge.style.color = 'var(--accent3)';
-    llmBadge.style.display = 'none'; note.className = 'parser-note';
-  }
+async function ping(){
+  var badge=document.getElementById('onlineBadge'),llm=document.getElementById('llmBadge'),note=document.getElementById('parserNote'),ver=document.getElementById('serverVersion');
+  var url=su.value.trim()||baseUrl();
+  try{
+    var r=await fetch(url+'/about',{signal:AbortSignal.timeout(3000)});
+    if(r.ok){
+      badge.innerHTML='<div class="pulse"></div>online';badge.style.color='var(--accent)';
+      try{
+        var info=await r.json();
+        confidenceFailPolicyEnabled=!!info.confidenceFailPolicyEnabled;
+        // version
+        if(info.version&&info.version!=='dev')ver.textContent='v'+info.version;else ver.textContent='';
+        var c=!!info.llmConfigured,a=!!info.llmAvailable,mode=info.promptParser||'';
+        var lbl=parserLabel(mode);
+        if(c&&a){
+          llm.className='llm-badge active';llm.textContent=lbl+' active';
+          note.className='parser-note show llm-active';
+          note.innerHTML=lbl+' <strong>mode active</strong> &mdash; write your API description in plain English, any style.';
+        } else if(c&&!a){
+          llm.className='llm-badge offline';llm.textContent=lbl+' offline';
+          note.className='parser-note show llm-offline';
+          note.innerHTML='\u26A0\uFE0F <strong>'+lbl+' configured but not reachable</strong> &mdash; using deterministic parser. Start Ollama: <code>ollama pull llama3.2</code>';
+        } else{llm.className='llm-badge';note.className='parser-note';ver.textContent=ver.textContent;}
+      }catch(ex){llm.className='llm-badge';note.className='parser-note';}
+    }else{badge.innerHTML='<div class="pulse" style="background:var(--accent3)"></div>error';badge.style.color='var(--accent3)';llm.className='llm-badge';note.className='parser-note';}
+  }catch(ex){badge.innerHTML='<div class="pulse" style="background:var(--accent3);animation:none"></div>offline';badge.style.color='var(--accent3)';llm.className='llm-badge';note.className='parser-note';}
 }
-serverUrlInput.addEventListener('change', checkServer);
-checkServer();
-setInterval(checkServer, 15000);
+su.addEventListener('change',ping);ping();setInterval(ping,15000);
 
-document.getElementById('genSpecBtn').addEventListener('click', generateSpec);
-document.getElementById('genZipBtn').addEventListener('click', generateZip);
-document.getElementById('clearBtn').addEventListener('click', clearAll);
-document.getElementById('copySpecBtn').addEventListener('click', copySpec);
-document.getElementById('copyDockerBtn').addEventListener('click', copyDocker);
+document.getElementById('genSpecBtn').addEventListener('click',genSpec);
+document.getElementById('genZipBtn').addEventListener('click',genZip);
+document.getElementById('clearBtn').addEventListener('click',clearAll);
+document.getElementById('copySpecBtn').addEventListener('click',copySpec);
+document.getElementById('copyDockerBtn').addEventListener('click',copyDocker);
+document.getElementById('clearHistoryBtn').addEventListener('click',clearHistory);
 
-function setStatus(msg, type) {
-  const bar = document.getElementById('statusBar');
-  bar.className = 'status-bar' + (type ? ' ' + type : '');
-  bar.innerHTML = msg;
+function setStatus(msg,type){var b=document.getElementById('statusBar');b.className='status-bar'+(type?' '+type:'');b.innerHTML=msg;}
+function setConfidenceBadge(status,reason){
+  var el=document.getElementById('confidenceBadge');
+  if(!el)return;
+  if(!status){el.className='confidence-badge';el.textContent='';el.removeAttribute('title');return;}
+  var label=status==='pass'?'Confidence: PASS':status==='warn'?'Confidence: WARN':'Confidence: FAIL';
+  el.className='confidence-badge show '+status;
+  el.textContent=label;
+  el.title=reason||'';
 }
+function hl(json){return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,function(m){if(/^".*":$/.test(m))return'<span class="json-key">'+m+'</span>';if(/^"/.test(m))return'<span class="json-string">'+m+'</span>';if(/true|false/.test(m))return'<span class="json-bool">'+m+'</span>';return'<span class="json-number">'+m+'</span>';});}
+function esc(v){return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function eName(e,i){return((e&&e.entity&&e.entity.name)||(e&&e.name)||('Entity'+(i+1))).trim();}
+function eFields(e){if(e&&e.entity&&Array.isArray(e.entity.fields))return e.entity.fields.length;if(e&&Array.isArray(e.fields))return e.fields.length;return 0;}
+function eRels(e){if(e&&Array.isArray(e.relationships))return e.relationships.length;return 0;}
 
-function highlightJson(json) {
-  return json.replace(
-    /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
-    match => {
-      if (/^".*":$/.test(match)) return '<span class="json-key">' + match + '</span>';
-      if (/^"/.test(match)) return '<span class="json-string">' + match + '</span>';
-      if (/true|false/.test(match)) return '<span class="json-bool">' + match + '</span>';
-      return '<span class="json-number">' + match + '</span>';
-    });
+function fmtTs(iso){
+  if(!iso)return'-';
+  try{return new Date(iso).toLocaleString();}catch(e){return iso;}
 }
-
-function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+function previewPrompt(prompt){
+  var s=(prompt||'').replace(/\s+/g,' ').trim();
+  if(!s)return'(empty prompt)';
+  return s.length>90?s.slice(0,90)+'...':s;
 }
-
-function getEntityName(entityDef, index) {
-  if (!entityDef) return 'Entity' + (index + 1);
-  const nested = entityDef.entity && entityDef.entity.name;
-  const direct = entityDef.name;
-  return (nested || direct || ('Entity' + (index + 1))).trim();
+function persistHistory(){
+  try{localStorage.setItem(HISTORY_KEY,JSON.stringify(historyEntries));}catch(e){}
 }
-
-function getEntityFieldCount(entityDef) {
-  if (entityDef && entityDef.entity && Array.isArray(entityDef.entity.fields)) return entityDef.entity.fields.length;
-  if (entityDef && Array.isArray(entityDef.fields)) return entityDef.fields.length;
-  return 0;
+function loadHistory(){
+  try{
+    var raw=localStorage.getItem(HISTORY_KEY);
+    if(!raw){historyEntries=[];return;}
+    var parsed=JSON.parse(raw);
+    historyEntries=Array.isArray(parsed)?parsed.slice(0,HISTORY_LIMIT):[];
+  }catch(e){historyEntries=[];}
 }
-
-function renderEntityTags(spec) {
-  const container = document.getElementById('entityTags');
-  const countEl = document.getElementById('entityCount');
-  if (!spec || !spec.entities || !spec.entities.length) {
-    container.innerHTML = '<span style="font-family:var(--mono);font-size:0.7rem;color:var(--text-dim)">No entities found</span>';
-    countEl.textContent = '0 entities';
+function renderHistory(){
+  var list=document.getElementById('historyList'),count=document.getElementById('historyCount');
+  count.textContent=historyEntries.length+' / '+HISTORY_LIMIT;
+  if(!historyEntries.length){
+    list.innerHTML='<div class="history-empty">No history yet. Generate a spec to save it.</div>';
     return;
   }
-  container.innerHTML = spec.entities.map((e, i) =>
-    '<div class="entity-tag">' + escapeHtml(getEntityName(e, i)) + '<span class="count">' + getEntityFieldCount(e) + '</span></div>'
-  ).join('');
-  countEl.textContent = spec.entities.length + ' entit' + (spec.entities.length === 1 ? 'y' : 'ies');
+  list.innerHTML=historyEntries.map(function(h,i){
+    var n=(h.spec&&Array.isArray(h.spec.entities))?h.spec.entities.length:0;
+    return '<div class="history-item">'
+      +'<div class="history-main">'
+      +'<div class="history-preview" title="'+esc(h.preview||'')+'">'+esc(h.preview||'')+'</div>'
+      +'<div class="history-sub"><span>'+esc(fmtTs(h.ts))+'</span><span>'+n+' entit'+(n===1?'y':'ies')+'</span></div>'
+      +'</div>'
+      +'<div class="history-actions">'
+      +'<button type="button" class="history-btn" onclick="restoreHistory('+i+')">Restore</button>'
+      +'<button type="button" class="history-btn delete" onclick="deleteHistory('+i+')">Delete</button>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+}
+function pushHistory(prompt,spec){
+  if(!spec)return;
+  var preview=previewPrompt(prompt);
+  var duplicateIdx=historyEntries.findIndex(function(h){return h.preview===preview&&JSON.stringify(h.spec||{})===JSON.stringify(spec||{});});
+  if(duplicateIdx>=0)historyEntries.splice(duplicateIdx,1);
+  historyEntries.unshift({ts:new Date().toISOString(),preview:preview,prompt:prompt,spec:spec});
+  if(historyEntries.length>HISTORY_LIMIT)historyEntries=historyEntries.slice(0,HISTORY_LIMIT);
+  persistHistory();
+  renderHistory();
+}
+function restoreHistory(idx){
+  var h=historyEntries[idx];if(!h)return;
+  pi.value=h.prompt||'';
+  document.getElementById('charCount').textContent=pi.value.length+' chars';
+  if(h.spec){
+    specData=h.spec;
+    document.getElementById('specOutput').innerHTML='<pre class="fade-in">'+hl(JSON.stringify(specData,null,2))+'</pre>';
+    renderTags(specData);
+    renderGraph(specData);
+    document.getElementById('fileTree').innerHTML='<pre class="fade-in" style="font-size:.76rem">'+buildTree(specData)+'</pre>';
+    document.getElementById('copySpecBtn').disabled=false;
+    document.getElementById('genZipBtn').disabled=false;
+  }
+  setStep(3);
+  setStatus('Restored history entry from '+fmtTs(h.ts),'success');
+}
+function deleteHistory(idx){
+  if(idx<0||idx>=historyEntries.length)return;
+  historyEntries.splice(idx,1);
+  persistHistory();
+  renderHistory();
+}
+function clearHistory(){
+  historyEntries=[];
+  persistHistory();
+  renderHistory();
+  setStatus('History cleared','success');
+}
+window.restoreHistory=restoreHistory;
+window.deleteHistory=deleteHistory;
+
+function renderTags(spec){
+  var c=document.getElementById('entityTags'),n=document.getElementById('entityCount');
+  if(!spec||!spec.entities||!spec.entities.length){c.innerHTML='<span style="font-family:var(--mono);font-size:.68rem;color:var(--text-dim)">No entities found</span>';n.textContent='0 entities';return;}
+  c.innerHTML=spec.entities.map(function(e,i){
+    var rel=eRels(e);
+    var relTip=rel?' &middot; '+rel+' rel'+(rel===1?'':'s'):'';
+    return'<div class="entity-tag" title="'+esc(eName(e,i))+': '+eFields(e)+' field(s)'+relTip+'">'+esc(eName(e,i))+'<span class="count">'+eFields(e)+'</span></div>';
+  }).join('');
+  n.textContent=spec.entities.length+' entit'+(spec.entities.length===1?'y':'ies');
 }
 
-function buildFileTree(spec) {
-  if (!spec || !spec.entities) return '';
-  const pkg = (spec.basePackage || 'com.example.generated').replace(/\./g, '/');
-  const entities = spec.entities.map((e, i) => getEntityName(e, i));
-  const lines = [];
-  lines.push('<span style="color:var(--accent)">generated-api/</span>');
-  lines.push('  src/main/java/' + pkg + '/');
-  const layers = ['entity','dto','repository','service','controller','mapper','error'];
-  const ext = {entity:'.java',dto:'DTO.java',repository:'Repository.java',service:'Service.java',controller:'Controller.java',mapper:'Mapper.java',error:''};
-  layers.forEach(layer => {
-    lines.push('    <span style="color:var(--accent2)">' + layer + '/</span>');
-    if (layer === 'error') {
-      ['GlobalExceptionHandler.java','ErrorResponse.java','ResourceNotFoundException.java'].forEach(f => lines.push('      ' + f));
-    } else {
-      entities.forEach(name => lines.push('      ' + escapeHtml(name) + ext[layer]));
-    }
+function buildTree(spec){
+  if(!spec||!spec.entities)return'';
+  var pkg=(spec.basePackage||'com.example.generated').replace(/\./g,'/');
+  var ents=spec.entities.map(function(e,i){return eName(e,i);});
+  var L=['<span style="color:var(--accent)">generated-api/</span>','  src/main/java/'+pkg+'/'];
+  var layers=['entity','dto','repository','service','controller','mapper','error'];
+  var ext={entity:'.java',dto:'DTO.java',repository:'Repository.java',service:'Service.java',controller:'Controller.java',mapper:'Mapper.java',error:''};
+  layers.forEach(function(l){
+    L.push('    <span style="color:var(--accent2)">'+l+'/</span>');
+    if(l==='error')['GlobalExceptionHandler.java','ErrorResponse.java','ResourceNotFoundException.java'].forEach(function(f){L.push('      '+f);});
+    else ents.forEach(function(n){L.push('      '+esc(n)+ext[l]);});
   });
-  lines.push('  src/main/resources/');
-  lines.push('    application.yml');
-  lines.push('  Dockerfile');
-  lines.push('  docker-compose.yml');
-  lines.push('  build.gradle');
-  lines.push('  README.md');
-  const total = layers.reduce((acc, l) => l === 'error' ? acc + 3 : acc + entities.length, 4);
-  document.getElementById('fileCount').textContent = total + ' files';
-  // populate tech tags row
-  const techTags = document.getElementById('techTags');
-  const techs = ['Spring Boot 3', 'JPA', 'MapStruct', 'Docker', 'Gradle'];
-  techTags.innerHTML = techs.map(t =>
-    '<div class="entity-tag" style="background:rgba(123,97,255,0.08);border-color:rgba(123,97,255,0.22);color:var(--accent2)">' + t + '</div>'
-  ).join('');
-  return lines.join('\n');
+  L.push('  src/main/resources/','    application.yml','  Dockerfile','  docker-compose.yml','  build.gradle','  README.md');
+  var tot=layers.reduce(function(a,l){return l==='error'?a+3:a+ents.length;},4);
+  document.getElementById('fileCount').textContent=tot+' files';
+  var techs=['Spring Boot 3','JPA','MapStruct','Docker','Gradle'];
+  document.getElementById('techTags').innerHTML=techs.map(function(t){return'<div class="entity-tag" style="background:rgba(123,97,255,.08);border-color:rgba(123,97,255,.22);color:var(--accent2)">'+t+'</div>';}).join('');
+  return L.join('\n');
 }
 
-async function generateSpec() {
-  const prompt = promptInput.value.trim();
-  if (!prompt) { setStatus('Please write a prompt first', 'error'); return; }
-  const url = serverUrlInput.value.trim() || resolveDefaultServerUrl();
-  const btn = document.getElementById('genSpecBtn');
-  btn.disabled = true; btn.classList.add('loading');
-  setStatus('Calling POST /generator/spec...', 'loading');
-  setStep(2);
-  specData = null; zipBlob = null;
-  document.getElementById('genZipBtn').disabled = true;
-  document.getElementById('copySpecBtn').disabled = true;
-  try {
-    const res = await fetch(url + '/generator/spec', {
-      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({prompt})
-    });
-    if (!res.ok) { const e = await res.text(); throw new Error('HTTP ' + res.status + ': ' + e); }
-    specData = await res.json();
-    document.getElementById('specOutput').innerHTML = '<pre class="fade-in">' + highlightJson(JSON.stringify(specData, null, 2)) + '</pre>';
-    renderEntityTags(specData);
-    document.getElementById('fileTree').innerHTML = '<pre class="fade-in" style="font-size:0.78rem">' + buildFileTree(specData) + '</pre>';
-    document.getElementById('genZipBtn').disabled = false;
-    document.getElementById('copySpecBtn').disabled = false;
-    const n = specData.entities ? specData.entities.length : 0;
-    setStatus('Spec generated - ' + n + ' entit' + (n===1?'y':'ies') + ' found. Click Download ZIP to get the scaffold.', 'success');
-    setStep(3);
-  } catch (err) {
-    setStatus(err.message, 'error'); setStep(1);
-    document.getElementById('specOutput').innerHTML = '<div class="placeholder-msg"><div class="big">&#x26A0;&#xFE0F;</div>' + escapeHtml(err.message) + '</div>';
-  } finally { btn.disabled = false; btn.classList.remove('loading'); }
-}
+function renderGraph(spec){
+  var svg=document.getElementById('graphSvg');
+  var empty=document.getElementById('graphEmpty');
+  var meta=document.getElementById('graphMeta');
+  if(!svg||!empty||!meta)return;
+  svg.innerHTML='';
 
-async function generateZip() {
-  if (!specData) return;
-  const url = serverUrlInput.value.trim() || resolveDefaultServerUrl();
-  const btn = document.getElementById('genZipBtn');
-  btn.disabled = true; btn.classList.add('loading');
-  setStatus('Building ZIP...', 'loading');
-  const progressBar = document.getElementById('progressBar');
-  const progressFill = document.getElementById('progressFill');
-  progressBar.style.display = 'block';
-  let prog = 0;
-  const interval = setInterval(() => { prog = Math.min(prog + Math.random() * 15, 85); progressFill.style.width = prog + '%'; }, 300);
-  try {
-    const res = await fetch(url + '/generator/code', {
-      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(specData)
+  var entities=(spec&&Array.isArray(spec.entities))?spec.entities:[];
+  if(!entities.length){
+    empty.style.display='flex';
+    empty.textContent='Generate a spec to see entity relationships.';
+    meta.textContent='No spec loaded';
+    return;
+  }
+
+  var rels=[];
+  entities.forEach(function(e,i){
+    var source=eName(e,i);
+    var rs=Array.isArray(e.relationships)?e.relationships:[];
+    rs.forEach(function(r){
+      if(r&&r.target){rels.push({source:source,target:r.target,type:r.type||'REL'});}
     });
-    if (!res.ok) { const e = await res.text(); throw new Error('HTTP ' + res.status + ': ' + e); }
-    zipBlob = await res.blob();
-    clearInterval(interval); progressFill.style.width = '100%';
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(zipBlob);
-    const projectName = specData.projectName || 'scaffold';
-    a.download = projectName + '.zip'; a.click();
-    const kb = Math.round(zipBlob.size / 1024);
-    setStatus(projectName + '.zip downloaded (' + kb + ' KB) - cd ' + projectName + ' && ./gradlew bootRun', 'success');
-    setStep(3); document.getElementById('step3').classList.add('done');
-  } catch (err) {
-    clearInterval(interval); progressFill.style.width = '0%';
-    setStatus(err.message, 'error');
-  } finally {
-    btn.disabled = false; btn.classList.remove('loading');
-    setTimeout(() => { progressBar.style.display = 'none'; progressFill.style.width = '0%'; }, 1500);
+  });
+
+  var names=entities.map(function(e,i){return eName(e,i);});
+  var w=960,h=280,cx=w/2,cy=h/2,r=Math.max(80,Math.min(110,70+names.length*6));
+  var pos={};
+  names.forEach(function(name,idx){
+    var a=(Math.PI*2*idx)/Math.max(1,names.length)-Math.PI/2;
+    pos[name]={x:cx+Math.cos(a)*r,y:cy+Math.sin(a)*(r*0.75)};
+  });
+
+  function el(tag,attrs,text){
+    var n=document.createElementNS('http://www.w3.org/2000/svg',tag);
+    Object.keys(attrs||{}).forEach(function(k){n.setAttribute(k,String(attrs[k]));});
+    if(text!=null)n.textContent=text;
+    return n;
+  }
+
+  rels.forEach(function(rel){
+    var s=pos[rel.source],t=pos[rel.target];
+    if(!s||!t)return;
+    svg.appendChild(el('line',{x1:s.x,y1:s.y,x2:t.x,y2:t.y,stroke:'rgba(123,97,255,.7)','stroke-width':1.5}));
+    var mx=(s.x+t.x)/2,my=(s.y+t.y)/2;
+    svg.appendChild(el('rect',{x:mx-24,y:my-10,width:48,height:16,rx:8,fill:'rgba(15,15,23,.95)',stroke:'rgba(123,97,255,.35)'}));
+    svg.appendChild(el('text',{x:mx,y:my+2,'text-anchor':'middle','font-size':'9px','font-family':'Space Mono, monospace',fill:'#c6bcff'},rel.type));
+  });
+
+  names.forEach(function(name){
+    var p=pos[name];
+    svg.appendChild(el('circle',{cx:p.x,cy:p.y,r:26,fill:'rgba(0,229,160,.12)',stroke:'rgba(0,229,160,.45)','stroke-width':1.5}));
+    svg.appendChild(el('text',{x:p.x,y:p.y+3,'text-anchor':'middle','font-size':'10px','font-family':'Space Mono, monospace',fill:'#f0f0f8'},name));
+  });
+
+  empty.style.display='none';
+  meta.textContent=names.length+' node'+(names.length===1?'':'s')+' | '+rels.length+' edge'+(rels.length===1?'':'s');
+  if(!rels.length){
+    empty.style.display='flex';
+    empty.textContent='No relationships found. Showing entities only.';
   }
 }
 
-function copySpec() {
-  if (!specData) return;
-  navigator.clipboard.writeText(JSON.stringify(specData, null, 2));
-  const btn = document.getElementById('copySpecBtn');
-  const orig = btn.textContent; btn.textContent = 'Copied!';
-  setTimeout(() => { btn.textContent = orig; }, 2000);
+// ── Validation rendering ──────────────────────────────────────────────────────
+function renderValidation(warnings,errors){
+  var out=document.getElementById('validationOutput');
+  var dot=document.getElementById('validationDot');
+  var counts=document.getElementById('validationCounts');
+  var W=Array.isArray(warnings)?warnings:[],E=Array.isArray(errors)?errors:[];
+
+  // counts badge
+  if(!W.length&&!E.length){
+    counts.innerHTML='<span class="vcnt ok">\u2714 clean</span>';
+  } else {
+    var html='';
+    if(E.length)html+='<span class="vcnt err">'+E.length+' error'+(E.length===1?'':'s')+'</span>';
+    if(W.length)html+='<span class="vcnt warn">'+W.length+' warn'+(W.length===1?'':'s')+'</span>';
+    counts.innerHTML=html;
+  }
+
+  if(!W.length&&!E.length){
+    out.innerHTML='&#x2714; No validation issues.';
+    if(dot){dot.className='dot green';}
+    return;
+  }
+  if(dot){
+    if(E.length){dot.className='dot red';}
+    else{dot.className='dot';dot.style.background='#ffb347';dot.style.boxShadow='0 0 8px #ffb347';}
+  }
+
+  // group all issues by entity (null entity = global)
+  var groups={};
+  var order=[];
+  function addIssue(issue,severity){
+    var key=issue.entity||'(global)';
+    if(!groups[key]){groups[key]=[];order.push(key);}
+    groups[key].push({issue:issue,severity:severity});
+  }
+  E.forEach(function(i){addIssue(i,'err');});
+  W.forEach(function(i){addIssue(i,'warn');});
+
+  out.innerHTML=order.map(function(entityKey){
+    var rows=groups[entityKey];
+    var rowsHtml=rows.map(function(r){
+      var i=r.issue,sev=r.severity;
+      var fieldInfo=i.field?' <span style="color:var(--text-dim);font-size:.66rem">['+esc(i.field)+']</span>':'';
+      return'<div class="validation-row '+sev+'"><span class="vbadge '+sev+'">'+sev+'</span>'+esc(i.message||'Issue')+fieldInfo+'</div>';
+    }).join('');
+    return'<div class="vgroup"><div class="vgroup-label">'+esc(entityKey)+'</div>'+rowsHtml+'</div>';
+  }).join('');
 }
 
-function clearAll() {
-  promptInput.value = '';
-  document.getElementById('charCount').textContent = '0 chars';
-  specData = null; zipBlob = null;
-  document.getElementById('specOutput').innerHTML = '<div class="placeholder-msg"><div class="big">&#x1F4CB;</div>JSON specification will appear here</div>';
-  document.getElementById('fileTree').innerHTML = '<div class="placeholder-msg"><div class="big">&#x1F4C1;</div>Generated file tree will appear here</div>';
-  document.getElementById('entityTags').innerHTML = '<span style="font-family:var(--mono);font-size:0.7rem;color:var(--text-dim)">Entities will appear here&#x2026;</span>';
-  document.getElementById('techTags').innerHTML = '<span style="font-family:var(--mono);font-size:0.7rem;color:var(--text-dim)">File tree will appear here&#x2026;</span>';
-  document.getElementById('entityCount').textContent = '-';
-  document.getElementById('fileCount').textContent = '-';
-  document.getElementById('genZipBtn').disabled = true;
-  document.getElementById('copySpecBtn').disabled = true;
-  setStatus('Ready - write a prompt and click Generate Spec');
-  setStep(1);
+function renderFix(suggestions){
+  var out=document.getElementById('fixSuggestionsOutput');latestFix=Array.isArray(suggestions)?suggestions:[];
+  if(!latestFix.length){out.innerHTML='No fix suggestions.';return;}
+  out.innerHTML='<div style="margin-bottom:6px;color:var(--text-muted)">Suggestions:</div><div class="fix-suggestions">'+latestFix.map(function(s,i){
+    var entityHint=s.entity?' <span style="opacity:.55;font-size:.62rem">['+esc(s.entity)+']</span>':'';
+    return'<button type="button" class="fix-btn" id="fix-btn-'+i+'" onclick="applyFix('+i+')">'+esc(s.message||'Apply fix')+entityHint+'</button>';
+  }).join('')+'</div>';
 }
 
-function copyDocker() {
-  const text = document.getElementById('dockerCode').innerText;
-  navigator.clipboard.writeText(text);
-  const btn = document.getElementById('copyDockerBtn');
-  const orig = btn.innerHTML; btn.textContent = 'Copied!';
-  setTimeout(() => { btn.innerHTML = orig; }, 2000);
+function escRE(v){return String(v).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
+function applyFix(idx){
+  var s=latestFix[idx];if(!s)return;
+  var btn=document.getElementById('fix-btn-'+idx);
+  if(btn)btn.disabled=true;
+  var lines=pi.value.split('\n');var changed=false;
+  if(s.actionType==='REMOVE_FIELD'&&s.field){
+    var rx=new RegExp('^\\s*-\\s*'+escRE(s.field)+'\\b','i');
+    var nx=lines.filter(function(l){return!rx.test(l);});changed=nx.length!==lines.length;pi.value=nx.join('\n');
+  } else if(s.actionType==='REMOVE_DUPLICATE_FIELD'&&s.field){
+    var rx2=new RegExp('^\\s*-\\s*'+escRE(s.field)+'\\b','i');var seen=false;
+    var nx2=lines.filter(function(l){if(!rx2.test(l))return true;if(!seen){seen=true;return true;}return false;});
+    changed=nx2.length!==lines.length;pi.value=nx2.join('\n');
+  } else if(s.actionType==='REMOVE_RELATIONSHIP'&&s.field){
+    // match lines like: "- belongs to Target" / "- has many Target" / "- many-to-many with Target"
+    // s.field is the relationship fieldName (e.g. "category"); s.entity is the owning entity name
+    var rx3=new RegExp('^\\s*-\\s*(belongs\\s+to|has\\s+many|many-to-many\\s+with)\\s+\\S+','i');
+    // narrow by field name if provided — field is the camelCase fieldName
+    var field3=s.field?escRE(s.field):'';
+    var narrowed=false;
+    if(field3){
+      var rx3b=new RegExp('^\\s*-\\s*(belongs\\s+to|has\\s+many|many-to-many\\s+with)\\s+\\S*','i');
+      // try to find the exact line by matching field name in the whole line (case-insensitive)
+      var rxField=new RegExp(field3,'i');
+      var nx3b=lines.filter(function(l){return!(rx3b.test(l)&&rxField.test(l));});
+      if(nx3b.length!==lines.length){changed=true;pi.value=nx3b.join('\n');narrowed=true;}
+    }
+    if(!narrowed){
+      var nx3=lines.filter(function(l){return!rx3.test(l);});
+      changed=nx3.length>0&&nx3.length!==lines.length;
+      if(changed)pi.value=nx3.join('\n');
+    }
+  }
+  document.getElementById('charCount').textContent=pi.value.length+' chars';
+  if(!changed){setStatus('Could not auto-apply suggestion. Please edit manually.','error');if(btn)btn.disabled=false;return;}
+  setStatus('Applied suggestion. Regenerating\u2026','loading');genSpec();
 }
 
-document.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') generateSpec();
-});
+async function genSpec(){
+  var prompt=pi.value.trim();if(!prompt){setStatus('Please write a prompt first','error');return;}
+  var url=su.value.trim()||baseUrl();
+  var btn=document.getElementById('genSpecBtn');btn.disabled=true;btn.classList.add('loading');
+  setStatus('Calling POST /generator/spec\u2026','loading');setStep(2);
+  specData=null;zipBlob=null;document.getElementById('genZipBtn').disabled=true;document.getElementById('copySpecBtn').disabled=true;
+  try{
+    var r=await fetch(url+'/generator/spec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})});
+    if(!r.ok){var et=await r.text();throw new Error('HTTP '+r.status+': '+et);}
+    var sr=await r.json();
+    var W=Array.isArray(sr.warnings)?sr.warnings:[],E=Array.isArray(sr.errors)?sr.errors:[],F=Array.isArray(sr.fixSuggestions)?sr.fixSuggestions:[];
+    specData=sr.spec?sr.spec:sr;
+    pushHistory(prompt,specData);
+    renderValidation(W,E);renderFix(F);
+    document.getElementById('specOutput').innerHTML='<pre class="fade-in">'+hl(JSON.stringify(specData,null,2))+'</pre>';
+    renderTags(specData);
+    renderGraph(specData);
+    document.getElementById('fileTree').innerHTML='<pre class="fade-in" style="font-size:.76rem">'+buildTree(specData)+'</pre>';
+    document.getElementById('genZipBtn').disabled=E.length>0;document.getElementById('copySpecBtn').disabled=false;
+    var n=specData.entities?specData.entities.length:0;
+    setStatus('Spec generated &mdash; '+n+' entit'+(n===1?'y':'ies')+'. '+E.length+' error(s), '+W.length+' warning(s).',E.length?'error':'success');
+    setStep(3);
+  }catch(err){setStatus(err.message,'error');setStep(1);document.getElementById('specOutput').innerHTML='<div class="placeholder-msg"><div class="big">&#x26A0;&#xFE0F;</div>'+esc(err.message)+'</div>';}
+  finally{btn.disabled=false;btn.classList.remove('loading');}
+}
 
-// Mobile nav
-const navToggle = document.getElementById('navToggle');
-const navLinks  = document.getElementById('navLinks');
-navToggle.addEventListener('click', () => {
-  const open = navLinks.classList.toggle('open');
-  navToggle.setAttribute('aria-expanded', open);
-});
-navLinks.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
-  navLinks.classList.remove('open');
-  navToggle.setAttribute('aria-expanded', 'false');
-}));
+async function genZip(){
+  if(!specData)return;
+  var url=su.value.trim()||baseUrl();
+  var btn=document.getElementById('genZipBtn');btn.disabled=true;btn.classList.add('loading');
+  setStatus('Checking compile confidence\u2026','loading');
 
-// Back to top
-const backToTop = document.getElementById('back-to-top');
-window.addEventListener('scroll', () => { backToTop.classList.toggle('visible', window.scrollY > 400); }, { passive: true });
-backToTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+  try{
+    var cr=await fetch(url+'/generator/confidence',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(specData)});
+    if(!cr.ok){var cet=await cr.text();throw new Error('Confidence check failed: HTTP '+cr.status+' '+cet);}
+    var c=await cr.json();
+    var cs=(c.confidenceStatus||'warn').toLowerCase();
+    var reason=c.reason||'No reason provided';
+    setConfidenceBadge(cs,reason);
+    if(cs==='warn')setStatus('Confidence WARN: '+esc(reason)+' — continuing download.','loading');
+    if(cs==='fail'&&!(c.failPolicyEnabled===true)){setStatus('Confidence FAIL: '+esc(reason)+' — fail policy disabled, continuing.','loading');}
+    if(cs==='fail'&&(c.failPolicyEnabled===true||confidenceFailPolicyEnabled)){
+      setStatus('Confidence FAIL: '+esc(reason)+' — download blocked by fail policy.','error');
+      return;
+    }
+  }catch(err){
+    setStatus(err.message,'error');
+    return;
+  }
 
-// Scroll reveal
-const observer = new IntersectionObserver(entries => {
-  entries.forEach(entry => { if (entry.isIntersecting) { entry.target.classList.add('visible'); observer.unobserve(entry.target); } });
-}, { threshold: 0.08 });
-document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  setStatus('Building ZIP\u2026','loading');
+  var pb=document.getElementById('progressBar'),pf=document.getElementById('progressFill');
+  pb.style.display='block';var p=0;
+  var iv=setInterval(function(){p=Math.min(p+Math.random()*15,85);pf.style.width=p+'%';},300);
+  try{
+    var r=await fetch(url+'/generator/code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(specData)});
+    if(!r.ok){var et=await r.text();throw new Error('HTTP '+r.status+': '+et);}
+    zipBlob=await r.blob();clearInterval(iv);pf.style.width='100%';
+    var a=document.createElement('a');a.href=URL.createObjectURL(zipBlob);
+    var pn=specData.projectName||'scaffold';a.download=pn+'.zip';a.click();
+    setStatus(pn+'.zip downloaded ('+Math.round(zipBlob.size/1024)+' KB) \u2014 cd '+pn+' && ./gradlew bootRun','success');
+    setStep(3);document.getElementById('step3').classList.add('done');
+  }catch(err){clearInterval(iv);pf.style.width='0%';setStatus(err.message,'error');}
+  finally{btn.disabled=false;btn.classList.remove('loading');setTimeout(function(){pb.style.display='none';pf.style.width='0%';},1500);}
+}
+
+function copySpec(){
+  if(!specData)return;
+  navigator.clipboard.writeText(JSON.stringify(specData,null,2));
+  var b=document.getElementById('copySpecBtn'),o=b.textContent;
+  b.textContent='\u2713 Copied!';b.style.color='var(--accent)';b.style.borderColor='rgba(0,229,160,.4)';
+  setTimeout(function(){b.textContent=o;b.style.color='';b.style.borderColor='';},2000);
+}
+
+function clearAll(){
+  pi.value='';document.getElementById('charCount').textContent='0 chars';
+  specData=null;zipBlob=null;
+  document.getElementById('specOutput').innerHTML='<div class="placeholder-msg"><div class="big">&#x1F4CB;</div>JSON specification will appear here</div>';
+  document.getElementById('fileTree').innerHTML='<div class="placeholder-msg"><div class="big">&#x1F4C1;</div>Generated file tree will appear here</div>';
+  document.getElementById('entityTags').innerHTML='<span style="font-family:var(--mono);font-size:.68rem;color:var(--text-dim)">Entities will appear here&hellip;</span>';
+  document.getElementById('techTags').innerHTML='<span style="font-family:var(--mono);font-size:.68rem;color:var(--text-dim)">File tree will appear here&hellip;</span>';
+  document.getElementById('entityCount').textContent='\u2013';document.getElementById('fileCount').textContent='\u2013';
+  document.getElementById('genZipBtn').disabled=true;document.getElementById('copySpecBtn').disabled=true;
+  document.getElementById('validationOutput').innerHTML='No validation issues yet.';
+  document.getElementById('fixSuggestionsOutput').innerHTML='No fix suggestions yet.';
+  document.getElementById('validationCounts').innerHTML='';
+  var dot=document.getElementById('validationDot');if(dot){dot.className='dot off';dot.style.background='';dot.style.boxShadow='';}
+  renderGraph(null);
+  setConfidenceBadge(null);
+  latestFix=[];setStatus('Ready \u2014 write a prompt and click Generate Spec');setStep(1);
+}
+
+function copyDocker(){
+  navigator.clipboard.writeText(document.getElementById('dockerCode').innerText);
+  var b=document.getElementById('copyDockerBtn'),o=b.innerHTML;
+  b.textContent='\u2713 Copied!';b.style.color='var(--accent)';
+  setTimeout(function(){b.innerHTML=o;b.style.color='';},2000);
+}
+
+document.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key==='Enter')genSpec();});
+var nt=document.getElementById('navToggle'),nl=document.getElementById('navLinks');
+nt.addEventListener('click',function(){var op=nl.classList.toggle('open');nt.setAttribute('aria-expanded',op);});
+nl.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){nl.classList.remove('open');nt.setAttribute('aria-expanded','false');});});
+var btt=document.getElementById('back-to-top');
+window.addEventListener('scroll',function(){btt.classList.toggle('visible',window.scrollY>400);},{passive:true});
+btt.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'});});
+var obs=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);}});},{threshold:.08});
+document.querySelectorAll('.reveal').forEach(function(el){obs.observe(el);});
+loadHistory();
+renderHistory();
+renderGraph(null);
 </script>
 </body>
 </html>
