@@ -186,6 +186,13 @@
   .history-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);font-family:var(--mono);font-size:.62rem;padding:3px 9px;border-radius:6px;cursor:pointer;}
   .history-btn:hover{border-color:var(--accent);color:var(--accent);}
   .history-btn.delete:hover{border-color:var(--accent3);color:var(--accent3);}
+  /* GRAPH */
+  .graph-panel{grid-column:1/-1;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);overflow:hidden;}
+  .graph-header{padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface2);font-family:var(--mono);font-size:.68rem;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase;font-weight:700;display:flex;align-items:center;gap:8px;}
+  .graph-meta{margin-left:auto;font-size:.62rem;color:var(--text-dim);}
+  .graph-body{height:280px;position:relative;background:linear-gradient(180deg,rgba(0,229,160,.02),transparent);}
+  .graph-svg{width:100%;height:100%;display:block;}
+  .graph-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.72rem;color:var(--text-dim);}
   /* VALIDATION */
   .validation-panel{grid-column:1/-1;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);overflow:hidden;}
   .validation-header{padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface2);font-family:var(--mono);font-size:.68rem;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase;font-weight:700;display:flex;align-items:center;gap:8px;}
@@ -383,6 +390,17 @@
     </div>
     <div class="history-body" id="historyList">
       <div class="history-empty">No history yet. Generate a spec to save it.</div>
+    </div>
+  </div>
+
+  <div class="graph-panel">
+    <div class="graph-header">
+      <div class="dot green"></div>Entity Relationship Graph
+      <span class="graph-meta" id="graphMeta">No spec loaded</span>
+    </div>
+    <div class="graph-body" id="graphBody">
+      <div class="graph-empty" id="graphEmpty">Generate a spec to see entity relationships.</div>
+      <svg class="graph-svg" id="graphSvg" viewBox="0 0 960 280" aria-label="Entity relationship graph"></svg>
     </div>
   </div>
 
@@ -619,6 +637,7 @@ function restoreHistory(idx){
     specData=h.spec;
     document.getElementById('specOutput').innerHTML='<pre class="fade-in">'+hl(JSON.stringify(specData,null,2))+'</pre>';
     renderTags(specData);
+    renderGraph(specData);
     document.getElementById('fileTree').innerHTML='<pre class="fade-in" style="font-size:.76rem">'+buildTree(specData)+'</pre>';
     document.getElementById('copySpecBtn').disabled=false;
     document.getElementById('genZipBtn').disabled=false;
@@ -670,6 +689,68 @@ function buildTree(spec){
   var techs=['Spring Boot 3','JPA','MapStruct','Docker','Gradle'];
   document.getElementById('techTags').innerHTML=techs.map(function(t){return'<div class="entity-tag" style="background:rgba(123,97,255,.08);border-color:rgba(123,97,255,.22);color:var(--accent2)">'+t+'</div>';}).join('');
   return L.join('\n');
+}
+
+function renderGraph(spec){
+  var svg=document.getElementById('graphSvg');
+  var empty=document.getElementById('graphEmpty');
+  var meta=document.getElementById('graphMeta');
+  if(!svg||!empty||!meta)return;
+  svg.innerHTML='';
+
+  var entities=(spec&&Array.isArray(spec.entities))?spec.entities:[];
+  if(!entities.length){
+    empty.style.display='flex';
+    empty.textContent='Generate a spec to see entity relationships.';
+    meta.textContent='No spec loaded';
+    return;
+  }
+
+  var rels=[];
+  entities.forEach(function(e,i){
+    var source=eName(e,i);
+    var rs=Array.isArray(e.relationships)?e.relationships:[];
+    rs.forEach(function(r){
+      if(r&&r.target){rels.push({source:source,target:r.target,type:r.type||'REL'});}
+    });
+  });
+
+  var names=entities.map(function(e,i){return eName(e,i);});
+  var w=960,h=280,cx=w/2,cy=h/2,r=Math.max(80,Math.min(110,70+names.length*6));
+  var pos={};
+  names.forEach(function(name,idx){
+    var a=(Math.PI*2*idx)/Math.max(1,names.length)-Math.PI/2;
+    pos[name]={x:cx+Math.cos(a)*r,y:cy+Math.sin(a)*(r*0.75)};
+  });
+
+  function el(tag,attrs,text){
+    var n=document.createElementNS('http://www.w3.org/2000/svg',tag);
+    Object.keys(attrs||{}).forEach(function(k){n.setAttribute(k,String(attrs[k]));});
+    if(text!=null)n.textContent=text;
+    return n;
+  }
+
+  rels.forEach(function(rel){
+    var s=pos[rel.source],t=pos[rel.target];
+    if(!s||!t)return;
+    svg.appendChild(el('line',{x1:s.x,y1:s.y,x2:t.x,y2:t.y,stroke:'rgba(123,97,255,.7)','stroke-width':1.5}));
+    var mx=(s.x+t.x)/2,my=(s.y+t.y)/2;
+    svg.appendChild(el('rect',{x:mx-24,y:my-10,width:48,height:16,rx:8,fill:'rgba(15,15,23,.95)',stroke:'rgba(123,97,255,.35)'}));
+    svg.appendChild(el('text',{x:mx,y:my+2,'text-anchor':'middle','font-size':'9px','font-family':'Space Mono, monospace',fill:'#c6bcff'},rel.type));
+  });
+
+  names.forEach(function(name){
+    var p=pos[name];
+    svg.appendChild(el('circle',{cx:p.x,cy:p.y,r:26,fill:'rgba(0,229,160,.12)',stroke:'rgba(0,229,160,.45)','stroke-width':1.5}));
+    svg.appendChild(el('text',{x:p.x,y:p.y+3,'text-anchor':'middle','font-size':'10px','font-family':'Space Mono, monospace',fill:'#f0f0f8'},name));
+  });
+
+  empty.style.display='none';
+  meta.textContent=names.length+' node'+(names.length===1?'':'s')+' | '+rels.length+' edge'+(rels.length===1?'':'s');
+  if(!rels.length){
+    empty.style.display='flex';
+    empty.textContent='No relationships found. Showing entities only.';
+  }
 }
 
 // ── Validation rendering ──────────────────────────────────────────────────────
@@ -784,6 +865,7 @@ async function genSpec(){
     renderValidation(W,E);renderFix(F);
     document.getElementById('specOutput').innerHTML='<pre class="fade-in">'+hl(JSON.stringify(specData,null,2))+'</pre>';
     renderTags(specData);
+    renderGraph(specData);
     document.getElementById('fileTree').innerHTML='<pre class="fade-in" style="font-size:.76rem">'+buildTree(specData)+'</pre>';
     document.getElementById('genZipBtn').disabled=E.length>0;document.getElementById('copySpecBtn').disabled=false;
     var n=specData.entities?specData.entities.length:0;
@@ -834,6 +916,7 @@ function clearAll(){
   document.getElementById('fixSuggestionsOutput').innerHTML='No fix suggestions yet.';
   document.getElementById('validationCounts').innerHTML='';
   var dot=document.getElementById('validationDot');if(dot){dot.className='dot off';dot.style.background='';dot.style.boxShadow='';}
+  renderGraph(null);
   latestFix=[];setStatus('Ready \u2014 write a prompt and click Generate Spec');setStep(1);
 }
 
@@ -855,6 +938,7 @@ var obs=new IntersectionObserver(function(entries){entries.forEach(function(e){i
 document.querySelectorAll('.reveal').forEach(function(el){obs.observe(el);});
 loadHistory();
 renderHistory();
+renderGraph(null);
 </script>
 </body>
 </html>
