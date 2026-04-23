@@ -168,6 +168,24 @@
   .status-bar.success{border-color:rgba(0,229,160,.4);background:rgba(0,229,160,.06);color:var(--accent);box-shadow:0 0 0 1px rgba(0,229,160,.08);}
   .status-bar.error{border-color:rgba(255,107,107,.4);background:rgba(255,107,107,.06);color:var(--accent3);}
   .status-bar.loading{border-color:rgba(123,97,255,.4);background:rgba(123,97,255,.06);color:var(--accent2);}
+  /* HISTORY */
+  .history-panel{grid-column:1/-1;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);overflow:hidden;}
+  .history-header{padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface2);font-family:var(--mono);font-size:.68rem;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase;font-weight:700;display:flex;align-items:center;gap:8px;}
+  .history-meta{margin-left:auto;display:flex;align-items:center;gap:8px;}
+  .history-count{font-size:.62rem;color:var(--text-dim);}
+  .history-clear{background:transparent;border:1px solid var(--border);color:var(--text-muted);font-family:var(--mono);font-size:.62rem;padding:2px 8px;border-radius:6px;cursor:pointer;}
+  .history-clear:hover{border-color:var(--accent);color:var(--accent);}
+  .history-body{padding:8px 12px;display:flex;flex-direction:column;gap:8px;max-height:260px;overflow:auto;}
+  .history-empty{font-family:var(--mono);font-size:.72rem;color:var(--text-dim);padding:8px 4px;}
+  .history-item{display:flex;align-items:flex-start;gap:10px;padding:8px;border:1px solid rgba(255,255,255,.04);border-radius:8px;background:rgba(255,255,255,.02);}
+  .history-item:hover{border-color:rgba(0,229,160,.22);}
+  .history-main{min-width:0;flex:1;display:flex;flex-direction:column;gap:4px;}
+  .history-preview{font-family:var(--mono);font-size:.71rem;color:var(--text);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .history-sub{font-family:var(--mono);font-size:.62rem;color:var(--text-dim);display:flex;gap:10px;flex-wrap:wrap;}
+  .history-actions{display:flex;gap:6px;flex-shrink:0;}
+  .history-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);font-family:var(--mono);font-size:.62rem;padding:3px 9px;border-radius:6px;cursor:pointer;}
+  .history-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .history-btn.delete:hover{border-color:var(--accent3);color:var(--accent3);}
   /* VALIDATION */
   .validation-panel{grid-column:1/-1;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);overflow:hidden;}
   .validation-header{padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface2);font-family:var(--mono);font-size:.68rem;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase;font-weight:700;display:flex;align-items:center;gap:8px;}
@@ -355,6 +373,19 @@
 
   <div class="status-bar" id="statusBar"><span>Ready &mdash; write a prompt and click Generate Spec</span></div>
 
+  <div class="history-panel">
+    <div class="history-header">
+      <div class="dot purple"></div>Prompt &amp; Spec History
+      <div class="history-meta">
+        <span class="history-count" id="historyCount">0 / 20</span>
+        <button type="button" class="history-clear" id="clearHistoryBtn">Clear history</button>
+      </div>
+    </div>
+    <div class="history-body" id="historyList">
+      <div class="history-empty">No history yet. Generate a spec to save it.</div>
+    </div>
+  </div>
+
   <div class="validation-panel">
     <div class="validation-header">
       <div class="dot off" id="validationDot"></div>Validation &amp; Diagnostics
@@ -462,6 +493,7 @@
 
 <script>
 var specData=null,zipBlob=null,latestFix=[];
+var HISTORY_KEY='rag.promptSpecHistory.v1',HISTORY_LIMIT=20,historyEntries=[];
 var su=document.getElementById('serverUrl');
 function baseUrl(){var o=window.location.origin;return(!o||o==='null'||o.includes('localhost')||o.includes('127.0.0.1'))?'http://localhost:8080':o;}
 su.value=baseUrl();
@@ -519,6 +551,7 @@ document.getElementById('genZipBtn').addEventListener('click',genZip);
 document.getElementById('clearBtn').addEventListener('click',clearAll);
 document.getElementById('copySpecBtn').addEventListener('click',copySpec);
 document.getElementById('copyDockerBtn').addEventListener('click',copyDocker);
+document.getElementById('clearHistoryBtn').addEventListener('click',clearHistory);
 
 function setStatus(msg,type){var b=document.getElementById('statusBar');b.className='status-bar'+(type?' '+type:'');b.innerHTML=msg;}
 function hl(json){return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,function(m){if(/^".*":$/.test(m))return'<span class="json-key">'+m+'</span>';if(/^"/.test(m))return'<span class="json-string">'+m+'</span>';if(/true|false/.test(m))return'<span class="json-bool">'+m+'</span>';return'<span class="json-number">'+m+'</span>';});}
@@ -526,6 +559,87 @@ function esc(v){return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 function eName(e,i){return((e&&e.entity&&e.entity.name)||(e&&e.name)||('Entity'+(i+1))).trim();}
 function eFields(e){if(e&&e.entity&&Array.isArray(e.entity.fields))return e.entity.fields.length;if(e&&Array.isArray(e.fields))return e.fields.length;return 0;}
 function eRels(e){if(e&&Array.isArray(e.relationships))return e.relationships.length;return 0;}
+
+function fmtTs(iso){
+  if(!iso)return'-';
+  try{return new Date(iso).toLocaleString();}catch(e){return iso;}
+}
+function previewPrompt(prompt){
+  var s=(prompt||'').replace(/\s+/g,' ').trim();
+  if(!s)return'(empty prompt)';
+  return s.length>90?s.slice(0,90)+'...':s;
+}
+function persistHistory(){
+  try{localStorage.setItem(HISTORY_KEY,JSON.stringify(historyEntries));}catch(e){}
+}
+function loadHistory(){
+  try{
+    var raw=localStorage.getItem(HISTORY_KEY);
+    if(!raw){historyEntries=[];return;}
+    var parsed=JSON.parse(raw);
+    historyEntries=Array.isArray(parsed)?parsed.slice(0,HISTORY_LIMIT):[];
+  }catch(e){historyEntries=[];}
+}
+function renderHistory(){
+  var list=document.getElementById('historyList'),count=document.getElementById('historyCount');
+  count.textContent=historyEntries.length+' / '+HISTORY_LIMIT;
+  if(!historyEntries.length){
+    list.innerHTML='<div class="history-empty">No history yet. Generate a spec to save it.</div>';
+    return;
+  }
+  list.innerHTML=historyEntries.map(function(h,i){
+    var n=(h.spec&&Array.isArray(h.spec.entities))?h.spec.entities.length:0;
+    return '<div class="history-item">'
+      +'<div class="history-main">'
+      +'<div class="history-preview" title="'+esc(h.preview||'')+'">'+esc(h.preview||'')+'</div>'
+      +'<div class="history-sub"><span>'+esc(fmtTs(h.ts))+'</span><span>'+n+' entit'+(n===1?'y':'ies')+'</span></div>'
+      +'</div>'
+      +'<div class="history-actions">'
+      +'<button type="button" class="history-btn" onclick="restoreHistory('+i+')">Restore</button>'
+      +'<button type="button" class="history-btn delete" onclick="deleteHistory('+i+')">Delete</button>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+}
+function pushHistory(prompt,spec){
+  if(!spec)return;
+  var preview=previewPrompt(prompt);
+  var duplicateIdx=historyEntries.findIndex(function(h){return h.preview===preview&&JSON.stringify(h.spec||{})===JSON.stringify(spec||{});});
+  if(duplicateIdx>=0)historyEntries.splice(duplicateIdx,1);
+  historyEntries.unshift({ts:new Date().toISOString(),preview:preview,prompt:prompt,spec:spec});
+  if(historyEntries.length>HISTORY_LIMIT)historyEntries=historyEntries.slice(0,HISTORY_LIMIT);
+  persistHistory();
+  renderHistory();
+}
+function restoreHistory(idx){
+  var h=historyEntries[idx];if(!h)return;
+  pi.value=h.prompt||'';
+  document.getElementById('charCount').textContent=pi.value.length+' chars';
+  if(h.spec){
+    specData=h.spec;
+    document.getElementById('specOutput').innerHTML='<pre class="fade-in">'+hl(JSON.stringify(specData,null,2))+'</pre>';
+    renderTags(specData);
+    document.getElementById('fileTree').innerHTML='<pre class="fade-in" style="font-size:.76rem">'+buildTree(specData)+'</pre>';
+    document.getElementById('copySpecBtn').disabled=false;
+    document.getElementById('genZipBtn').disabled=false;
+  }
+  setStep(3);
+  setStatus('Restored history entry from '+fmtTs(h.ts),'success');
+}
+function deleteHistory(idx){
+  if(idx<0||idx>=historyEntries.length)return;
+  historyEntries.splice(idx,1);
+  persistHistory();
+  renderHistory();
+}
+function clearHistory(){
+  historyEntries=[];
+  persistHistory();
+  renderHistory();
+  setStatus('History cleared','success');
+}
+window.restoreHistory=restoreHistory;
+window.deleteHistory=deleteHistory;
 
 function renderTags(spec){
   var c=document.getElementById('entityTags'),n=document.getElementById('entityCount');
@@ -666,6 +780,7 @@ async function genSpec(){
     var sr=await r.json();
     var W=Array.isArray(sr.warnings)?sr.warnings:[],E=Array.isArray(sr.errors)?sr.errors:[],F=Array.isArray(sr.fixSuggestions)?sr.fixSuggestions:[];
     specData=sr.spec?sr.spec:sr;
+    pushHistory(prompt,specData);
     renderValidation(W,E);renderFix(F);
     document.getElementById('specOutput').innerHTML='<pre class="fade-in">'+hl(JSON.stringify(specData,null,2))+'</pre>';
     renderTags(specData);
@@ -738,6 +853,8 @@ window.addEventListener('scroll',function(){btt.classList.toggle('visible',windo
 btt.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'});});
 var obs=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target);}});},{threshold:.08});
 document.querySelectorAll('.reveal').forEach(function(el){obs.observe(el);});
+loadHistory();
+renderHistory();
 </script>
 </body>
 </html>
