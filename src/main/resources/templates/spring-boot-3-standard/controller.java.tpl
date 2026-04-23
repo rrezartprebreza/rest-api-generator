@@ -74,4 +74,4 @@ public class ${className} {
     public void delete(@PathVariable Long id) {
         ${deleteCall}
     }
-}
+${relationEndpoints}}

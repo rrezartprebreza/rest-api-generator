@@ -11,6 +11,7 @@ import io.restapigen.core.parser.CloudLlmPromptParser;
 import io.restapigen.core.parser.NaturalLanguagePromptParser;
 import io.restapigen.core.parser.OllamaPromptParser;
 import io.restapigen.core.parser.PromptParser;
+import io.restapigen.core.validator.SpecDiagnosticsValidator;
 import io.restapigen.domain.ApiSpecification;
 import io.restapigen.generator.parser.SpecInputExtractor;
 
@@ -35,6 +36,7 @@ public final class RestApiGeneratorServer implements AutoCloseable {
     private final CodeGenerator        codeGenerator;
     private final GenerationConfig     config;
     private final ObjectMapper         mapper;
+    private final SpecDiagnosticsValidator diagnosticsValidator;
 
     public RestApiGeneratorServer(int port) throws IOException {
         this(port, GenerationConfig.defaults());
@@ -46,6 +48,7 @@ public final class RestApiGeneratorServer implements AutoCloseable {
         this.config        = config == null ? GenerationConfig.defaults() : config;
         this.mapper        = new ObjectMapper().findAndRegisterModules();
         this.codeGenerator = new CodeGenerator();
+        this.diagnosticsValidator = new SpecDiagnosticsValidator();
 
         String ollamaUrl = System.getenv(OllamaPromptParser.ENV_OLLAMA_URL);
         String llmApiKey = System.getenv(CloudLlmPromptParser.ENV_LLM_API_KEY);
@@ -131,7 +134,9 @@ public final class RestApiGeneratorServer implements AutoCloseable {
             try {
                 String userRequest = SpecInputExtractor.extractUserRequestOrWholeInput(prompt);
                 ApiSpecification spec = parser.parse(userRequest, config);
-                byte[] payload = mapper.writeValueAsBytes(spec);
+                SpecDiagnosticsValidator.ValidationReport report = diagnosticsValidator.validate(spec, config);
+                SpecResponse response = new SpecResponse(spec, report.warnings(), report.errors(), report.fixSuggestions());
+                byte[] payload = mapper.writeValueAsBytes(response);
                 respond(exchange, 200, payload, "application/json");
             } catch (Exception e) {
                 respond(exchange, 500, jsonError("PARSE_ERROR", "Failed to parse prompt: " + sanitize(e.getMessage())), "application/json");
@@ -332,4 +337,7 @@ public final class RestApiGeneratorServer implements AutoCloseable {
     }
 
     record SpecRequest(String prompt) {}
+    record SpecResponse(ApiSpecification spec, java.util.List<SpecDiagnosticsValidator.ValidationIssue> warnings,
+                        java.util.List<SpecDiagnosticsValidator.ValidationIssue> errors,
+                        java.util.List<SpecDiagnosticsValidator.FixSuggestion> fixSuggestions) {}
 }
