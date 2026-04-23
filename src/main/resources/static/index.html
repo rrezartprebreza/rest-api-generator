@@ -419,11 +419,27 @@
     <button class="btn btn-secondary" id="copySpecBtn" type="button" disabled>Copy JSON</button>
     <button class="btn btn-secondary" id="exportSpecBtn" type="button" disabled title="Export spec as JSON/YAML/Markdown">Export</button>
     <button class="btn btn-secondary" id="importSpecBtn" type="button" title="Import a previously saved spec">Import</button>
+    <button class="btn btn-secondary" id="apiInspectorToggleBtn" type="button" title="Show API request/response inspector">🔍 Inspector</button>
     <div class="confidence-badge" id="confidenceBadge"></div>
     <span class="kbd-hint"><span class="kbd">&#x2318;</span><span class="kbd">&#x23CE;</span>&nbsp;generate</span>
   </div>
 
-  <div class="status-bar" id="statusBar"><span>Ready &mdash; write a prompt and click Generate Spec</span></div>
+   <div class="status-bar" id="statusBar"><span>Ready &mdash; write a prompt and click Generate Spec</span></div>
+
+   <div class="panel" style="display:none;grid-column:1/-1;" id="apiInspectorPanel">
+     <div class="panel-header">
+       <div class="panel-title"><div class="dot green"></div>🔍 API INSPECTOR</div>
+       <button type="button" class="btn btn-secondary" style="font-size:0.75rem;padding:4px 10px;" onclick="toggleApiInspectorPanel()">Close</button>
+     </div>
+     <div class="panel-tabs" style="display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--code-bg);">
+       <button type="button" class="panel-tab-btn active" onclick="switchApiTab('request')" style="flex:1;padding:10px;border:none;background:transparent;color:var(--text);cursor:pointer;border-bottom:2px solid var(--accent);font-family:var(--mono);font-size:0.75rem;font-weight:600;">Request</button>
+       <button type="button" class="panel-tab-btn" onclick="switchApiTab('response')" style="flex:1;padding:10px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;font-family:var(--mono);font-size:0.75rem;font-weight:600;transition:color .2s;">Response</button>
+     </div>
+     <div class="output-scroll">
+       <div id="apiRequestInspector" class="placeholder-msg"><div style="font-size:0.9rem;">Request will appear here after generation</div></div>
+       <div id="apiResponseInspector" style="display:none;" class="placeholder-msg"><div style="font-size:0.9rem;">Response will appear here after generation</div></div>
+     </div>
+   </div>
 
    <div class="history-panel">
      <div class="history-header">
@@ -700,6 +716,7 @@ document.getElementById('copyDockerBtn').addEventListener('click',copyDocker);
 document.getElementById('clearHistoryBtn').addEventListener('click',clearHistory);
 document.getElementById('exportSpecBtn').addEventListener('click',function(){document.getElementById('exportModal').classList.add('show');});
 document.getElementById('importSpecBtn').addEventListener('click',function(){document.getElementById('importModal').classList.add('show');});
+document.getElementById('apiInspectorToggleBtn').addEventListener('click',toggleApiInspectorPanel);
 
 function setStatus(msg,type){var b=document.getElementById('statusBar');b.className='status-bar'+(type?' '+type:'');b.innerHTML=msg;}
 function setConfidenceBadge(status,reason){
@@ -990,30 +1007,33 @@ function applyFix(idx){
 }
 
 async function genSpec(){
-  var prompt=pi.value.trim();if(!prompt){setStatus('Please write a prompt first','error');return;}
-  var url=su.value.trim()||baseUrl();
-  var btn=document.getElementById('genSpecBtn');btn.disabled=true;btn.classList.add('loading');
-  setStatus('Calling POST /generator/spec\u2026','loading');setStep(2);
-  specData=null;zipBlob=null;document.getElementById('genZipBtn').disabled=true;document.getElementById('copySpecBtn').disabled=true;
-  try{
-    var r=await fetch(url+'/generator/spec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})});
-    if(!r.ok){var et=await r.text();throw new Error('HTTP '+r.status+': '+et);}
-    var sr=await r.json();
-    var W=Array.isArray(sr.warnings)?sr.warnings:[],E=Array.isArray(sr.errors)?sr.errors:[],F=Array.isArray(sr.fixSuggestions)?sr.fixSuggestions:[];
-    specData=sr.spec?sr.spec:sr;
-    pushHistory(prompt,specData);
-    renderValidation(W,E);renderFix(F);
-    document.getElementById('specOutput').innerHTML='<pre class="fade-in">'+hl(JSON.stringify(specData,null,2))+'</pre>';
-    renderTags(specData);
-    renderGraph(specData);
-    document.getElementById('fileTree').innerHTML='<pre class="fade-in" style="font-size:.76rem">'+buildTree(specData)+'</pre>';
-     document.getElementById('genZipBtn').disabled=E.length>0;document.getElementById('copySpecBtn').disabled=false;document.getElementById('exportSpecBtn').disabled=false;
-    var n=specData.entities?specData.entities.length:0;
-    setStatus('Spec generated &mdash; '+n+' entit'+(n===1?'y':'ies')+'. '+E.length+' error(s), '+W.length+' warning(s).',E.length?'error':'success');
-    setStep(3);
-  }catch(err){setStatus(err.message,'error');setStep(1);document.getElementById('specOutput').innerHTML='<div class="placeholder-msg"><div class="big">&#x26A0;&#xFE0F;</div>'+esc(err.message)+'</div>';}
-  finally{btn.disabled=false;btn.classList.remove('loading');}
-}
+   var prompt=pi.value.trim();if(!prompt){setStatus('Please write a prompt first','error');return;}
+   var url=su.value.trim()||baseUrl();
+   var btn=document.getElementById('genSpecBtn');btn.disabled=true;btn.classList.add('loading');
+   setStatus('Calling POST /generator/spec\u2026','loading');setStep(2);
+   specData=null;zipBlob=null;document.getElementById('genZipBtn').disabled=true;document.getElementById('copySpecBtn').disabled=true;
+   try{
+     var reqPayload={prompt:prompt};
+     updateApiInspector('POST','/generator/spec',reqPayload,null);
+     var r=await fetch(url+'/generator/spec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(reqPayload)});
+     if(!r.ok){var et=await r.text();throw new Error('HTTP '+r.status+': '+et);}
+     var sr=await r.json();
+     updateApiInspector('POST','/generator/spec',reqPayload,sr);
+     var W=Array.isArray(sr.warnings)?sr.warnings:[],E=Array.isArray(sr.errors)?sr.errors:[],F=Array.isArray(sr.fixSuggestions)?sr.fixSuggestions:[];
+     specData=sr.spec?sr.spec:sr;
+     pushHistory(prompt,specData);
+     renderValidation(W,E);renderFix(F);
+     document.getElementById('specOutput').innerHTML='<pre class="fade-in">'+hl(JSON.stringify(specData,null,2))+'</pre>';
+     renderTags(specData);
+     renderGraph(specData);
+     document.getElementById('fileTree').innerHTML='<pre class="fade-in" style="font-size:.76rem">'+buildTree(specData)+'</pre>';
+      document.getElementById('genZipBtn').disabled=E.length>0;document.getElementById('copySpecBtn').disabled=false;document.getElementById('exportSpecBtn').disabled=false;
+     var n=specData.entities?specData.entities.length:0;
+     setStatus('Spec generated &mdash; '+n+' entit'+(n===1?'y':'ies')+'. '+E.length+' error(s), '+W.length+' warning(s).',E.length?'error':'success');
+     setStep(3);
+   }catch(err){setStatus(err.message,'error');setStep(1);document.getElementById('specOutput').innerHTML='<div class="placeholder-msg"><div class="big">&#x26A0;&#xFE0F;</div>'+esc(err.message)+'</div>';}
+   finally{btn.disabled=false;btn.classList.remove('loading');}
+ }
 
 async function genZip(){
   if(!specData)return;
@@ -1039,17 +1059,19 @@ async function genZip(){
     return;
   }
 
-  setStatus('Building ZIP\u2026','loading');
-  var pb=document.getElementById('progressBar'),pf=document.getElementById('progressFill');
-  pb.style.display='block';var p=0;
-  var iv=setInterval(function(){p=Math.min(p+Math.random()*15,85);pf.style.width=p+'%';},300);
-  try{
-    var r=await fetch(url+'/generator/code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(specData)});
-    if(!r.ok){var et=await r.text();throw new Error('HTTP '+r.status+': '+et);}
-    zipBlob=await r.blob();clearInterval(iv);pf.style.width='100%';
-    var a=document.createElement('a');a.href=URL.createObjectURL(zipBlob);
-    var pn=specData.projectName||'scaffold';a.download=pn+'.zip';a.click();
-    setStatus(pn+'.zip downloaded ('+Math.round(zipBlob.size/1024)+' KB) \u2014 cd '+pn+' && ./gradlew bootRun','success');
+   setStatus('Building ZIP\u2026','loading');
+   var pb=document.getElementById('progressBar'),pf=document.getElementById('progressFill');
+   pb.style.display='block';var p=0;
+   var iv=setInterval(function(){p=Math.min(p+Math.random()*15,85);pf.style.width=p+'%';},300);
+   try{
+     updateApiInspector('POST','/generator/code',specData,{status:'building'});
+     var r=await fetch(url+'/generator/code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(specData)});
+     if(!r.ok){var et=await r.text();throw new Error('HTTP '+r.status+': '+et);}
+     zipBlob=await r.blob();clearInterval(iv);pf.style.width='100%';
+     updateApiInspector('POST','/generator/code',specData,{status:'success',size:zipBlob.size});
+     var a=document.createElement('a');a.href=URL.createObjectURL(zipBlob);
+     var pn=specData.projectName||'scaffold';a.download=pn+'.zip';a.click();
+     setStatus(pn+'.zip downloaded ('+Math.round(zipBlob.size/1024)+' KB) \u2014 cd '+pn+' && ./gradlew bootRun','success');
     setStep(3);document.getElementById('step3').classList.add('done');
   }catch(err){clearInterval(iv);pf.style.width='0%';setStatus(err.message,'error');}
   finally{btn.disabled=false;btn.classList.remove('loading');setTimeout(function(){pb.style.display='none';pf.style.width='0%';},1500);}
@@ -1292,6 +1314,60 @@ function copyDocker(){
  });
 
  document.getElementById('shortcutsOverlay').addEventListener('click',closeShortcutsHelp);
+
+ // ── API Inspector ────────────────────────────────────────────────────────────
+ var lastApiRequest=null,lastApiResponse=null;
+ function toggleApiInspectorPanel(){
+   var panel=document.getElementById('apiInspectorPanel');
+   if(panel.style.display==='none'){
+     panel.style.display='grid';
+     document.getElementById('apiInspectorToggleBtn').style.opacity='1';
+   }else{
+     panel.style.display='none';
+     document.getElementById('apiInspectorToggleBtn').style.opacity='0.6';
+   }
+ }
+ window.toggleApiInspectorPanel=toggleApiInspectorPanel;
+
+ function switchApiTab(tab){
+   var reqPanel=document.getElementById('apiRequestInspector'),resPanel=document.getElementById('apiResponseInspector');
+   var reqBtn=document.querySelectorAll('.panel-tab-btn')[0],resBtn=document.querySelectorAll('.panel-tab-btn')[1];
+   if(tab==='request'){
+     reqPanel.style.display='';
+     resPanel.style.display='none';
+     reqBtn.classList.add('active');
+     reqBtn.style.borderBottomColor='var(--accent)';
+     reqBtn.style.color='var(--text)';
+     resBtn.classList.remove('active');
+     resBtn.style.borderBottomColor='transparent';
+     resBtn.style.color='var(--text-muted)';
+   }else{
+     reqPanel.style.display='none';
+     resPanel.style.display='';
+     resBtn.classList.add('active');
+     resBtn.style.borderBottomColor='var(--accent)';
+     resBtn.style.color='var(--text)';
+     reqBtn.classList.remove('active');
+     reqBtn.style.borderBottomColor='transparent';
+     reqBtn.style.color='var(--text-muted)';
+   }
+ }
+ window.switchApiTab=switchApiTab;
+
+ function updateApiInspector(method,endpoint,reqPayload,resPayload){
+   if(reqPayload){
+     var reqText='<pre style="white-space:pre-wrap;word-wrap:break-word;">'+hl(JSON.stringify({method:method,endpoint:endpoint,payload:reqPayload},null,2))+'</pre>';
+     document.getElementById('apiRequestInspector').innerHTML=reqText;
+   }
+   if(resPayload){
+     var resText='<pre style="white-space:pre-wrap;word-wrap:break-word;">'+hl(JSON.stringify(resPayload,null,2))+'</pre>';
+     document.getElementById('apiResponseInspector').innerHTML=resText;
+   }
+   if(document.getElementById('apiInspectorPanel').style.display==='none'){
+     toggleApiInspectorPanel();
+   }
+ }
+ window.updateApiInspector=updateApiInspector;
 
  document.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key==='Enter')genSpec();});
 var nt=document.getElementById('navToggle'),nl=document.getElementById('navLinks');
