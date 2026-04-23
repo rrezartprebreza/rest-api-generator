@@ -45,6 +45,7 @@ class RestApiGeneratorServerAboutTest {
         assertTrue(body.contains("REST API Generator"));
         assertTrue(body.contains("\"version\": \"1.0.0\""));
         assertTrue(body.contains("/generator/spec"));
+        assertTrue(body.contains("/generator/confidence"));
         assertTrue(body.contains("/generator/code"));
     }
 
@@ -118,5 +119,94 @@ class RestApiGeneratorServerAboutTest {
 
         assertEquals(400, status);
         assertTrue(body.contains("Unknown relationship target"));
+    }
+
+    @Test
+    void confidenceReturnsFailWithReasonForInvalidSpec() throws IOException {
+        String invalidSpec = """
+                {
+                  "projectName": "demo-api",
+                  "basePackage": "com.example.generated",
+                  "entities": [
+                    {
+                      "entity": {
+                        "name": "Product",
+                        "table": "products",
+                        "idType": "Long",
+                        "fields": []
+                      },
+                      "api": {
+                        "resourcePath": "/api/products",
+                        "crud": true,
+                        "pagination": true,
+                        "sorting": true
+                      },
+                      "relationships": [
+                        {
+                          "type": "ManyToOne",
+                          "target": "Category",
+                          "fieldName": "category"
+                        }
+                      ]
+                    }
+                  ],
+                  "suggestions": []
+                }
+                """;
+
+        HttpURLConnection conn = (HttpURLConnection) URI.create("http://localhost:" + port + "/generator/confidence").toURL().openConnection();
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Content-Type", "application/json");
+        conn.setDoOutput(true);
+        conn.getOutputStream().write(invalidSpec.getBytes(StandardCharsets.UTF_8));
+        int status = conn.getResponseCode();
+        String body = new String(conn.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        conn.disconnect();
+
+        assertEquals(200, status);
+        assertTrue(body.contains("\"confidenceStatus\":\"fail\""));
+        assertTrue(body.contains("reason"));
+    }
+
+    @Test
+    void confidenceReturnsPassForValidSpec() throws IOException {
+        String validSpec = """
+                {
+                  "projectName": "demo-api",
+                  "basePackage": "com.example.generated",
+                  "entities": [
+                    {
+                      "entity": {
+                        "name": "Product",
+                        "table": "products",
+                        "idType": "Long",
+                        "fields": [
+                          {"name": "name", "type": "String", "validation": [], "unique": false, "nullable": false, "encrypted": false, "enumValues": []}
+                        ]
+                      },
+                      "api": {
+                        "resourcePath": "/api/products",
+                        "crud": true,
+                        "pagination": true,
+                        "sorting": true
+                      },
+                      "relationships": []
+                    }
+                  ],
+                  "suggestions": []
+                }
+                """;
+
+        HttpURLConnection conn = (HttpURLConnection) URI.create("http://localhost:" + port + "/generator/confidence").toURL().openConnection();
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Content-Type", "application/json");
+        conn.setDoOutput(true);
+        conn.getOutputStream().write(validSpec.getBytes(StandardCharsets.UTF_8));
+        int status = conn.getResponseCode();
+        String body = new String(conn.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        conn.disconnect();
+
+        assertEquals(200, status);
+        assertTrue(body.contains("\"confidenceStatus\":\"pass\""));
     }
 }

@@ -83,6 +83,11 @@
   .llm-badge{display:none;align-items:center;gap:6px;font-size:.72rem;font-weight:700;padding:4px 12px;border-radius:20px;white-space:nowrap;font-family:var(--mono);}
   .llm-badge.active{display:inline-flex;background:rgba(0,229,160,.1);color:var(--accent);border:1px solid rgba(0,229,160,.3);}
   .llm-badge.offline{display:inline-flex;background:rgba(255,107,107,.08);color:var(--accent3);border:1px solid rgba(255,107,107,.25);}
+  .confidence-badge{display:none;align-items:center;gap:6px;font-size:.72rem;font-weight:700;padding:4px 12px;border-radius:20px;white-space:nowrap;font-family:var(--mono);}
+  .confidence-badge.show{display:inline-flex;}
+  .confidence-badge.pass{background:rgba(0,229,160,.1);color:var(--accent);border:1px solid rgba(0,229,160,.3);}
+  .confidence-badge.warn{background:rgba(255,179,71,.12);color:#ffb347;border:1px solid rgba(255,179,71,.3);}
+  .confidence-badge.fail{background:rgba(255,107,107,.12);color:var(--accent3);border:1px solid rgba(255,107,107,.35);}
   .server-version{font-size:.66rem;color:var(--text-dim);white-space:nowrap;font-family:var(--mono);margin-left:auto;}
   /* PARSER NOTE */
   .parser-note{grid-column:1/-1;display:none;padding:11px 16px;border-radius:var(--radius);font-family:var(--mono);font-size:.78rem;line-height:1.6;border:1px solid transparent;}
@@ -375,6 +380,7 @@
     </button>
     <button class="btn btn-secondary" id="clearBtn" type="button">Clear</button>
     <button class="btn btn-secondary" id="copySpecBtn" type="button" disabled>Copy JSON</button>
+    <div class="confidence-badge" id="confidenceBadge"></div>
     <span class="kbd-hint"><span class="kbd">&#x2318;</span><span class="kbd">&#x23CE;</span>&nbsp;generate</span>
   </div>
 
@@ -510,7 +516,7 @@
 </footer>
 
 <script>
-var specData=null,zipBlob=null,latestFix=[];
+var specData=null,zipBlob=null,latestFix=[],confidenceFailPolicyEnabled=false;
 var HISTORY_KEY='rag.promptSpecHistory.v1',HISTORY_LIMIT=20,historyEntries=[];
 var su=document.getElementById('serverUrl');
 function baseUrl(){var o=window.location.origin;return(!o||o==='null'||o.includes('localhost')||o.includes('127.0.0.1'))?'http://localhost:8080':o;}
@@ -545,6 +551,7 @@ async function ping(){
       badge.innerHTML='<div class="pulse"></div>online';badge.style.color='var(--accent)';
       try{
         var info=await r.json();
+        confidenceFailPolicyEnabled=!!info.confidenceFailPolicyEnabled;
         // version
         if(info.version&&info.version!=='dev')ver.textContent='v'+info.version;else ver.textContent='';
         var c=!!info.llmConfigured,a=!!info.llmAvailable,mode=info.promptParser||'';
@@ -572,6 +579,15 @@ document.getElementById('copyDockerBtn').addEventListener('click',copyDocker);
 document.getElementById('clearHistoryBtn').addEventListener('click',clearHistory);
 
 function setStatus(msg,type){var b=document.getElementById('statusBar');b.className='status-bar'+(type?' '+type:'');b.innerHTML=msg;}
+function setConfidenceBadge(status,reason){
+  var el=document.getElementById('confidenceBadge');
+  if(!el)return;
+  if(!status){el.className='confidence-badge';el.textContent='';el.removeAttribute('title');return;}
+  var label=status==='pass'?'Confidence: PASS':status==='warn'?'Confidence: WARN':'Confidence: FAIL';
+  el.className='confidence-badge show '+status;
+  el.textContent=label;
+  el.title=reason||'';
+}
 function hl(json){return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,function(m){if(/^".*":$/.test(m))return'<span class="json-key">'+m+'</span>';if(/^"/.test(m))return'<span class="json-string">'+m+'</span>';if(/true|false/.test(m))return'<span class="json-bool">'+m+'</span>';return'<span class="json-number">'+m+'</span>';});}
 function esc(v){return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function eName(e,i){return((e&&e.entity&&e.entity.name)||(e&&e.name)||('Entity'+(i+1))).trim();}
@@ -879,6 +895,26 @@ async function genZip(){
   if(!specData)return;
   var url=su.value.trim()||baseUrl();
   var btn=document.getElementById('genZipBtn');btn.disabled=true;btn.classList.add('loading');
+  setStatus('Checking compile confidence\u2026','loading');
+
+  try{
+    var cr=await fetch(url+'/generator/confidence',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(specData)});
+    if(!cr.ok){var cet=await cr.text();throw new Error('Confidence check failed: HTTP '+cr.status+' '+cet);}
+    var c=await cr.json();
+    var cs=(c.confidenceStatus||'warn').toLowerCase();
+    var reason=c.reason||'No reason provided';
+    setConfidenceBadge(cs,reason);
+    if(cs==='warn')setStatus('Confidence WARN: '+esc(reason)+' — continuing download.','loading');
+    if(cs==='fail'&&!(c.failPolicyEnabled===true)){setStatus('Confidence FAIL: '+esc(reason)+' — fail policy disabled, continuing.','loading');}
+    if(cs==='fail'&&(c.failPolicyEnabled===true||confidenceFailPolicyEnabled)){
+      setStatus('Confidence FAIL: '+esc(reason)+' — download blocked by fail policy.','error');
+      return;
+    }
+  }catch(err){
+    setStatus(err.message,'error');
+    return;
+  }
+
   setStatus('Building ZIP\u2026','loading');
   var pb=document.getElementById('progressBar'),pf=document.getElementById('progressFill');
   pb.style.display='block';var p=0;
@@ -917,6 +953,7 @@ function clearAll(){
   document.getElementById('validationCounts').innerHTML='';
   var dot=document.getElementById('validationDot');if(dot){dot.className='dot off';dot.style.background='';dot.style.boxShadow='';}
   renderGraph(null);
+  setConfidenceBadge(null);
   latestFix=[];setStatus('Ready \u2014 write a prompt and click Generate Spec');setStep(1);
 }
 

@@ -12,6 +12,7 @@ import io.restapigen.core.parser.NaturalLanguagePromptParser;
 import io.restapigen.core.parser.OllamaPromptParser;
 import io.restapigen.core.parser.PromptParser;
 import io.restapigen.core.validator.SpecDiagnosticsValidator;
+import io.restapigen.core.validator.SpecValidator;
 import io.restapigen.domain.ApiSpecification;
 import io.restapigen.generator.parser.SpecInputExtractor;
 
@@ -37,6 +38,8 @@ public final class RestApiGeneratorServer implements AutoCloseable {
     private final GenerationConfig     config;
     private final ObjectMapper         mapper;
     private final SpecDiagnosticsValidator diagnosticsValidator;
+    private final SpecValidator            specValidator;
+    private final boolean                  confidenceFailPolicyEnabled;
 
     public RestApiGeneratorServer(int port) throws IOException {
         this(port, GenerationConfig.defaults());
@@ -49,6 +52,8 @@ public final class RestApiGeneratorServer implements AutoCloseable {
         this.mapper        = new ObjectMapper().findAndRegisterModules();
         this.codeGenerator = new CodeGenerator();
         this.diagnosticsValidator = new SpecDiagnosticsValidator();
+        this.specValidator = new SpecValidator();
+        this.confidenceFailPolicyEnabled = Boolean.parseBoolean(System.getenv().getOrDefault("CONFIDENCE_FAIL_POLICY", "false"));
 
         String ollamaUrl = System.getenv(OllamaPromptParser.ENV_OLLAMA_URL);
         String llmApiKey = System.getenv(CloudLlmPromptParser.ENV_LLM_API_KEY);
@@ -85,6 +90,7 @@ public final class RestApiGeneratorServer implements AutoCloseable {
 
     private void registerContexts() {
         server.createContext("/generator/spec", new SpecHandler());
+        server.createContext("/generator/confidence", new ConfidenceHandler());
         server.createContext("/generator/code", new CodeHandler());
         server.createContext("/about",           new AboutHandler());
         server.createContext("/health",          new HealthHandler());
@@ -176,6 +182,11 @@ public final class RestApiGeneratorServer implements AutoCloseable {
                 return;
             }
             try {
+                ConfidenceResponse confidence = evaluateConfidence(spec);
+                if (confidenceFailPolicyEnabled && "fail".equals(confidence.confidenceStatus())) {
+                    respond(exchange, 400, jsonError("CONFIDENCE_FAIL", confidence.reason()), "application/json");
+                    return;
+                }
                 byte[] zip = codeGenerator.generateZip(spec, config);
                 String filename = (spec.projectName != null && !spec.projectName.isBlank())
                         ? spec.projectName + ".zip"
@@ -186,6 +197,32 @@ public final class RestApiGeneratorServer implements AutoCloseable {
                 respond(exchange, 400, jsonError("BAD_SPEC", sanitize(e.getMessage())), "application/json");
             } catch (Exception e) {
                 respond(exchange, 500, jsonError("GENERATION_ERROR", "Code generation failed"), "application/json");
+            }
+        }
+    }
+
+    // ── POST /generator/confidence ────────────────────────────────────────────
+
+    private final class ConfidenceHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            if (handlePreflight(exchange)) return;
+            if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+                respond(exchange, 405, jsonError("METHOD_NOT_ALLOWED", "Only POST is supported"), "application/json");
+                return;
+            }
+            String requestBody = readBody(exchange);
+            if (requestBody.isEmpty()) {
+                respond(exchange, 400, jsonError("MISSING_SPEC", "Request body (API spec JSON) is required"), "application/json");
+                return;
+            }
+
+            try {
+                ApiSpecification spec = mapper.readValue(requestBody, ApiSpecification.class);
+                ConfidenceResponse confidence = evaluateConfidence(spec);
+                respond(exchange, 200, mapper.writeValueAsBytes(confidence), "application/json");
+            } catch (JsonProcessingException e) {
+                respond(exchange, 400, jsonError("INVALID_SPEC", "invalid spec payload: " + sanitize(e.getMessage())), "application/json");
             }
         }
     }
@@ -231,15 +268,17 @@ public final class RestApiGeneratorServer implements AutoCloseable {
                       "promptParser": "%s",
                       "llmConfigured": %s,
                       "llmAvailable": %s,
+                      "confidenceFailPolicyEnabled": %s,
                       "endpoints": [
                         {"method": "GET",  "path": "/",                "description": "Web UI"},
                         {"method": "GET",  "path": "/about",           "description": "Project information"},
                         {"method": "GET",  "path": "/health",          "description": "Health check"},
                         {"method": "POST", "path": "/generator/spec",  "description": "Parse a natural-language prompt into an API specification"},
+                        {"method": "POST", "path": "/generator/confidence", "description": "Evaluate likely compile readiness for an API specification"},
                         {"method": "POST", "path": "/generator/code",  "description": "Generate a runnable Spring Boot ZIP from an API specification"}
                       ],
                       "repository": "https://github.com/rrezartprebreza/rest-api-generator"
-                    }""".formatted(APP_VERSION, parserMode, llmConfigured, llmAvailable);
+                    }""".formatted(APP_VERSION, parserMode, llmConfigured, llmAvailable, confidenceFailPolicyEnabled);
             respond(exchange, 200, aboutJson, "application/json");
         }
     }
@@ -309,6 +348,32 @@ public final class RestApiGeneratorServer implements AutoCloseable {
         return normalized.substring(0, Math.min(normalized.length(), 200));
     }
 
+    private ConfidenceResponse evaluateConfidence(ApiSpecification spec) {
+        if (spec == null) {
+            return new ConfidenceResponse("fail", "Specification payload is empty", confidenceFailPolicyEnabled, 0, 1);
+        }
+
+        try {
+            specValidator.validate(spec);
+        } catch (IllegalArgumentException e) {
+            return new ConfidenceResponse("fail", sanitize(e.getMessage()), confidenceFailPolicyEnabled, 0, 1);
+        }
+
+        SpecDiagnosticsValidator.ValidationReport report = diagnosticsValidator.validate(spec, config);
+        int warningCount = report.warnings().size();
+        int errorCount = report.errors().size();
+
+        if (errorCount > 0) {
+            String reason = report.errors().get(0).message();
+            return new ConfidenceResponse("fail", sanitize(reason), confidenceFailPolicyEnabled, warningCount, errorCount);
+        }
+        if (warningCount > 0) {
+            String reason = report.warnings().get(0).message();
+            return new ConfidenceResponse("warn", sanitize(reason), confidenceFailPolicyEnabled, warningCount, 0);
+        }
+        return new ConfidenceResponse("pass", "No blocking compile-readiness issues detected", confidenceFailPolicyEnabled, 0, 0);
+    }
+
     private static String loadAppVersion() {
         try (InputStream in = RestApiGeneratorServer.class.getResourceAsStream("/rest-api-generator.properties")) {
             if (in == null) return "dev";
@@ -340,4 +405,6 @@ public final class RestApiGeneratorServer implements AutoCloseable {
     record SpecResponse(ApiSpecification spec, java.util.List<SpecDiagnosticsValidator.ValidationIssue> warnings,
                         java.util.List<SpecDiagnosticsValidator.ValidationIssue> errors,
                         java.util.List<SpecDiagnosticsValidator.FixSuggestion> fixSuggestions) {}
+    record ConfidenceResponse(String confidenceStatus, String reason, boolean failPolicyEnabled,
+                              int warningCount, int errorCount) {}
 }
