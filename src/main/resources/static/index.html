@@ -276,9 +276,21 @@
   #back-to-top:hover{border-color:var(--accent);background:rgba(0,229,160,.08);}
   #back-to-top svg{width:15px;height:15px;color:var(--text-muted);}
   #back-to-top:hover svg{color:var(--accent);}
-  @keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
-  .fade-in{animation:fadeIn .45s ease forwards;}
-</style>
+   @keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+   .fade-in{animation:fadeIn .45s ease forwards;}
+   /* MODALS */
+   .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;animation:fadeIn .2s ease;backdrop-filter:blur(4px);}
+   .modal.show{display:flex;}
+   .modal-content{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 48px rgba(0,0,0,.4);max-width:400px;width:90%;max-height:80vh;overflow-y:auto;}
+   .modal-header{display:flex;justify-content:space-between;align-items:center;padding:1.5rem 1.75rem;border-bottom:1px solid var(--border);font-weight:700;}
+   .modal-header h3{margin:0;font-size:1.1rem;color:var(--text);}
+   .modal-close{background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;padding:0;width:24px;height:24px;display:flex;align-items:center;justify-content:center;transition:color .2s;}
+   .modal-close:hover{color:var(--text);}
+   .modal-body{padding:1.5rem 1.75rem;}
+   .export-format-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1rem;background:rgba(0,229,160,.05);border:1px solid rgba(0,229,160,.2);border-radius:8px;cursor:pointer;color:var(--text);transition:all .2s;font-family:var(--sans);}
+   .export-format-btn:hover{background:rgba(0,229,160,.12);border-color:rgba(0,229,160,.4);}
+   .export-format-btn:active{transform:scale(0.98);}
+ </style>
 </head>
 <body>
 
@@ -380,6 +392,8 @@
     </button>
     <button class="btn btn-secondary" id="clearBtn" type="button">Clear</button>
     <button class="btn btn-secondary" id="copySpecBtn" type="button" disabled>Copy JSON</button>
+    <button class="btn btn-secondary" id="exportSpecBtn" type="button" disabled title="Export spec as JSON/YAML/Markdown">Export</button>
+    <button class="btn btn-secondary" id="importSpecBtn" type="button" title="Import a previously saved spec">Import</button>
     <div class="confidence-badge" id="confidenceBadge"></div>
     <span class="kbd-hint"><span class="kbd">&#x2318;</span><span class="kbd">&#x23CE;</span>&nbsp;generate</span>
   </div>
@@ -436,10 +450,55 @@
     <div class="entities-row" id="techTags"><span style="font-family:var(--mono);font-size:.68rem;color:var(--text-dim)">File tree will appear here&hellip;</span></div>
     <div class="output-scroll"><div id="fileTree" class="placeholder-msg"><div class="big">&#x1F4C1;</div>Generated file tree will appear here</div></div>
     <div class="progress-bar" id="progressBar" style="display:none"><div class="progress-fill" id="progressFill"></div></div>
-  </div>
-</main>
+   </div>
+ </main>
 
-<section class="how-it-works reveal" id="how-it-works">
+ <!-- Export Spec Modal -->
+ <div class="modal" id="exportModal">
+   <div class="modal-content">
+     <div class="modal-header">
+       <h3>Export Specification</h3>
+       <button type="button" class="modal-close" onclick="closeModal('exportModal')">&times;</button>
+     </div>
+     <div class="modal-body">
+       <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;">Choose export format:</p>
+       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;">
+         <button type="button" class="export-format-btn" onclick="exportSpec('json')">
+           <span style="font-weight:700;font-size:1rem;display:block;">JSON</span>
+           <span style="font-size:0.7rem;color:var(--text-dim);">Standard format</span>
+         </button>
+         <button type="button" class="export-format-btn" onclick="exportSpec('yaml')">
+           <span style="font-weight:700;font-size:1rem;display:block;">YAML</span>
+           <span style="font-size:0.7rem;color:var(--text-dim);">Human readable</span>
+         </button>
+         <button type="button" class="export-format-btn" onclick="exportSpec('markdown')">
+           <span style="font-weight:700;font-size:1rem;display:block;">Markdown</span>
+           <span style="font-size:0.7rem;color:var(--text-dim);">Shareable doc</span>
+         </button>
+       </div>
+     </div>
+   </div>
+ </div>
+
+ <!-- Import Spec Modal -->
+ <div class="modal" id="importModal">
+   <div class="modal-content">
+     <div class="modal-header">
+       <h3>Import Specification</h3>
+       <button type="button" class="modal-close" onclick="closeModal('importModal')">&times;</button>
+     </div>
+     <div class="modal-body">
+       <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;">Upload a saved JSON spec file:</p>
+       <input type="file" id="importFile" accept=".json" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:var(--text);font-family:var(--mono);font-size:0.8rem;cursor:pointer;"/>
+       <div style="margin-top:1.5rem;display:flex;gap:0.75rem;">
+         <button type="button" class="btn btn-primary" style="flex:1;" onclick="importSpec()">Load Spec</button>
+         <button type="button" class="btn btn-secondary" style="flex:1;" onclick="closeModal('importModal')">Cancel</button>
+       </div>
+     </div>
+   </div>
+ </div>
+
+ <section class="how-it-works reveal" id="how-it-works">
   <span class="section-eyebrow">// what gets generated</span>
   <h2 class="section-heading">Everything you&rsquo;d write by hand &mdash; done for you</h2>
   <p class="section-sub">Every layer of a production Spring Boot 3 API, generated and wired together from a single plain-English prompt.</p>
@@ -577,6 +636,8 @@ document.getElementById('clearBtn').addEventListener('click',clearAll);
 document.getElementById('copySpecBtn').addEventListener('click',copySpec);
 document.getElementById('copyDockerBtn').addEventListener('click',copyDocker);
 document.getElementById('clearHistoryBtn').addEventListener('click',clearHistory);
+document.getElementById('exportSpecBtn').addEventListener('click',function(){document.getElementById('exportModal').classList.add('show');});
+document.getElementById('importSpecBtn').addEventListener('click',function(){document.getElementById('importModal').classList.add('show');});
 
 function setStatus(msg,type){var b=document.getElementById('statusBar');b.className='status-bar'+(type?' '+type:'');b.innerHTML=msg;}
 function setConfidenceBadge(status,reason){
@@ -655,8 +716,9 @@ function restoreHistory(idx){
     renderTags(specData);
     renderGraph(specData);
     document.getElementById('fileTree').innerHTML='<pre class="fade-in" style="font-size:.76rem">'+buildTree(specData)+'</pre>';
-    document.getElementById('copySpecBtn').disabled=false;
-    document.getElementById('genZipBtn').disabled=false;
+     document.getElementById('copySpecBtn').disabled=false;
+     document.getElementById('exportSpecBtn').disabled=false;
+     document.getElementById('genZipBtn').disabled=false;
   }
   setStep(3);
   setStatus('Restored history entry from '+fmtTs(h.ts),'success');
@@ -883,7 +945,7 @@ async function genSpec(){
     renderTags(specData);
     renderGraph(specData);
     document.getElementById('fileTree').innerHTML='<pre class="fade-in" style="font-size:.76rem">'+buildTree(specData)+'</pre>';
-    document.getElementById('genZipBtn').disabled=E.length>0;document.getElementById('copySpecBtn').disabled=false;
+     document.getElementById('genZipBtn').disabled=E.length>0;document.getElementById('copySpecBtn').disabled=false;document.getElementById('exportSpecBtn').disabled=false;
     var n=specData.entities?specData.entities.length:0;
     setStatus('Spec generated &mdash; '+n+' entit'+(n===1?'y':'ies')+'. '+E.length+' error(s), '+W.length+' warning(s).',E.length?'error':'success');
     setStep(3);
@@ -940,31 +1002,146 @@ function copySpec(){
 }
 
 function clearAll(){
-  pi.value='';document.getElementById('charCount').textContent='0 chars';
-  specData=null;zipBlob=null;
-  document.getElementById('specOutput').innerHTML='<div class="placeholder-msg"><div class="big">&#x1F4CB;</div>JSON specification will appear here</div>';
-  document.getElementById('fileTree').innerHTML='<div class="placeholder-msg"><div class="big">&#x1F4C1;</div>Generated file tree will appear here</div>';
-  document.getElementById('entityTags').innerHTML='<span style="font-family:var(--mono);font-size:.68rem;color:var(--text-dim)">Entities will appear here&hellip;</span>';
-  document.getElementById('techTags').innerHTML='<span style="font-family:var(--mono);font-size:.68rem;color:var(--text-dim)">File tree will appear here&hellip;</span>';
-  document.getElementById('entityCount').textContent='\u2013';document.getElementById('fileCount').textContent='\u2013';
-  document.getElementById('genZipBtn').disabled=true;document.getElementById('copySpecBtn').disabled=true;
-  document.getElementById('validationOutput').innerHTML='No validation issues yet.';
-  document.getElementById('fixSuggestionsOutput').innerHTML='No fix suggestions yet.';
-  document.getElementById('validationCounts').innerHTML='';
-  var dot=document.getElementById('validationDot');if(dot){dot.className='dot off';dot.style.background='';dot.style.boxShadow='';}
-  renderGraph(null);
-  setConfidenceBadge(null);
-  latestFix=[];setStatus('Ready \u2014 write a prompt and click Generate Spec');setStep(1);
-}
+   pi.value='';document.getElementById('charCount').textContent='0 chars';
+   specData=null;zipBlob=null;
+   document.getElementById('specOutput').innerHTML='<div class="placeholder-msg"><div class="big">&#x1F4CB;</div>JSON specification will appear here</div>';
+   document.getElementById('fileTree').innerHTML='<div class="placeholder-msg"><div class="big">&#x1F4C1;</div>Generated file tree will appear here</div>';
+   document.getElementById('entityTags').innerHTML='<span style="font-family:var(--mono);font-size:.68rem;color:var(--text-dim)">Entities will appear here&hellip;</span>';
+   document.getElementById('techTags').innerHTML='<span style="font-family:var(--mono);font-size:.68rem;color:var(--text-dim)">File tree will appear here&hellip;</span>';
+   document.getElementById('entityCount').textContent='\u2013';document.getElementById('fileCount').textContent='\u2013';
+   document.getElementById('genZipBtn').disabled=true;document.getElementById('copySpecBtn').disabled=true;document.getElementById('exportSpecBtn').disabled=true;
+   document.getElementById('validationOutput').innerHTML='No validation issues yet.';
+   document.getElementById('fixSuggestionsOutput').innerHTML='No fix suggestions yet.';
+   document.getElementById('validationCounts').innerHTML='';
+   var dot=document.getElementById('validationDot');if(dot){dot.className='dot off';dot.style.background='';dot.style.boxShadow='';}
+   renderGraph(null);
+   setConfidenceBadge(null);
+   latestFix=[];setStatus('Ready \u2014 write a prompt and click Generate Spec');setStep(1);
+ }
 
 function copyDocker(){
-  navigator.clipboard.writeText(document.getElementById('dockerCode').innerText);
-  var b=document.getElementById('copyDockerBtn'),o=b.innerHTML;
-  b.textContent='\u2713 Copied!';b.style.color='var(--accent)';
-  setTimeout(function(){b.innerHTML=o;b.style.color='';},2000);
-}
+   navigator.clipboard.writeText(document.getElementById('dockerCode').innerText);
+   var b=document.getElementById('copyDockerBtn'),o=b.innerHTML;
+   b.textContent='\u2713 Copied!';b.style.color='var(--accent)';
+   setTimeout(function(){b.innerHTML=o;b.style.color='';},2000);
+ }
 
-document.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key==='Enter')genSpec();});
+ // ── Export/Import functions ──────────────────────────────────────────────────────
+ function closeModal(modalId){
+   document.getElementById(modalId).classList.remove('show');
+ }
+ window.closeModal=closeModal;
+
+ function specToYaml(spec){
+   var lines=[];
+   function addLine(indent,key,val){
+     if(typeof val==='object'&&val!==null){
+       lines.push(' '.repeat(indent)+key+':');
+       Object.keys(val).forEach(function(k){addLine(indent+2,k,val[k]);});
+     }else if(Array.isArray(val)){
+       if(val.length===0){lines.push(' '.repeat(indent)+key+': []');}
+       else{
+         lines.push(' '.repeat(indent)+key+':');
+         val.forEach(function(item,i){
+           if(typeof item==='object'&&item!==null){Object.keys(item).forEach(function(k){addLine(indent+2,i===0?'- '+k:k,item[k]);});}
+           else{lines.push(' '.repeat(indent+2)+'- '+esc(String(item)));}
+         });
+       }
+     }else{lines.push(' '.repeat(indent)+key+': '+esc(String(val)));}
+   }
+   Object.keys(spec).forEach(function(k){addLine(0,k,spec[k]);});
+   return lines.join('\n');
+ }
+
+ function specToMarkdown(spec){
+   var lines=['# API Specification','','**Project:** '+esc(spec.projectName||'unnamed'),'','**Package:** `'+esc(spec.basePackage||'com.example')+'`','','## Entities',''];
+   if(spec.entities&&Array.isArray(spec.entities)){
+     spec.entities.forEach(function(e){
+       var name=eName(e,0);
+       lines.push('### '+esc(name));
+       var fields=eFields(e);
+       lines.push('**Fields:** '+fields);
+       if(e.entity&&Array.isArray(e.entity.fields)){
+         lines.push('');
+         e.entity.fields.forEach(function(f){
+           lines.push('- `'+esc(f.name)+'` (**'+esc(f.type)+'**)'+(f.nullable?' (nullable)':''));
+         });
+       }
+       if(e.relationships&&Array.isArray(e.relationships)&&e.relationships.length>0){
+         lines.push('');
+         lines.push('**Relationships:**');
+         e.relationships.forEach(function(r){
+           lines.push('- '+esc(r.type)+' → '+esc(r.target)+' ('+esc(r.fieldName)+')');
+         });
+       }
+       lines.push('');
+     });
+   }
+   lines.push('---');
+   lines.push('*Generated by REST API Generator*');
+   return lines.join('\n');
+ }
+
+ function exportSpec(format){
+   if(!specData)return;
+   var content,filename,mimeType;
+   if(format==='json'){
+     content=JSON.stringify(specData,null,2);
+     filename=(specData.projectName||'spec')+'.json';
+     mimeType='application/json';
+   }else if(format==='yaml'){
+     content=specToYaml(specData);
+     filename=(specData.projectName||'spec')+'.yaml';
+     mimeType='text/yaml';
+   }else if(format==='markdown'){
+     content=specToMarkdown(specData);
+     filename=(specData.projectName||'spec')+'.md';
+     mimeType='text/markdown';
+   }else{return;}
+   var blob=new Blob([content],{type:mimeType});
+   var a=document.createElement('a');
+   a.href=URL.createObjectURL(blob);
+   a.download=filename;
+   a.click();
+   URL.revokeObjectURL(a.href);
+   setStatus('Exported as '+format.toUpperCase()+': '+filename,'success');
+   closeModal('exportModal');
+ }
+ window.exportSpec=exportSpec;
+
+ function importSpec(){
+   var fileInput=document.getElementById('importFile');
+   var file=fileInput.files[0];
+   if(!file){setStatus('Please select a file','error');return;}
+   var reader=new FileReader();
+   reader.onload=function(e){
+     try{
+       var content=e.target.result;
+       var imported=JSON.parse(content);
+       if(!imported.entities||!Array.isArray(imported.entities)){throw new Error('Invalid spec: missing entities array');}
+       specData=imported;
+       pi.value='';
+       document.getElementById('charCount').textContent='0 chars';
+       document.getElementById('specOutput').innerHTML='<pre class="fade-in">'+hl(JSON.stringify(specData,null,2))+'</pre>';
+       renderTags(specData);
+       renderGraph(specData);
+       document.getElementById('fileTree').innerHTML='<pre class="fade-in" style="font-size:.76rem">'+buildTree(specData)+'</pre>';
+       document.getElementById('copySpecBtn').disabled=false;
+       document.getElementById('exportSpecBtn').disabled=false;
+       document.getElementById('genZipBtn').disabled=false;
+       setStatus('Spec imported successfully: '+imported.projectName,'success');
+       setStep(3);
+       closeModal('importModal');
+       fileInput.value='';
+     }catch(err){
+       setStatus('Import failed: '+err.message,'error');
+     }
+   };
+   reader.readAsText(file);
+ }
+ window.importSpec=importSpec;
+
+ document.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key==='Enter')genSpec();});
 var nt=document.getElementById('navToggle'),nl=document.getElementById('navLinks');
 nt.addEventListener('click',function(){var op=nl.classList.toggle('open');nt.setAttribute('aria-expanded',op);});
 nl.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){nl.classList.remove('open');nt.setAttribute('aria-expanded','false');});});
