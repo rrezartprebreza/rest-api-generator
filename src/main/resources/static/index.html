@@ -196,8 +196,15 @@
   .graph-header{padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface2);font-family:var(--mono);font-size:.68rem;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase;font-weight:700;display:flex;align-items:center;gap:8px;}
   .graph-meta{margin-left:auto;font-size:.62rem;color:var(--text-dim);}
   .graph-body{height:280px;position:relative;background:linear-gradient(180deg,rgba(0,229,160,.02),transparent);}
-  .graph-svg{width:100%;height:100%;display:block;}
+  .graph-svg{width:100%;height:100%;display:block;touch-action:none;}
   .graph-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.72rem;color:var(--text-dim);}
+  .graph-edge{stroke:rgba(123,97,255,.7);stroke-width:1.5;}
+  .graph-edge-label-bg{fill:rgba(15,15,23,.95);stroke:rgba(123,97,255,.35);}
+  .graph-edge-label{font-size:9px;font-family:var(--mono);fill:#c6bcff;pointer-events:none;}
+  .graph-node{cursor:grab;}
+  .graph-node.dragging{cursor:grabbing;}
+  .graph-node-circle{fill:rgba(0,229,160,.12);stroke:rgba(0,229,160,.45);stroke-width:1.5;}
+  .graph-node-text{font-size:10px;font-family:var(--mono);fill:#f0f0f8;pointer-events:none;user-select:none;}
   /* VALIDATION */
   .validation-panel{grid-column:1/-1;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);overflow:hidden;}
   .validation-header{padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface2);font-family:var(--mono);font-size:.68rem;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase;font-weight:700;display:flex;align-items:center;gap:8px;}
@@ -419,27 +426,11 @@
     <button class="btn btn-secondary" id="copySpecBtn" type="button" disabled>Copy JSON</button>
     <button class="btn btn-secondary" id="exportSpecBtn" type="button" disabled title="Export spec as JSON/YAML/Markdown">Export</button>
     <button class="btn btn-secondary" id="importSpecBtn" type="button" title="Import a previously saved spec">Import</button>
-    <button class="btn btn-secondary" id="apiInspectorToggleBtn" type="button" title="Show API request/response inspector">🔍 Inspector</button>
     <div class="confidence-badge" id="confidenceBadge"></div>
     <span class="kbd-hint"><span class="kbd">&#x2318;</span><span class="kbd">&#x23CE;</span>&nbsp;generate</span>
   </div>
 
    <div class="status-bar" id="statusBar"><span>Ready &mdash; write a prompt and click Generate Spec</span></div>
-
-   <div class="panel" style="display:none;grid-column:1/-1;" id="apiInspectorPanel">
-     <div class="panel-header">
-       <div class="panel-title"><div class="dot green"></div>🔍 API INSPECTOR</div>
-       <button type="button" class="btn btn-secondary" style="font-size:0.75rem;padding:4px 10px;" onclick="toggleApiInspectorPanel()">Close</button>
-     </div>
-     <div class="panel-tabs" style="display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--code-bg);">
-       <button type="button" class="panel-tab-btn active" onclick="switchApiTab('request')" style="flex:1;padding:10px;border:none;background:transparent;color:var(--text);cursor:pointer;border-bottom:2px solid var(--accent);font-family:var(--mono);font-size:0.75rem;font-weight:600;">Request</button>
-       <button type="button" class="panel-tab-btn" onclick="switchApiTab('response')" style="flex:1;padding:10px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;font-family:var(--mono);font-size:0.75rem;font-weight:600;transition:color .2s;">Response</button>
-     </div>
-     <div class="output-scroll">
-       <div id="apiRequestInspector" class="placeholder-msg"><div style="font-size:0.9rem;">Request will appear here after generation</div></div>
-       <div id="apiResponseInspector" style="display:none;" class="placeholder-msg"><div style="font-size:0.9rem;">Response will appear here after generation</div></div>
-     </div>
-   </div>
 
    <div class="history-panel">
      <div class="history-header">
@@ -716,7 +707,6 @@ document.getElementById('copyDockerBtn').addEventListener('click',copyDocker);
 document.getElementById('clearHistoryBtn').addEventListener('click',clearHistory);
 document.getElementById('exportSpecBtn').addEventListener('click',function(){document.getElementById('exportModal').classList.add('show');});
 document.getElementById('importSpecBtn').addEventListener('click',function(){document.getElementById('importModal').classList.add('show');});
-document.getElementById('apiInspectorToggleBtn').addEventListener('click',toggleApiInspectorPanel);
 
 function setStatus(msg,type){var b=document.getElementById('statusBar');b.className='status-bar'+(type?' '+type:'');b.innerHTML=msg;}
 function setConfidenceBadge(status,reason){
@@ -887,23 +877,84 @@ function renderGraph(spec){
     return n;
   }
 
+  var edgeRefs=[];
   rels.forEach(function(rel){
     var s=pos[rel.source],t=pos[rel.target];
     if(!s||!t)return;
-    svg.appendChild(el('line',{x1:s.x,y1:s.y,x2:t.x,y2:t.y,stroke:'rgba(123,97,255,.7)','stroke-width':1.5}));
+    var line=el('line',{'class':'graph-edge',x1:s.x,y1:s.y,x2:t.x,y2:t.y});
     var mx=(s.x+t.x)/2,my=(s.y+t.y)/2;
-    svg.appendChild(el('rect',{x:mx-24,y:my-10,width:48,height:16,rx:8,fill:'rgba(15,15,23,.95)',stroke:'rgba(123,97,255,.35)'}));
-    svg.appendChild(el('text',{x:mx,y:my+2,'text-anchor':'middle','font-size':'9px','font-family':'Space Mono, monospace',fill:'#c6bcff'},rel.type));
+    var rect=el('rect',{'class':'graph-edge-label-bg',x:mx-24,y:my-10,width:48,height:16,rx:8});
+    var label=el('text',{'class':'graph-edge-label',x:mx,y:my+2,'text-anchor':'middle'},rel.type);
+    svg.appendChild(line);
+    svg.appendChild(rect);
+    svg.appendChild(label);
+    edgeRefs.push({rel:rel,line:line,rect:rect,label:label});
   });
 
+  var nodeRefs={};
   names.forEach(function(name){
     var p=pos[name];
-    svg.appendChild(el('circle',{cx:p.x,cy:p.y,r:26,fill:'rgba(0,229,160,.12)',stroke:'rgba(0,229,160,.45)','stroke-width':1.5}));
-    svg.appendChild(el('text',{x:p.x,y:p.y+3,'text-anchor':'middle','font-size':'10px','font-family':'Space Mono, monospace',fill:'#f0f0f8'},name));
+    var g=el('g',{'class':'graph-node','data-name':name});
+    var circle=el('circle',{'class':'graph-node-circle',cx:p.x,cy:p.y,r:26});
+    var text=el('text',{'class':'graph-node-text',x:p.x,y:p.y+3,'text-anchor':'middle'},name);
+    g.appendChild(circle);
+    g.appendChild(text);
+    svg.appendChild(g);
+    nodeRefs[name]={group:g,circle:circle,text:text};
+  });
+
+  function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
+  function pointerToSvg(evt){
+    var pt=svg.createSVGPoint();
+    pt.x=evt.clientX;
+    pt.y=evt.clientY;
+    return pt.matrixTransform(svg.getScreenCTM().inverse());
+  }
+  function updateEdges(){
+    edgeRefs.forEach(function(edge){
+      var s=pos[edge.rel.source],t=pos[edge.rel.target];
+      if(!s||!t)return;
+      edge.line.setAttribute('x1',s.x);edge.line.setAttribute('y1',s.y);
+      edge.line.setAttribute('x2',t.x);edge.line.setAttribute('y2',t.y);
+      var mx=(s.x+t.x)/2,my=(s.y+t.y)/2;
+      edge.rect.setAttribute('x',mx-24);edge.rect.setAttribute('y',my-10);
+      edge.label.setAttribute('x',mx);edge.label.setAttribute('y',my+2);
+    });
+  }
+  function updateNode(name){
+    var p=pos[name],node=nodeRefs[name];
+    if(!p||!node)return;
+    node.circle.setAttribute('cx',p.x);
+    node.circle.setAttribute('cy',p.y);
+    node.text.setAttribute('x',p.x);
+    node.text.setAttribute('y',p.y+3);
+  }
+
+  var dragName=null;
+  names.forEach(function(name){
+    var node=nodeRefs[name];
+    node.group.addEventListener('mousedown',function(evt){
+      dragName=name;
+      node.group.classList.add('dragging');
+      evt.preventDefault();
+    });
+  });
+  svg.addEventListener('mousemove',function(evt){
+    if(!dragName)return;
+    var pt=pointerToSvg(evt);
+    pos[dragName]={x:clamp(pt.x,26,w-26),y:clamp(pt.y,26,h-26)};
+    updateNode(dragName);
+    updateEdges();
+  });
+  window.addEventListener('mouseup',function(){
+    if(!dragName)return;
+    var node=nodeRefs[dragName];
+    if(node)node.group.classList.remove('dragging');
+    dragName=null;
   });
 
   empty.style.display='none';
-  meta.textContent=names.length+' node'+(names.length===1?'':'s')+' | '+rels.length+' edge'+(rels.length===1?'':'s');
+  meta.textContent=names.length+' node'+(names.length===1?'':'s')+' | '+rels.length+' edge'+(rels.length===1?'':'s')+' | drag nodes';
   if(!rels.length){
     empty.style.display='flex';
     empty.textContent='No relationships found. Showing entities only.';
@@ -1014,11 +1065,9 @@ async function genSpec(){
    specData=null;zipBlob=null;document.getElementById('genZipBtn').disabled=true;document.getElementById('copySpecBtn').disabled=true;
    try{
      var reqPayload={prompt:prompt};
-     updateApiInspector('POST','/generator/spec',reqPayload,null);
      var r=await fetch(url+'/generator/spec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(reqPayload)});
      if(!r.ok){var et=await r.text();throw new Error('HTTP '+r.status+': '+et);}
      var sr=await r.json();
-     updateApiInspector('POST','/generator/spec',reqPayload,sr);
      var W=Array.isArray(sr.warnings)?sr.warnings:[],E=Array.isArray(sr.errors)?sr.errors:[],F=Array.isArray(sr.fixSuggestions)?sr.fixSuggestions:[];
      specData=sr.spec?sr.spec:sr;
      pushHistory(prompt,specData);
@@ -1064,11 +1113,9 @@ async function genZip(){
    pb.style.display='block';var p=0;
    var iv=setInterval(function(){p=Math.min(p+Math.random()*15,85);pf.style.width=p+'%';},300);
    try{
-     updateApiInspector('POST','/generator/code',specData,{status:'building'});
      var r=await fetch(url+'/generator/code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(specData)});
      if(!r.ok){var et=await r.text();throw new Error('HTTP '+r.status+': '+et);}
      zipBlob=await r.blob();clearInterval(iv);pf.style.width='100%';
-     updateApiInspector('POST','/generator/code',specData,{status:'success',size:zipBlob.size});
      var a=document.createElement('a');a.href=URL.createObjectURL(zipBlob);
      var pn=specData.projectName||'scaffold';a.download=pn+'.zip';a.click();
      setStatus(pn+'.zip downloaded ('+Math.round(zipBlob.size/1024)+' KB) \u2014 cd '+pn+' && ./gradlew bootRun','success');
@@ -1314,60 +1361,6 @@ function copyDocker(){
  });
 
  document.getElementById('shortcutsOverlay').addEventListener('click',closeShortcutsHelp);
-
- // ── API Inspector ────────────────────────────────────────────────────────────
- var lastApiRequest=null,lastApiResponse=null;
- function toggleApiInspectorPanel(){
-   var panel=document.getElementById('apiInspectorPanel');
-   if(panel.style.display==='none'){
-     panel.style.display='grid';
-     document.getElementById('apiInspectorToggleBtn').style.opacity='1';
-   }else{
-     panel.style.display='none';
-     document.getElementById('apiInspectorToggleBtn').style.opacity='0.6';
-   }
- }
- window.toggleApiInspectorPanel=toggleApiInspectorPanel;
-
- function switchApiTab(tab){
-   var reqPanel=document.getElementById('apiRequestInspector'),resPanel=document.getElementById('apiResponseInspector');
-   var reqBtn=document.querySelectorAll('.panel-tab-btn')[0],resBtn=document.querySelectorAll('.panel-tab-btn')[1];
-   if(tab==='request'){
-     reqPanel.style.display='';
-     resPanel.style.display='none';
-     reqBtn.classList.add('active');
-     reqBtn.style.borderBottomColor='var(--accent)';
-     reqBtn.style.color='var(--text)';
-     resBtn.classList.remove('active');
-     resBtn.style.borderBottomColor='transparent';
-     resBtn.style.color='var(--text-muted)';
-   }else{
-     reqPanel.style.display='none';
-     resPanel.style.display='';
-     resBtn.classList.add('active');
-     resBtn.style.borderBottomColor='var(--accent)';
-     resBtn.style.color='var(--text)';
-     reqBtn.classList.remove('active');
-     reqBtn.style.borderBottomColor='transparent';
-     reqBtn.style.color='var(--text-muted)';
-   }
- }
- window.switchApiTab=switchApiTab;
-
- function updateApiInspector(method,endpoint,reqPayload,resPayload){
-   if(reqPayload){
-     var reqText='<pre style="white-space:pre-wrap;word-wrap:break-word;">'+hl(JSON.stringify({method:method,endpoint:endpoint,payload:reqPayload},null,2))+'</pre>';
-     document.getElementById('apiRequestInspector').innerHTML=reqText;
-   }
-   if(resPayload){
-     var resText='<pre style="white-space:pre-wrap;word-wrap:break-word;">'+hl(JSON.stringify(resPayload,null,2))+'</pre>';
-     document.getElementById('apiResponseInspector').innerHTML=resText;
-   }
-   if(document.getElementById('apiInspectorPanel').style.display==='none'){
-     toggleApiInspectorPanel();
-   }
- }
- window.updateApiInspector=updateApiInspector;
 
  document.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key==='Enter')genSpec();});
 var nt=document.getElementById('navToggle'),nl=document.getElementById('navLinks');
