@@ -26,6 +26,6 @@ public final class NaturalLanguagePromptParser implements PromptParser {
         String basePackage = config.hasExplicitBasePackage()
                 ? config.project().basePackage()
                 : ProjectNaming.inferBasePackage(projectName);
-        return new ApiSpecification(projectName, basePackage, entities, parsed.suggestions);
+        return new ApiSpecification(projectName, basePackage, entities, parsed.suggestions, parsed.securityHint);
     }
 }

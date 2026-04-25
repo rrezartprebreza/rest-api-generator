@@ -19,6 +19,11 @@ public final class RequestParsing {
     private static final Pattern SEGMENT_SPLIT = Pattern.compile("(?m)(?:\\r?\\n){2,}");
     private static final Pattern BELONGS_TO = Pattern.compile("(?i)\\bbelongs\\s+to\\s+([A-Za-z][A-Za-z0-9_]*)\\b");
     private static final Pattern HAS_MANY = Pattern.compile("(?i)\\bhas\\s+many\\s+([A-Za-z][A-Za-z0-9_]*)(?:\\s*\\(([^)]+)\\))?");
+    private static final Pattern INCLUDE_ENDPOINTS = Pattern.compile("(?i)\\binclude\\s+([A-Za-z0-9_,\\s]+)(?:\\.\\s*$|$|\\n)");
+    private static final Pattern SECURITY_JWT = Pattern.compile("(?i)\\b(jwt|json\\s+web\\s+token)\\b");
+    private static final Pattern SECURITY_OAUTH2 = Pattern.compile("(?i)\\boauth\\s*2?\\b");
+    private static final Pattern SECURITY_BASIC = Pattern.compile("(?i)\\bbasic\\s+auth(?:entication)?\\b");
+    private static final Pattern SECURITY_PHRASE = Pattern.compile("(?i)\\b(secure|secured|authentication|authorization|auth|protected)\\b");
 
     private RequestParsing() {}
 
@@ -133,6 +138,37 @@ public final class RequestParsing {
             out.add(new ParsedRelationship(type, target, target + "List"));
         }
         return out;
+    }
+
+    /**
+     * Parses "include login, logout, register" DSL into a list of endpoint name tokens.
+     * Returns empty list if the pattern is not found.
+     */
+    public static List<String> extractCustomEndpoints(String request) {
+        if (request == null || request.isBlank()) return List.of();
+        Matcher m = INCLUDE_ENDPOINTS.matcher(request);
+        if (!m.find()) return List.of();
+        String raw = m.group(1);
+        List<String> out = new ArrayList<>();
+        for (String part : raw.split("[,\\s]+")) {
+            String token = part.trim().toLowerCase(Locale.ROOT);
+            if (!token.isEmpty()) out.add(token);
+        }
+        return List.copyOf(out);
+    }
+
+    /**
+     * Detects security hint phrases in the full prompt.
+     * Returns "jwt", "oauth2", "basic", or "none".
+     */
+    public static String extractSecurityHint(String request) {
+        if (request == null || request.isBlank()) return "none";
+        if (SECURITY_JWT.matcher(request).find()) return "jwt";
+        if (SECURITY_OAUTH2.matcher(request).find()) return "oauth2";
+        if (SECURITY_BASIC.matcher(request).find()) return "basic";
+        // generic security phrase but no specific type → default to jwt
+        if (SECURITY_PHRASE.matcher(request).find()) return "jwt";
+        return "none";
     }
 
     public static boolean containsDisableCrud(String lowerRequest) {

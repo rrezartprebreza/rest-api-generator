@@ -33,8 +33,9 @@ public final class NaturalLanguageSpecGenerator {
         String projectName = ProjectNaming.inferProjectName(request, definitions);
         String basePackage = ProjectNaming.inferBasePackage(projectName);
         List<String> suggestions = hasExplicitEntityName(request) ? List.of() : EntityNameSuggester.suggest(request, projectName);
+        String securityHint = RequestParsing.extractSecurityHint(request);
 
-        return new ApiSpecification(projectName, basePackage, definitions, suggestions);
+        return new ApiSpecification(projectName, basePackage, definitions, suggestions, securityHint);
     }
 
     private static List<EntityDefinition> buildEntityDefinitions(String request) {
@@ -90,7 +91,8 @@ public final class NaturalLanguageSpecGenerator {
         boolean crud = !RequestParsing.containsDisableCrud(lower);
         boolean pagination = !RequestParsing.containsDisablePagination(lower);
         boolean sorting = !RequestParsing.containsDisableSorting(lower);
-        return new ApiSpec(defaultResourcePath(entityName), crud, pagination, sorting);
+        List<String> customEndpoints = RequestParsing.extractCustomEndpoints(request);
+        return new ApiSpec(defaultResourcePath(entityName), crud, pagination, sorting, customEndpoints);
     }
 
     private static List<FieldSpec> buildFields(List<RequestParsing.ParsedField> parsedFields, String entityName) {

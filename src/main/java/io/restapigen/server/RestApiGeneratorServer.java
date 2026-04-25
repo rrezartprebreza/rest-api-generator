@@ -187,7 +187,7 @@ public final class RestApiGeneratorServer implements AutoCloseable {
                     respond(exchange, 400, jsonError("CONFIDENCE_FAIL", confidence.reason()), "application/json");
                     return;
                 }
-                byte[] zip = codeGenerator.generateZip(spec, config);
+                byte[] zip = codeGenerator.generateZip(spec, configWithSecurityHint(spec, config));
                 String filename = (spec.projectName != null && !spec.projectName.isBlank())
                         ? spec.projectName + ".zip"
                         : "scaffold.zip";
@@ -346,6 +346,33 @@ public final class RestApiGeneratorServer implements AutoCloseable {
         // Strip stack trace hints and limit length
         String normalized = input.replaceAll("\\s+", " ").trim();
         return normalized.substring(0, Math.min(normalized.length(), 200));
+    }
+
+    /**
+     * Returns a copy of the given config with the security plugin enabled when
+     * the parsed spec carries a non-"none" securityHint (e.g. "jwt", "oauth2", "basic").
+     */
+    private static GenerationConfig configWithSecurityHint(ApiSpecification spec, GenerationConfig base) {
+        String hint = spec.securityHint;
+        if (hint == null || hint.isBlank() || "none".equalsIgnoreCase(hint)) return base;
+        if (base.standards().security().enabled()) return base; // already configured
+        var standards = base.standards();
+        var newSecurity = new GenerationConfig.SecurityConfig(true, hint);
+        var newStandards = new GenerationConfig.StandardsConfig(
+                standards.naming(), standards.layering(), standards.database(),
+                standards.validation(), standards.documentation(), standards.testing(),
+                newSecurity, standards.errorHandling(), standards.responseFormat()
+        );
+        // Enable the security-generator plugin
+        var plugins = base.plugins();
+        java.util.List<String> enabled = new java.util.ArrayList<>(plugins.enabled());
+        if (!enabled.contains("security-generator")) enabled.add("security-generator");
+        java.util.List<String> disabled = new java.util.ArrayList<>(plugins.disabled());
+        disabled.remove("security-generator");
+        var newPlugins = new GenerationConfig.PluginsConfig(
+                enabled, disabled, plugins.externalDirectories(), plugins.externalClassNames()
+        );
+        return new GenerationConfig(base.project(), newStandards, base.features(), newPlugins);
     }
 
     private ConfidenceResponse evaluateConfidence(ApiSpecification spec) {
