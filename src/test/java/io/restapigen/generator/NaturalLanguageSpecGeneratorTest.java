@@ -3,7 +3,10 @@ package io.restapigen.generator;
 import io.restapigen.domain.ApiSpecification;
 import io.restapigen.domain.EntityDefinition;
 import io.restapigen.domain.FieldSpec;
+import io.restapigen.generator.text.RequestParsing;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -212,5 +215,83 @@ class NaturalLanguageSpecGeneratorTest {
 
         assertEquals("e-commerce-api", spec.projectName);
         assertEquals("io.backend.ecommerce", spec.basePackage);
+    }
+
+    // ── Parser Increment: Endpoint DSL ────────────────────────────────────────
+
+    @Test
+    void parsesIncludeEndpointDsl() {
+        List<String> endpoints = RequestParsing.extractCustomEndpoints(
+                "User with email include login, logout, register");
+        assertEquals(3, endpoints.size(), "Expected 3 custom endpoints; got: " + endpoints);
+        assertTrue(endpoints.contains("login"));
+        assertTrue(endpoints.contains("logout"));
+        assertTrue(endpoints.contains("register"));
+    }
+
+    @Test
+    void includeEndpointDslIsWiredIntoSpec() {
+        ApiSpecification spec = new NaturalLanguageSpecGenerator().generate(
+                "Create API for User with email include login, logout, register");
+        assertFalse(spec.entities.isEmpty());
+        List<String> endpoints = spec.entities.get(0).api.customEndpoints;
+        assertTrue(endpoints.contains("login"),    "login missing from customEndpoints: " + endpoints);
+        assertTrue(endpoints.contains("register"), "register missing from customEndpoints: " + endpoints);
+    }
+
+    @Test
+    void noIncludeKeywordYieldsEmptyCustomEndpoints() {
+        ApiSpecification spec = new NaturalLanguageSpecGenerator().generate(
+                "Create API for Product with name and price");
+        spec.entities.forEach(e ->
+                assertTrue(e.api.customEndpoints.isEmpty(),
+                        "Expected empty customEndpoints for: " + e.entity.name));
+    }
+
+    // ── Parser Increment: Security phrase parsing ─────────────────────────────
+
+    @Test
+    void detectsJwtSecurityHint() {
+        assertEquals("jwt", RequestParsing.extractSecurityHint(
+                "Create a secured API with JWT authentication"));
+    }
+
+    @Test
+    void detectsOauth2SecurityHint() {
+        assertEquals("oauth2", RequestParsing.extractSecurityHint(
+                "Build an API with OAuth2 authorization"));
+    }
+
+    @Test
+    void detectsBasicAuthSecurityHint() {
+        assertEquals("basic", RequestParsing.extractSecurityHint("API with basic auth"));
+    }
+
+    @Test
+    void detectsGenericSecurityPhraseAsJwt() {
+        assertEquals("jwt", RequestParsing.extractSecurityHint(
+                "Create a secured REST API for Orders"));
+    }
+
+    @Test
+    void noSecurityPhraseYieldsNone() {
+        assertEquals("none", RequestParsing.extractSecurityHint(
+                "Create API for Product with name and price"));
+    }
+
+    @Test
+    void securityHintIsWiredIntoSpec() {
+        ApiSpecification spec = new NaturalLanguageSpecGenerator().generate(
+                "Create API for User with JWT authentication");
+        assertEquals("jwt", spec.securityHint,
+                "Expected securityHint=jwt; got: " + spec.securityHint);
+    }
+
+    @Test
+    void noSecurityHintInNormalSpec() {
+        ApiSpecification spec = new NaturalLanguageSpecGenerator().generate(
+                "Create API for Product with name and price");
+        assertEquals("none", spec.securityHint,
+                "Expected securityHint=none; got: " + spec.securityHint);
     }
 }

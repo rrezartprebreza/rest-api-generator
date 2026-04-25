@@ -194,10 +194,20 @@
   /* GRAPH */
   .graph-panel{grid-column:1/-1;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);overflow:hidden;}
   .graph-header{padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface2);font-family:var(--mono);font-size:.68rem;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase;font-weight:700;display:flex;align-items:center;gap:8px;}
+  .graph-controls{display:flex;align-items:center;gap:6px;}
+  .graph-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);font-family:var(--mono);font-size:.6rem;padding:3px 8px;border-radius:6px;cursor:pointer;line-height:1.2;}
+  .graph-btn:hover{border-color:var(--accent);color:var(--accent);}
   .graph-meta{margin-left:auto;font-size:.62rem;color:var(--text-dim);}
   .graph-body{height:280px;position:relative;background:linear-gradient(180deg,rgba(0,229,160,.02),transparent);}
-  .graph-svg{width:100%;height:100%;display:block;}
+  .graph-svg{width:100%;height:100%;display:block;touch-action:none;}
   .graph-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.72rem;color:var(--text-dim);}
+  .graph-edge{stroke:rgba(123,97,255,.7);stroke-width:1.5;}
+  .graph-edge-label-bg{fill:rgba(15,15,23,.95);stroke:rgba(123,97,255,.35);}
+  .graph-edge-label{font-size:9px;font-family:var(--mono);fill:#c6bcff;pointer-events:none;}
+  .graph-node{cursor:grab;}
+  .graph-node.dragging{cursor:grabbing;}
+  .graph-node-circle{fill:rgba(0,229,160,.12);stroke:rgba(0,229,160,.45);stroke-width:1.5;}
+  .graph-node-text{font-size:10px;font-family:var(--mono);fill:#f0f0f8;pointer-events:none;user-select:none;}
   /* VALIDATION */
   .validation-panel{grid-column:1/-1;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);overflow:hidden;}
   .validation-header{padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface2);font-family:var(--mono);font-size:.68rem;color:var(--text-muted);letter-spacing:.1em;text-transform:uppercase;font-weight:700;display:flex;align-items:center;gap:8px;}
@@ -276,9 +286,46 @@
   #back-to-top:hover{border-color:var(--accent);background:rgba(0,229,160,.08);}
   #back-to-top svg{width:15px;height:15px;color:var(--text-muted);}
   #back-to-top:hover svg{color:var(--accent);}
-  @keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
-  .fade-in{animation:fadeIn .45s ease forwards;}
-</style>
+   @keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+   .fade-in{animation:fadeIn .45s ease forwards;}
+   /* MODALS */
+   .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;animation:fadeIn .2s ease;backdrop-filter:blur(4px);}
+   .modal.show{display:flex;}
+   .modal-content{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 48px rgba(0,0,0,.4);max-width:400px;width:90%;max-height:80vh;overflow-y:auto;}
+   .modal-header{display:flex;justify-content:space-between;align-items:center;padding:1.5rem 1.75rem;border-bottom:1px solid var(--border);font-weight:700;}
+   .modal-header h3{margin:0;font-size:1.1rem;color:var(--text);}
+   .modal-close{background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;padding:0;width:24px;height:24px;display:flex;align-items:center;justify-content:center;transition:color .2s;}
+   .modal-close:hover{color:var(--text);}
+   .modal-body{padding:1.5rem 1.75rem;}
+   .export-format-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1rem;background:rgba(0,229,160,.05);border:1px solid rgba(0,229,160,.2);border-radius:8px;cursor:pointer;color:var(--text);transition:all .2s;font-family:var(--sans);}
+   .export-format-btn:hover{background:rgba(0,229,160,.12);border-color:rgba(0,229,160,.4);}
+   .export-format-btn:active{transform:scale(0.98);}
+   /* COMMAND PALETTE */
+   .command-palette{display:none;position:fixed;top:50px;left:50%;transform:translateX(-50%);width:90%;max-width:500px;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 20px 80px rgba(0,0,0,.5);z-index:300;animation:slideDown .2s ease;}
+   .command-palette.show{display:block;}
+   @keyframes slideDown{from{opacity:0;transform:translateX(-50%) translateY(-20px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+   .command-palette-input{width:100%;padding:12px 16px;border:none;border-bottom:1px solid var(--border);background:var(--surface);color:var(--text);font-family:var(--mono);font-size:0.9rem;outline:none;}
+   .command-palette-input::placeholder{color:var(--text-dim);}
+   .command-palette-list{max-height:300px;overflow-y:auto;padding:8px;}
+   .command-palette-item{padding:8px 12px;cursor:pointer;border-radius:6px;margin-bottom:4px;transition:background .1s;font-family:var(--mono);font-size:0.8rem;}
+   .command-palette-item:hover{background:rgba(0,229,160,.1);}
+   .command-palette-item.active{background:rgba(0,229,160,.2);color:var(--accent);}
+   .command-palette-item-title{font-weight:600;color:var(--text);}
+   .command-palette-item-desc{font-size:0.7rem;color:var(--text-dim);margin-top:2px;}
+   .command-palette-item-key{display:inline-block;background:var(--code-bg);padding:1px 6px;border-radius:3px;font-size:0.65rem;color:var(--accent);margin-left:auto;font-weight:700;}
+   /* KB SHORTCUTS */
+   .shortcuts-help{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2rem;max-width:500px;max-height:70vh;overflow-y:auto;z-index:300;box-shadow:0 20px 80px rgba(0,0,0,.5);}
+   .shortcuts-help.show{display:block;animation:fadeIn .2s ease;}
+   .shortcuts-help-title{font-size:1.2rem;font-weight:700;margin-bottom:1.5rem;color:var(--text);}
+   .shortcuts-help-group{margin-bottom:1.5rem;border-bottom:1px solid var(--border);padding-bottom:1rem;}
+   .shortcuts-help-group:last-child{border-bottom:none;}
+   .shortcuts-help-group-title{font-size:0.8rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;}
+   .shortcuts-help-item{display:flex;justify-content:space-between;margin-bottom:0.4rem;font-size:0.8rem;font-family:var(--mono);}
+   .shortcuts-help-key{background:var(--code-bg);padding:2px 8px;border-radius:3px;color:var(--accent);font-weight:700;}
+   .shortcuts-help-desc{color:var(--text-muted);}
+   .shortcuts-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:250;animation:fadeIn .2s ease;}
+   .shortcuts-overlay.show{display:block;}
+ </style>
 </head>
 <body>
 
@@ -380,28 +427,37 @@
     </button>
     <button class="btn btn-secondary" id="clearBtn" type="button">Clear</button>
     <button class="btn btn-secondary" id="copySpecBtn" type="button" disabled>Copy JSON</button>
+    <button class="btn btn-secondary" id="exportSpecBtn" type="button" disabled title="Export spec as JSON/YAML/Markdown">Export</button>
+    <button class="btn btn-secondary" id="importSpecBtn" type="button" title="Import a previously saved spec">Import</button>
     <div class="confidence-badge" id="confidenceBadge"></div>
     <span class="kbd-hint"><span class="kbd">&#x2318;</span><span class="kbd">&#x23CE;</span>&nbsp;generate</span>
   </div>
 
-  <div class="status-bar" id="statusBar"><span>Ready &mdash; write a prompt and click Generate Spec</span></div>
+   <div class="status-bar" id="statusBar"><span>Ready &mdash; write a prompt and click Generate Spec</span></div>
 
-  <div class="history-panel">
-    <div class="history-header">
-      <div class="dot purple"></div>Prompt &amp; Spec History
-      <div class="history-meta">
-        <span class="history-count" id="historyCount">0 / 20</span>
-        <button type="button" class="history-clear" id="clearHistoryBtn">Clear history</button>
-      </div>
-    </div>
-    <div class="history-body" id="historyList">
-      <div class="history-empty">No history yet. Generate a spec to save it.</div>
-    </div>
-  </div>
+   <div class="history-panel">
+     <div class="history-header">
+       <div class="dot purple"></div>Prompt &amp; Spec History
+       <div class="history-meta">
+         <input type="text" id="historySearch" placeholder="Search history..." style="width:120px;padding:4px 8px;border:1px solid var(--border);border-radius:4px;background:var(--code-bg);color:var(--text);font-family:var(--mono);font-size:0.75rem;"/>
+         <span class="history-count" id="historyCount">0 / 20</span>
+         <button type="button" class="history-clear" id="clearHistoryBtn">Clear history</button>
+       </div>
+     </div>
+     <div class="history-body" id="historyList">
+       <div class="history-empty">No history yet. Generate a spec to save it.</div>
+     </div>
+   </div>
 
   <div class="graph-panel">
     <div class="graph-header">
       <div class="dot green"></div>Entity Relationship Graph
+      <div class="graph-controls">
+        <button type="button" class="graph-btn" id="graphZoomOutBtn" title="Zoom out">-</button>
+        <button type="button" class="graph-btn" id="graphZoomInBtn" title="Zoom in">+</button>
+        <button type="button" class="graph-btn" id="graphFitBtn" title="Fit graph">Fit</button>
+        <button type="button" class="graph-btn" id="graphResetBtn" title="Reset and clear saved layout">Reset Layout</button>
+      </div>
       <span class="graph-meta" id="graphMeta">No spec loaded</span>
     </div>
     <div class="graph-body" id="graphBody">
@@ -436,10 +492,106 @@
     <div class="entities-row" id="techTags"><span style="font-family:var(--mono);font-size:.68rem;color:var(--text-dim)">File tree will appear here&hellip;</span></div>
     <div class="output-scroll"><div id="fileTree" class="placeholder-msg"><div class="big">&#x1F4C1;</div>Generated file tree will appear here</div></div>
     <div class="progress-bar" id="progressBar" style="display:none"><div class="progress-fill" id="progressFill"></div></div>
-  </div>
-</main>
+   </div>
+ </main>
 
-<section class="how-it-works reveal" id="how-it-works">
+ <!-- Export Spec Modal -->
+ <div class="modal" id="exportModal">
+   <div class="modal-content">
+     <div class="modal-header">
+       <h3>Export Specification</h3>
+       <button type="button" class="modal-close" onclick="closeModal('exportModal')">&times;</button>
+     </div>
+     <div class="modal-body">
+       <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;">Choose export format:</p>
+       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;">
+         <button type="button" class="export-format-btn" onclick="exportSpec('json')">
+           <span style="font-weight:700;font-size:1rem;display:block;">JSON</span>
+           <span style="font-size:0.7rem;color:var(--text-dim);">Standard format</span>
+         </button>
+         <button type="button" class="export-format-btn" onclick="exportSpec('yaml')">
+           <span style="font-weight:700;font-size:1rem;display:block;">YAML</span>
+           <span style="font-size:0.7rem;color:var(--text-dim);">Human readable</span>
+         </button>
+         <button type="button" class="export-format-btn" onclick="exportSpec('markdown')">
+           <span style="font-weight:700;font-size:1rem;display:block;">Markdown</span>
+           <span style="font-size:0.7rem;color:var(--text-dim);">Shareable doc</span>
+         </button>
+       </div>
+     </div>
+   </div>
+ </div>
+
+ <!-- Import Spec Modal -->
+ <div class="modal" id="importModal">
+   <div class="modal-content">
+     <div class="modal-header">
+       <h3>Import Specification</h3>
+       <button type="button" class="modal-close" onclick="closeModal('importModal')">&times;</button>
+     </div>
+     <div class="modal-body">
+       <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.8rem;">Select a previously exported JSON spec file.</p>
+       <input id="importFile" type="file" accept=".json,application/json" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:var(--text);font-family:var(--mono);font-size:0.75rem;"/>
+       <button type="button" class="btn btn-primary" style="margin-top:12px;width:100%;justify-content:center;" onclick="importSpec()">Import Spec</button>
+     </div>
+   </div>
+ </div>
+
+ <!-- Command Palette -->
+ <div class="command-palette" id="commandPalette">
+   <input type="text" id="commandInput" class="command-palette-input" placeholder="Type a command... (? for help)"/>
+   <div class="command-palette-list" id="commandList"></div>
+ </div>
+
+ <!-- Keyboard Shortcuts Help -->
+ <div class="shortcuts-overlay" id="shortcutsOverlay"></div>
+ <div class="shortcuts-help" id="shortcutsHelp">
+   <h3 class="shortcuts-help-title">⌨️ Keyboard Shortcuts</h3>
+   <div class="shortcuts-help-group">
+     <div class="shortcuts-help-group-title">Editor</div>
+     <div class="shortcuts-help-item">
+       <span class="shortcuts-help-desc">Generate Spec</span>
+       <span class="shortcuts-help-key">⌘↩ / Ctrl↩</span>
+     </div>
+     <div class="shortcuts-help-item">
+       <span class="shortcuts-help-desc">Clear All</span>
+       <span class="shortcuts-help-key">⌘K</span>
+     </div>
+     <div class="shortcuts-help-item">
+       <span class="shortcuts-help-desc">Command Palette</span>
+       <span class="shortcuts-help-key">⌘P</span>
+     </div>
+   </div>
+   <div class="shortcuts-help-group">
+     <div class="shortcuts-help-group-title">Navigation</div>
+     <div class="shortcuts-help-item">
+       <span class="shortcuts-help-desc">Scroll to Spec</span>
+       <span class="shortcuts-help-key">⌘1</span>
+     </div>
+     <div class="shortcuts-help-item">
+       <span class="shortcuts-help-desc">Scroll to History</span>
+       <span class="shortcuts-help-key">⌘2</span>
+     </div>
+     <div class="shortcuts-help-item">
+       <span class="shortcuts-help-desc">Scroll to Files</span>
+       <span class="shortcuts-help-key">⌘3</span>
+     </div>
+   </div>
+   <div class="shortcuts-help-group">
+     <div class="shortcuts-help-group-title">Other</div>
+     <div class="shortcuts-help-item">
+       <span class="shortcuts-help-desc">Help</span>
+       <span class="shortcuts-help-key">?</span>
+     </div>
+     <div class="shortcuts-help-item">
+       <span class="shortcuts-help-desc">Close Help/Palette</span>
+       <span class="shortcuts-help-key">Esc</span>
+     </div>
+   </div>
+   <button type="button" style="margin-top:1.5rem;padding:8px 16px;background:var(--accent);color:#06100d;border:none;border-radius:6px;cursor:pointer;font-weight:700;width:100%;" onclick="closeShortcutsHelp()">Got it!</button>
+ </div>
+
+ <section class="how-it-works reveal" id="how-it-works">
   <span class="section-eyebrow">// what gets generated</span>
   <h2 class="section-heading">Everything you&rsquo;d write by hand &mdash; done for you</h2>
   <p class="section-sub">Every layer of a production Spring Boot 3 API, generated and wired together from a single plain-English prompt.</p>
@@ -518,6 +670,8 @@
 <script>
 var specData=null,zipBlob=null,latestFix=[],confidenceFailPolicyEnabled=false;
 var HISTORY_KEY='rag.promptSpecHistory.v1',HISTORY_LIMIT=20,historyEntries=[];
+var GRAPH_LAYOUT_PREFIX='rag.graphLayout.v1';
+var graphRuntime={spec:null,reRender:null,zoom:null,fit:null,cleanup:null};
 var su=document.getElementById('serverUrl');
 function baseUrl(){var o=window.location.origin;return(!o||o==='null'||o.includes('localhost')||o.includes('127.0.0.1'))?'http://localhost:8080':o;}
 su.value=baseUrl();
@@ -532,7 +686,7 @@ pi.addEventListener('input',function(){document.getElementById('charCount').text
 document.querySelectorAll('.example-chip').forEach(function(c){c.addEventListener('click',function(){pi.value=examples[c.dataset.example];document.getElementById('charCount').textContent=pi.value.length+' chars';setStep(1);pi.focus();});});
 function setStep(n){for(var i=1;i<=3;i++){var e=document.getElementById('step'+i);e.classList.remove('active','done');if(i<n)e.classList.add('done');if(i===n)e.classList.add('active');}}
 
-// ── /about label helpers ──────────────────────────────────────────────────────
+/* ── /about label helpers ────────────────────────────────────────────────────── */
 function parserLabel(mode){
   if(!mode)return'\uD83E\uDDE0 LLM';
   if(mode==='ollama'||mode.startsWith('ollama'))return'\uD83E\uDDE0 Ollama';
@@ -577,6 +731,12 @@ document.getElementById('clearBtn').addEventListener('click',clearAll);
 document.getElementById('copySpecBtn').addEventListener('click',copySpec);
 document.getElementById('copyDockerBtn').addEventListener('click',copyDocker);
 document.getElementById('clearHistoryBtn').addEventListener('click',clearHistory);
+document.getElementById('exportSpecBtn').addEventListener('click',function(){document.getElementById('exportModal').classList.add('show');});
+document.getElementById('importSpecBtn').addEventListener('click',function(){document.getElementById('importModal').classList.add('show');});
+document.getElementById('graphResetBtn').addEventListener('click',resetGraphLayout);
+document.getElementById('graphZoomInBtn').addEventListener('click',function(){applyGraphZoom(1.15);});
+document.getElementById('graphZoomOutBtn').addEventListener('click',function(){applyGraphZoom(1/1.15);});
+document.getElementById('graphFitBtn').addEventListener('click',function(){fitGraphView(true);});
 
 function setStatus(msg,type){var b=document.getElementById('statusBar');b.className='status-bar'+(type?' '+type:'');b.innerHTML=msg;}
 function setConfidenceBadge(status,reason){
@@ -655,8 +815,9 @@ function restoreHistory(idx){
     renderTags(specData);
     renderGraph(specData);
     document.getElementById('fileTree').innerHTML='<pre class="fade-in" style="font-size:.76rem">'+buildTree(specData)+'</pre>';
-    document.getElementById('copySpecBtn').disabled=false;
-    document.getElementById('genZipBtn').disabled=false;
+     document.getElementById('copySpecBtn').disabled=false;
+     document.getElementById('exportSpecBtn').disabled=false;
+     document.getElementById('genZipBtn').disabled=false;
   }
   setStep(3);
   setStatus('Restored history entry from '+fmtTs(h.ts),'success');
@@ -707,15 +868,53 @@ function buildTree(spec){
   return L.join('\n');
 }
 
+function graphSpecKey(spec){
+  if(!spec||!Array.isArray(spec.entities))return'';
+  var rels=[];
+  spec.entities.forEach(function(e,i){
+    var src=eName(e,i);
+    (Array.isArray(e.relationships)?e.relationships:[]).forEach(function(r){
+      if(r&&r.target)rels.push(src+'>'+r.target+':'+(r.type||'REL'));
+    });
+  });
+  var base=(spec.projectName||'project')+'|'+spec.entities.map(function(e,i){return eName(e,i);}).join('|')+'|'+rels.sort().join('|');
+  var h=0;
+  for(var i=0;i<base.length;i++){h=((h<<5)-h)+base.charCodeAt(i);h|=0;}
+  return 'k'+Math.abs(h);
+}
+function graphStorageKey(spec){return GRAPH_LAYOUT_PREFIX+'.'+graphSpecKey(spec);}
+function saveGraphLayout(spec,state){
+  var key=graphStorageKey(spec);if(!key||!state)return;
+  try{localStorage.setItem(key,JSON.stringify(state));}catch(e){}
+}
+function loadGraphLayout(spec){
+  var key=graphStorageKey(spec);if(!key)return null;
+  try{var raw=localStorage.getItem(key);return raw?JSON.parse(raw):null;}catch(e){return null;}
+}
+function clearGraphLayout(spec){
+  var key=graphStorageKey(spec);if(!key)return;
+  try{localStorage.removeItem(key);}catch(e){}
+}
+function applyGraphZoom(factor){if(graphRuntime.zoom)graphRuntime.zoom(factor);}
+function fitGraphView(save){if(graphRuntime.fit)graphRuntime.fit(!!save);}
+function resetGraphLayout(){
+  if(!graphRuntime.spec){setStatus('No graph layout to reset yet.','error');return;}
+  clearGraphLayout(graphRuntime.spec);
+  if(graphRuntime.reRender)graphRuntime.reRender();
+  setStatus('Graph layout reset to default.','success');
+}
+
 function renderGraph(spec){
   var svg=document.getElementById('graphSvg');
   var empty=document.getElementById('graphEmpty');
   var meta=document.getElementById('graphMeta');
   if(!svg||!empty||!meta)return;
+  if(graphRuntime.cleanup){graphRuntime.cleanup();graphRuntime.cleanup=null;}
   svg.innerHTML='';
 
   var entities=(spec&&Array.isArray(spec.entities))?spec.entities:[];
   if(!entities.length){
+    graphRuntime.spec=null;graphRuntime.reRender=null;graphRuntime.zoom=null;graphRuntime.fit=null;
     empty.style.display='flex';
     empty.textContent='Generate a spec to see entity relationships.';
     meta.textContent='No spec loaded';
@@ -726,9 +925,7 @@ function renderGraph(spec){
   entities.forEach(function(e,i){
     var source=eName(e,i);
     var rs=Array.isArray(e.relationships)?e.relationships:[];
-    rs.forEach(function(r){
-      if(r&&r.target){rels.push({source:source,target:r.target,type:r.type||'REL'});}
-    });
+    rs.forEach(function(r){if(r&&r.target)rels.push({source:source,target:r.target,type:r.type||'REL'});});
   });
 
   var names=entities.map(function(e,i){return eName(e,i);});
@@ -739,30 +936,169 @@ function renderGraph(spec){
     pos[name]={x:cx+Math.cos(a)*r,y:cy+Math.sin(a)*(r*0.75)};
   });
 
+  var saved=loadGraphLayout(spec);
+  if(saved&&saved.positions){
+    names.forEach(function(n){
+      var p=saved.positions[n];
+      if(p&&Number.isFinite(p.x)&&Number.isFinite(p.y))pos[n]={x:p.x,y:p.y};
+    });
+  }
+  var zoom=(saved&&Number.isFinite(saved.zoom))?saved.zoom:1;
+  var panX=(saved&&Number.isFinite(saved.panX))?saved.panX:0;
+  var panY=(saved&&Number.isFinite(saved.panY))?saved.panY:0;
+
   function el(tag,attrs,text){
     var n=document.createElementNS('http://www.w3.org/2000/svg',tag);
     Object.keys(attrs||{}).forEach(function(k){n.setAttribute(k,String(attrs[k]));});
     if(text!=null)n.textContent=text;
     return n;
   }
+  function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
+  function pointerToSvg(evt){
+    var pt=svg.createSVGPoint();
+    pt.x=evt.clientX;pt.y=evt.clientY;
+    return pt.matrixTransform(svg.getScreenCTM().inverse());
+  }
+  function pointerToGraph(evt){
+    var p=pointerToSvg(evt);
+    return{x:(p.x-panX)/zoom,y:(p.y-panY)/zoom,svgX:p.x,svgY:p.y};
+  }
 
+  var viewport=el('g',{'id':'graphViewport'});
+  svg.appendChild(viewport);
+
+  var edgeRefs=[];
   rels.forEach(function(rel){
     var s=pos[rel.source],t=pos[rel.target];
     if(!s||!t)return;
-    svg.appendChild(el('line',{x1:s.x,y1:s.y,x2:t.x,y2:t.y,stroke:'rgba(123,97,255,.7)','stroke-width':1.5}));
+    var line=el('line',{'class':'graph-edge',x1:s.x,y1:s.y,x2:t.x,y2:t.y});
     var mx=(s.x+t.x)/2,my=(s.y+t.y)/2;
-    svg.appendChild(el('rect',{x:mx-24,y:my-10,width:48,height:16,rx:8,fill:'rgba(15,15,23,.95)',stroke:'rgba(123,97,255,.35)'}));
-    svg.appendChild(el('text',{x:mx,y:my+2,'text-anchor':'middle','font-size':'9px','font-family':'Space Mono, monospace',fill:'#c6bcff'},rel.type));
+    var rect=el('rect',{'class':'graph-edge-label-bg',x:mx-24,y:my-10,width:48,height:16,rx:8});
+    var label=el('text',{'class':'graph-edge-label',x:mx,y:my+2,'text-anchor':'middle'},rel.type);
+    viewport.appendChild(line);viewport.appendChild(rect);viewport.appendChild(label);
+    edgeRefs.push({rel:rel,line:line,rect:rect,label:label});
   });
 
+  var nodeRefs={};
   names.forEach(function(name){
     var p=pos[name];
-    svg.appendChild(el('circle',{cx:p.x,cy:p.y,r:26,fill:'rgba(0,229,160,.12)',stroke:'rgba(0,229,160,.45)','stroke-width':1.5}));
-    svg.appendChild(el('text',{x:p.x,y:p.y+3,'text-anchor':'middle','font-size':'10px','font-family':'Space Mono, monospace',fill:'#f0f0f8'},name));
+    var g=el('g',{'class':'graph-node','data-name':name});
+    var circle=el('circle',{'class':'graph-node-circle',cx:p.x,cy:p.y,r:26});
+    var text=el('text',{'class':'graph-node-text',x:p.x,y:p.y+3,'text-anchor':'middle'},name);
+    g.appendChild(circle);g.appendChild(text);viewport.appendChild(g);
+    nodeRefs[name]={group:g,circle:circle,text:text};
   });
 
+  function updateEdges(){
+    edgeRefs.forEach(function(edge){
+      var s=pos[edge.rel.source],t=pos[edge.rel.target];
+      if(!s||!t)return;
+      edge.line.setAttribute('x1',s.x);edge.line.setAttribute('y1',s.y);
+      edge.line.setAttribute('x2',t.x);edge.line.setAttribute('y2',t.y);
+      var mx=(s.x+t.x)/2,my=(s.y+t.y)/2;
+      edge.rect.setAttribute('x',mx-24);edge.rect.setAttribute('y',my-10);
+      edge.label.setAttribute('x',mx);edge.label.setAttribute('y',my+2);
+    });
+  }
+  function updateNode(name){
+    var p=pos[name],node=nodeRefs[name];
+    if(!p||!node)return;
+    node.circle.setAttribute('cx',p.x);node.circle.setAttribute('cy',p.y);
+    node.text.setAttribute('x',p.x);node.text.setAttribute('y',p.y+3);
+  }
+  function applyViewport(){
+    viewport.setAttribute('transform','translate('+panX+' '+panY+') scale('+zoom+')');
+    meta.textContent=names.length+' node'+(names.length===1?'':'s')+' | '+rels.length+' edge'+(rels.length===1?'':'s')+' | '+Math.round(zoom*100)+'% | drag nodes';
+  }
+  function persistLayout(){saveGraphLayout(spec,{positions:pos,zoom:zoom,panX:panX,panY:panY});}
+  function fitView(save){
+    var xs=names.map(function(n){return pos[n].x;}),ys=names.map(function(n){return pos[n].y;});
+    var minX=Math.min.apply(null,xs)-35,maxX=Math.max.apply(null,xs)+35;
+    var minY=Math.min.apply(null,ys)-35,maxY=Math.max.apply(null,ys)+35;
+    var bw=Math.max(1,maxX-minX),bh=Math.max(1,maxY-minY);
+    zoom=Math.max(0.5,Math.min(2.2,Math.min(w/bw,h/bh)*0.9));
+    panX=(w-(minX+maxX)*zoom)/2;
+    panY=(h-(minY+maxY)*zoom)/2;
+    applyViewport();
+    if(save)persistLayout();
+  }
+
+  graphRuntime.spec=spec;
+  graphRuntime.reRender=function(){renderGraph(spec);};
+  graphRuntime.zoom=function(factor){
+    var before=zoom;
+    zoom=Math.max(0.45,Math.min(2.8,zoom*factor));
+    if(zoom===before)return;
+    panX=cx-((cx-panX)/before)*zoom;
+    panY=cy-((cy-panY)/before)*zoom;
+    applyViewport();
+    persistLayout();
+  };
+  graphRuntime.fit=fitView;
+
+  var dragName=null,isPanning=false,panStart=null;
+  names.forEach(function(name){
+    nodeRefs[name].group.addEventListener('mousedown',function(evt){
+      dragName=name;
+      nodeRefs[name].group.classList.add('dragging');
+      evt.preventDefault();
+    });
+  });
+
+  var onSvgDown=function(evt){
+    if(evt.target.closest&&evt.target.closest('.graph-node'))return;
+    isPanning=true;
+    var p=pointerToSvg(evt);
+    panStart={x:p.x-panX,y:p.y-panY};
+    evt.preventDefault();
+  };
+  var onSvgWheel=function(evt){
+    evt.preventDefault();
+    var g=pointerToGraph(evt);
+    var before=zoom;
+    zoom=Math.max(0.45,Math.min(2.8,zoom*(evt.deltaY<0?1.08:(1/1.08))));
+    if(zoom===before)return;
+    panX=g.svgX-g.x*zoom;
+    panY=g.svgY-g.y*zoom;
+    applyViewport();
+    persistLayout();
+  };
+  var onWindowMove=function(evt){
+    if(dragName){
+      var pt=pointerToGraph(evt);
+      pos[dragName]={x:clamp(pt.x,26,w-26),y:clamp(pt.y,26,h-26)};
+      updateNode(dragName);
+      updateEdges();
+      return;
+    }
+    if(!isPanning||!panStart)return;
+    var p=pointerToSvg(evt);
+    panX=p.x-panStart.x;panY=p.y-panStart.y;
+    applyViewport();
+  };
+  var onWindowUp=function(){
+    if(dragName){
+      var node=nodeRefs[dragName];
+      if(node)node.group.classList.remove('dragging');
+      dragName=null;
+      persistLayout();
+    }
+    if(isPanning){isPanning=false;panStart=null;persistLayout();}
+  };
+
+  svg.addEventListener('mousedown',onSvgDown);
+  svg.addEventListener('wheel',onSvgWheel,{passive:false});
+  window.addEventListener('mousemove',onWindowMove);
+  window.addEventListener('mouseup',onWindowUp);
+  graphRuntime.cleanup=function(){
+    svg.removeEventListener('mousedown',onSvgDown);
+    svg.removeEventListener('wheel',onSvgWheel);
+    window.removeEventListener('mousemove',onWindowMove);
+    window.removeEventListener('mouseup',onWindowUp);
+  };
+
   empty.style.display='none';
-  meta.textContent=names.length+' node'+(names.length===1?'':'s')+' | '+rels.length+' edge'+(rels.length===1?'':'s');
+  applyViewport();
   if(!rels.length){
     empty.style.display='flex';
     empty.textContent='No relationships found. Showing entities only.';
@@ -776,7 +1112,6 @@ function renderValidation(warnings,errors){
   var counts=document.getElementById('validationCounts');
   var W=Array.isArray(warnings)?warnings:[],E=Array.isArray(errors)?errors:[];
 
-  // counts badge
   if(!W.length&&!E.length){
     counts.innerHTML='<span class="vcnt ok">\u2714 clean</span>';
   } else {
@@ -796,12 +1131,11 @@ function renderValidation(warnings,errors){
     else{dot.className='dot';dot.style.background='#ffb347';dot.style.boxShadow='0 0 8px #ffb347';}
   }
 
-  // group all issues by entity (null entity = global)
   var groups={};
   var order=[];
   function addIssue(issue,severity){
     var key=issue.entity||'(global)';
-    if(!groups[key]){groups[key]=[];order.push(key);}
+    if(!groups[key]){groups[key]=[];order.push(key);} 
     groups[key].push({issue:issue,severity:severity});
   }
   E.forEach(function(i){addIssue(i,'err');});
@@ -841,15 +1175,11 @@ function applyFix(idx){
     var nx2=lines.filter(function(l){if(!rx2.test(l))return true;if(!seen){seen=true;return true;}return false;});
     changed=nx2.length!==lines.length;pi.value=nx2.join('\n');
   } else if(s.actionType==='REMOVE_RELATIONSHIP'&&s.field){
-    // match lines like: "- belongs to Target" / "- has many Target" / "- many-to-many with Target"
-    // s.field is the relationship fieldName (e.g. "category"); s.entity is the owning entity name
     var rx3=new RegExp('^\\s*-\\s*(belongs\\s+to|has\\s+many|many-to-many\\s+with)\\s+\\S+','i');
-    // narrow by field name if provided — field is the camelCase fieldName
     var field3=s.field?escRE(s.field):'';
     var narrowed=false;
     if(field3){
       var rx3b=new RegExp('^\\s*-\\s*(belongs\\s+to|has\\s+many|many-to-many\\s+with)\\s+\\S*','i');
-      // try to find the exact line by matching field name in the whole line (case-insensitive)
       var rxField=new RegExp(field3,'i');
       var nx3b=lines.filter(function(l){return!(rx3b.test(l)&&rxField.test(l));});
       if(nx3b.length!==lines.length){changed=true;pi.value=nx3b.join('\n');narrowed=true;}
@@ -872,8 +1202,9 @@ async function genSpec(){
   setStatus('Calling POST /generator/spec\u2026','loading');setStep(2);
   specData=null;zipBlob=null;document.getElementById('genZipBtn').disabled=true;document.getElementById('copySpecBtn').disabled=true;
   try{
-    var r=await fetch(url+'/generator/spec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})});
-    if(!r.ok){var et=await r.text();throw new Error('HTTP '+r.status+': '+et);}
+    var reqPayload={prompt:prompt};
+    var r=await fetch(url+'/generator/spec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(reqPayload)});
+    if(!r.ok){var et=await r.text();throw new Error('HTTP '+r.status+': '+et);} 
     var sr=await r.json();
     var W=Array.isArray(sr.warnings)?sr.warnings:[],E=Array.isArray(sr.errors)?sr.errors:[],F=Array.isArray(sr.fixSuggestions)?sr.fixSuggestions:[];
     specData=sr.spec?sr.spec:sr;
@@ -883,12 +1214,14 @@ async function genSpec(){
     renderTags(specData);
     renderGraph(specData);
     document.getElementById('fileTree').innerHTML='<pre class="fade-in" style="font-size:.76rem">'+buildTree(specData)+'</pre>';
-    document.getElementById('genZipBtn').disabled=E.length>0;document.getElementById('copySpecBtn').disabled=false;
+    document.getElementById('genZipBtn').disabled=E.length>0;document.getElementById('copySpecBtn').disabled=false;document.getElementById('exportSpecBtn').disabled=false;
     var n=specData.entities?specData.entities.length:0;
     setStatus('Spec generated &mdash; '+n+' entit'+(n===1?'y':'ies')+'. '+E.length+' error(s), '+W.length+' warning(s).',E.length?'error':'success');
     setStep(3);
-  }catch(err){setStatus(err.message,'error');setStep(1);document.getElementById('specOutput').innerHTML='<div class="placeholder-msg"><div class="big">&#x26A0;&#xFE0F;</div>'+esc(err.message)+'</div>';}
-  finally{btn.disabled=false;btn.classList.remove('loading');}
+  }catch(err){
+    setStatus(err.message,'error');setStep(1);
+    document.getElementById('specOutput').innerHTML='<div class="placeholder-msg"><div class="big">&#x26A0;&#xFE0F;</div>'+esc(err.message)+'</div>';
+  }finally{btn.disabled=false;btn.classList.remove('loading');}
 }
 
 async function genZip(){
@@ -899,7 +1232,7 @@ async function genZip(){
 
   try{
     var cr=await fetch(url+'/generator/confidence',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(specData)});
-    if(!cr.ok){var cet=await cr.text();throw new Error('Confidence check failed: HTTP '+cr.status+' '+cet);}
+    if(!cr.ok){var cet=await cr.text();throw new Error('Confidence check failed: HTTP '+cr.status+' '+cet);} 
     var c=await cr.json();
     var cs=(c.confidenceStatus||'warn').toLowerCase();
     var reason=c.reason||'No reason provided';
@@ -910,10 +1243,7 @@ async function genZip(){
       setStatus('Confidence FAIL: '+esc(reason)+' — download blocked by fail policy.','error');
       return;
     }
-  }catch(err){
-    setStatus(err.message,'error');
-    return;
-  }
+  }catch(err){setStatus(err.message,'error');return;}
 
   setStatus('Building ZIP\u2026','loading');
   var pb=document.getElementById('progressBar'),pf=document.getElementById('progressFill');
@@ -921,14 +1251,14 @@ async function genZip(){
   var iv=setInterval(function(){p=Math.min(p+Math.random()*15,85);pf.style.width=p+'%';},300);
   try{
     var r=await fetch(url+'/generator/code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(specData)});
-    if(!r.ok){var et=await r.text();throw new Error('HTTP '+r.status+': '+et);}
+    if(!r.ok){var et=await r.text();throw new Error('HTTP '+r.status+': '+et);} 
     zipBlob=await r.blob();clearInterval(iv);pf.style.width='100%';
     var a=document.createElement('a');a.href=URL.createObjectURL(zipBlob);
     var pn=specData.projectName||'scaffold';a.download=pn+'.zip';a.click();
-    setStatus(pn+'.zip downloaded ('+Math.round(zipBlob.size/1024)+' KB) \u2014 cd '+pn+' && ./gradlew bootRun','success');
+    setStatus(pn+'.zip downloaded ('+Math.round(zipBlob.size/1024)+' KB) — cd '+pn+' && ./gradlew bootRun','success');
     setStep(3);document.getElementById('step3').classList.add('done');
   }catch(err){clearInterval(iv);pf.style.width='0%';setStatus(err.message,'error');}
-  finally{btn.disabled=false;btn.classList.remove('loading');setTimeout(function(){pb.style.display='none';pf.style.width='0%';},1500);}
+  finally{btn.disabled=false;btn.classList.remove('loading');setTimeout(function(){pb.style.display='none';pf.style.width='0%';},1500);} 
 }
 
 function copySpec(){
@@ -946,15 +1276,15 @@ function clearAll(){
   document.getElementById('fileTree').innerHTML='<div class="placeholder-msg"><div class="big">&#x1F4C1;</div>Generated file tree will appear here</div>';
   document.getElementById('entityTags').innerHTML='<span style="font-family:var(--mono);font-size:.68rem;color:var(--text-dim)">Entities will appear here&hellip;</span>';
   document.getElementById('techTags').innerHTML='<span style="font-family:var(--mono);font-size:.68rem;color:var(--text-dim)">File tree will appear here&hellip;</span>';
-  document.getElementById('entityCount').textContent='\u2013';document.getElementById('fileCount').textContent='\u2013';
-  document.getElementById('genZipBtn').disabled=true;document.getElementById('copySpecBtn').disabled=true;
+  document.getElementById('entityCount').textContent='–';document.getElementById('fileCount').textContent='–';
+  document.getElementById('genZipBtn').disabled=true;document.getElementById('copySpecBtn').disabled=true;document.getElementById('exportSpecBtn').disabled=true;
   document.getElementById('validationOutput').innerHTML='No validation issues yet.';
   document.getElementById('fixSuggestionsOutput').innerHTML='No fix suggestions yet.';
   document.getElementById('validationCounts').innerHTML='';
   var dot=document.getElementById('validationDot');if(dot){dot.className='dot off';dot.style.background='';dot.style.boxShadow='';}
   renderGraph(null);
   setConfidenceBadge(null);
-  latestFix=[];setStatus('Ready \u2014 write a prompt and click Generate Spec');setStep(1);
+  latestFix=[];setStatus('Ready — write a prompt and click Generate Spec');setStep(1);
 }
 
 function copyDocker(){
@@ -964,7 +1294,212 @@ function copyDocker(){
   setTimeout(function(){b.innerHTML=o;b.style.color='';},2000);
 }
 
-document.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key==='Enter')genSpec();});
+/* EXPORT/IMPORT FUNCTIONS */
+function closeModal(modalId){
+   document.getElementById(modalId).classList.remove('show');
+ }
+ window.closeModal=closeModal;
+
+ function specToYaml(spec){
+   var lines=[];
+   function addLine(indent,key,val){
+     if(typeof val==='object'&&val!==null){
+       lines.push(' '.repeat(indent)+key+':');
+       Object.keys(val).forEach(function(k){addLine(indent+2,k,val[k]);});
+     }else if(Array.isArray(val)){
+       if(val.length===0){lines.push(' '.repeat(indent)+key+': []');}
+       else{
+         lines.push(' '.repeat(indent)+key+':');
+         val.forEach(function(item,i){
+           if(typeof item==='object'&&item!==null){Object.keys(item).forEach(function(k){addLine(indent+2,i===0?'- '+k:k,item[k]);});}
+           else{lines.push(' '.repeat(indent+2)+'- '+esc(String(item)));}
+         });
+       }
+     }else{lines.push(' '.repeat(indent)+key+': '+esc(String(val)));}
+   }
+   Object.keys(spec).forEach(function(k){addLine(0,k,spec[k]);});
+   return lines.join('\n');
+ }
+
+ function specToMarkdown(spec){
+   var lines=['# API Specification','','**Project:** '+esc(spec.projectName||'unnamed'),'','**Package:** `'+esc(spec.basePackage||'com.example')+'`','','## Entities',''];
+   if(spec.entities&&Array.isArray(spec.entities)){
+     spec.entities.forEach(function(e){
+       var name=eName(e,0);
+       lines.push('### '+esc(name));
+       var fields=eFields(e);
+       lines.push('**Fields:** '+fields);
+       if(e.entity&&Array.isArray(e.entity.fields)){
+         lines.push('');
+         e.entity.fields.forEach(function(f){
+           lines.push('- `'+esc(f.name)+'` (**'+esc(f.type)+'**)'+(f.nullable?' (nullable)':''));
+         });
+       }
+       if(e.relationships&&Array.isArray(e.relationships)&&e.relationships.length>0){
+         lines.push('');
+         lines.push('**Relationships:**');
+         e.relationships.forEach(function(r){
+           lines.push('- '+esc(r.type)+' → '+esc(r.target)+' ('+esc(r.fieldName)+')');
+         });
+       }
+       lines.push('');
+     });
+   }
+   lines.push('---');
+   lines.push('*Generated by REST API Generator*');
+   return lines.join('\n');
+ }
+
+ function exportSpec(format){
+   if(!specData)return;
+   var content,filename,mimeType;
+   if(format==='json'){
+     content=JSON.stringify(specData,null,2);
+     filename=(specData.projectName||'spec')+'.json';
+     mimeType='application/json';
+   }else if(format==='yaml'){
+     content=specToYaml(specData);
+     filename=(specData.projectName||'spec')+'.yaml';
+     mimeType='text/yaml';
+   }else if(format==='markdown'){
+     content=specToMarkdown(specData);
+     filename=(specData.projectName||'spec')+'.md';
+     mimeType='text/markdown';
+   }else{return;}
+   var blob=new Blob([content],{type:mimeType});
+   var a=document.createElement('a');
+   a.href=URL.createObjectURL(blob);
+   a.download=filename;
+   a.click();
+   URL.revokeObjectURL(a.href);
+   setStatus('Exported as '+format.toUpperCase()+': '+filename,'success');
+   closeModal('exportModal');
+ }
+ window.exportSpec=exportSpec;
+
+ function importSpec(){
+   var fileInput=document.getElementById('importFile');
+   var file=fileInput.files[0];
+   if(!file){setStatus('Please select a file','error');return;}
+   var reader=new FileReader();
+   reader.onload=function(e){
+     try{
+       var content=e.target.result;
+       var imported=JSON.parse(content);
+       if(!imported.entities||!Array.isArray(imported.entities)){throw new Error('Invalid spec: missing entities array');}
+       specData=imported;
+       pi.value='';
+       document.getElementById('charCount').textContent='0 chars';
+       document.getElementById('specOutput').innerHTML='<pre class="fade-in">'+hl(JSON.stringify(specData,null,2))+'</pre>';
+       renderTags(specData);
+       renderGraph(specData);
+       document.getElementById('fileTree').innerHTML='<pre class="fade-in" style="font-size:.76rem">'+buildTree(specData)+'</pre>';
+       document.getElementById('copySpecBtn').disabled=false;
+       document.getElementById('exportSpecBtn').disabled=false;
+       document.getElementById('genZipBtn').disabled=false;
+       setStatus('Spec imported successfully: '+imported.projectName,'success');
+       setStep(3);
+       closeModal('importModal');
+       fileInput.value='';
+     }catch(err){
+       setStatus('Import failed: '+err.message,'error');
+     }
+   };
+   reader.readAsText(file);
+ }
+ window.importSpec=importSpec;
+
+ // ── Keyboard shortcuts & command palette ──────────────────────────────────────
+ function closeShortcutsHelp(){
+   document.getElementById('shortcutsHelp').classList.remove('show');
+   document.getElementById('shortcutsOverlay').classList.remove('show');
+ }
+ window.closeShortcutsHelp=closeShortcutsHelp;
+
+ var commands=[
+   {title:'Generate Spec',desc:'Parse prompt and generate API spec',key:'⌘↩',action:genSpec},
+   {title:'Download ZIP',desc:'Build and download project ZIP',key:'',action:genZip,check:function(){return!!specData;}},
+   {title:'Export Spec',desc:'Save spec as JSON/YAML/Markdown',key:'',action:function(){document.getElementById('exportModal').classList.add('show');},check:function(){return!!specData;}},
+   {title:'Import Spec',desc:'Load a saved spec file',key:'',action:function(){document.getElementById('importModal').classList.add('show');}},
+   {title:'Clear All',desc:'Reset prompt, spec, and state',key:'⌘K',action:clearAll},
+   {title:'Shortcuts',desc:'Show keyboard shortcuts',key:'?',action:function(){document.getElementById('shortcutsHelp').classList.add('show');document.getElementById('shortcutsOverlay').classList.add('show');}},
+ ];
+
+ function renderCommandPalette(query){
+   var list=document.getElementById('commandList');
+   var filtered=commands.filter(function(c){
+     if(c.check&&!c.check())return false;
+     return c.title.toLowerCase().includes((query||'').toLowerCase())||c.desc.toLowerCase().includes((query||'').toLowerCase());
+   });
+   list.innerHTML=filtered.map(function(c,i){
+     return'<div class="command-palette-item" onclick="closeCommandPalette(); ('+c.action.toString()+')()" tabindex="0">'
+       +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+       +'<div>'
+       +'<div class="command-palette-item-title">'+esc(c.title)+'</div>'
+       +'<div class="command-palette-item-desc">'+esc(c.desc)+'</div>'
+       +'</div>'
+       +(c.key?'<span class="command-palette-item-key">'+c.key+'</span>':'')
+       +'</div></div>';
+   }).join('');
+ }
+
+ function openCommandPalette(){
+   document.getElementById('commandPalette').classList.add('show');
+   document.getElementById('commandInput').value='';
+   document.getElementById('commandInput').focus();
+   renderCommandPalette('');
+ }
+ window.openCommandPalette=openCommandPalette;
+
+ function closeCommandPalette(){
+   document.getElementById('commandPalette').classList.remove('show');
+   document.getElementById('commandInput').value='';
+ }
+ window.closeCommandPalette=closeCommandPalette;
+
+ document.getElementById('commandInput').addEventListener('input',function(e){renderCommandPalette(e.target.value);});
+ document.getElementById('commandInput').addEventListener('keydown',function(e){
+   if(e.key==='Escape'){closeCommandPalette();}
+   else if(e.key==='Enter'){
+     var items=document.querySelectorAll('.command-palette-item');
+     if(items.length>0){items[0].click();}
+   }
+ });
+
+ // History search
+ document.getElementById('historySearch').addEventListener('input',function(e){
+   var q=(e.target.value||'').toLowerCase();
+   var items=document.querySelectorAll('.history-item');
+   items.forEach(function(item){
+     var text=(item.textContent||'').toLowerCase();
+     item.style.display=text.includes(q)?'':'none';
+   });
+ });
+
+ // Global keyboard shortcuts
+ document.addEventListener('keydown',function(e){
+   if(e.ctrlKey||e.metaKey){
+     if(e.key==='Enter'){e.preventDefault();genSpec();}
+     else if(e.key==='k'){e.preventDefault();clearAll();}
+     else if(e.key==='p'){e.preventDefault();openCommandPalette();}
+     else if(e.key==='1'){e.preventDefault();document.getElementById('specOutput').scrollIntoView({behavior:'smooth'});}
+     else if(e.key==='2'){e.preventDefault();document.querySelector('.history-panel').scrollIntoView({behavior:'smooth'});}
+     else if(e.key==='3'){e.preventDefault();document.getElementById('fileTree').scrollIntoView({behavior:'smooth'});}
+   }
+   else if(e.key==='?'&&!document.getElementById('commandPalette').classList.contains('show')&&!document.getElementById('shortcutsHelp').classList.contains('show')){
+     e.preventDefault();
+     document.getElementById('shortcutsHelp').classList.add('show');
+     document.getElementById('shortcutsOverlay').classList.add('show');
+   }
+   else if(e.key==='Escape'){
+     closeCommandPalette();
+     closeShortcutsHelp();
+   }
+ });
+
+ document.getElementById('shortcutsOverlay').addEventListener('click',closeShortcutsHelp);
+
+ document.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key==='Enter')genSpec();});
 var nt=document.getElementById('navToggle'),nl=document.getElementById('navLinks');
 nt.addEventListener('click',function(){var op=nl.classList.toggle('open');nt.setAttribute('aria-expanded',op);});
 nl.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){nl.classList.remove('open');nt.setAttribute('aria-expanded','false');});});

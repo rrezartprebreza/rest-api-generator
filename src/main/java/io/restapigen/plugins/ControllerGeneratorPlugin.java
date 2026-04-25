@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
 public final class ControllerGeneratorPlugin implements GeneratorPlugin {
     @Override public String getName()    { return "controller-generator"; }
     @Override public String getVersion() { return "1.0.0"; }
@@ -47,21 +46,25 @@ public final class ControllerGeneratorPlugin implements GeneratorPlugin {
                     ? buildRelationEndpoints(dtoClass, definition.relationships)
                     : "";
 
+            // Custom endpoint stubs from "include login, logout, register" DSL
+            String customEndpointsBlock = buildCustomEndpoints(definition.api.customEndpoints);
+
             String content = context.templates().render(
                     context.templatePack().templatePath("controller.java.tpl"),
                     Map.ofEntries(
-                            Map.entry("basePackage",        basePackage),
-                            Map.entry("entityName",         entityName),
-                            Map.entry("dtoClass",           dtoClass),
-                            Map.entry("className",          className),
-                            Map.entry("resourcePath",       definition.api.resourcePath),
-                            Map.entry("collaboratorImport", collaboratorPackage),
-                            Map.entry("collaboratorClass",  collaboratorClass),
-                            Map.entry("createCall",         createCall),
-                            Map.entry("findByIdCall",       findByIdCall),
-                            Map.entry("updateCall",         updateCall),
-                            Map.entry("deleteCall",         deleteCall),
-                            Map.entry("relationEndpoints",  relationEndpoints)
+                            Map.entry("basePackage",           basePackage),
+                            Map.entry("entityName",            entityName),
+                            Map.entry("dtoClass",              dtoClass),
+                            Map.entry("className",             className),
+                            Map.entry("resourcePath",          definition.api.resourcePath),
+                            Map.entry("collaboratorImport",    collaboratorPackage),
+                            Map.entry("collaboratorClass",     collaboratorClass),
+                            Map.entry("createCall",            createCall),
+                            Map.entry("findByIdCall",          findByIdCall),
+                            Map.entry("updateCall",            updateCall),
+                            Map.entry("deleteCall",            deleteCall),
+                            Map.entry("relationEndpoints",     relationEndpoints),
+                            Map.entry("customEndpointsBlock",  customEndpointsBlock)
                     )
             );
             out.add(new GeneratedFile(javaBase + "/controller/" + className + ".java", content));
@@ -106,5 +109,47 @@ public final class ControllerGeneratorPlugin implements GeneratorPlugin {
     /** camelCase → kebab-case  e.g. "orderItem" → "order-item" */
     private static String toKebab(String s) {
         return s.replaceAll("([a-z])([A-Z])", "$1-$2").toLowerCase();
+    }
+
+    /**
+     * Generates POST stub endpoints for custom endpoint names from "include X, Y, Z" DSL.
+     * e.g., "login" → POST /login stub.
+     */
+    private String buildCustomEndpoints(List<String> customEndpoints) {
+        if (customEndpoints == null || customEndpoints.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder();
+        for (String endpoint : customEndpoints) {
+            String kebab = toKebab(endpoint);
+            String method = inferHttpMethod(endpoint);
+            String annotation = "@" + capitalize(method.toLowerCase()) + "Mapping(\"/" + kebab + "\")";
+            String methodName = toCamel(endpoint);
+            sb.append("\n")
+              .append("    /**\n")
+              .append("     * ").append(method).append(" /").append(kebab).append(" — custom endpoint.\n")
+              .append("     * TODO: implement ").append(methodName).append(" logic.\n")
+              .append("     */\n")
+              .append("    ").append(annotation).append("\n")
+              .append("    public ResponseEntity<Void> ").append(methodName).append("() {\n")
+              .append("        throw new UnsupportedOperationException(\"").append(methodName).append(" not yet implemented\");\n")
+              .append("    }\n");
+        }
+        return sb.toString();
+    }
+
+    private static String inferHttpMethod(String endpoint) {
+        String lower = endpoint.toLowerCase(java.util.Locale.ROOT);
+        if (lower.startsWith("get") || lower.equals("list") || lower.equals("search") || lower.equals("find")) return "GET";
+        if (lower.startsWith("delete") || lower.startsWith("remove")) return "DELETE";
+        return "POST";
+    }
+
+    private static String toCamel(String s) {
+        if (s == null || s.isBlank()) return s;
+        String[] parts = s.split("[_\\-\\s]+");
+        StringBuilder sb = new StringBuilder(parts[0].toLowerCase(java.util.Locale.ROOT));
+        for (int i = 1; i < parts.length; i++) {
+            if (!parts[i].isEmpty()) sb.append(Character.toUpperCase(parts[i].charAt(0))).append(parts[i].substring(1).toLowerCase(java.util.Locale.ROOT));
+        }
+        return sb.toString();
     }
 }
