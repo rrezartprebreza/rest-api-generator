@@ -20,6 +20,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
@@ -29,6 +31,8 @@ public final class RestApiGeneratorServer implements AutoCloseable {
     private static final Logger LOG = Logger.getLogger(RestApiGeneratorServer.class.getName());
     private static final int DEFAULT_THREAD_POOL = 8;
     private static final String APP_VERSION = loadAppVersion();
+    static final String ENV_RUNTIME_PROFILE = "REST_API_GENERATOR_ENV";
+    static final String ENV_APP_ENV = "APP_ENV";
 
     private final HttpServer           server;
     private final PromptParser         parser;
@@ -55,32 +59,93 @@ public final class RestApiGeneratorServer implements AutoCloseable {
         this.specValidator = new SpecValidator();
         this.confidenceFailPolicyEnabled = Boolean.parseBoolean(System.getenv().getOrDefault("CONFIDENCE_FAIL_POLICY", "false"));
 
-        String ollamaUrl = System.getenv(OllamaPromptParser.ENV_OLLAMA_URL);
-        String llmApiKey = System.getenv(CloudLlmPromptParser.ENV_LLM_API_KEY);
+        Map<String, String> env = System.getenv();
+        PromptParserMode parserMode = selectPromptParser(env);
 
-        if (ollamaUrl != null && !ollamaUrl.isBlank()) {
-            // Local Ollama (Docker Compose --profile llm)
-            this.ollamaParser   = new OllamaPromptParser();
-            this.cloudLlmParser = null;
-            this.parser         = this.ollamaParser;
-            LOG.info("Prompt parser: Ollama at " + this.ollamaParser.getBaseUrl()
-                    + " model=" + this.ollamaParser.getModel() + " (fallback: deterministic)");
-        } else if (llmApiKey != null && !llmApiKey.isBlank()) {
-            // Cloud LLM — Groq, OpenAI, or any OpenAI-compatible endpoint
+        if (parserMode == PromptParserMode.CLOUD) {
+            // Cloud LLM — Groq (default), OpenAI, or any OpenAI-compatible endpoint.
+            // Activate in production by setting APP_ENV=production and LLM_API_KEY=<your-groq-key>
             this.ollamaParser   = null;
             this.cloudLlmParser = new CloudLlmPromptParser();
             this.parser         = this.cloudLlmParser;
             LOG.info("Prompt parser: cloud LLM at " + this.cloudLlmParser.getBaseUrl()
-                    + " model=" + this.cloudLlmParser.getModel() + " (fallback: deterministic)");
+                    + " model=" + this.cloudLlmParser.getModel()
+                    + " profile=" + runtimeProfile(env)
+                    + " (fallback: deterministic)");
+        } else if (parserMode == PromptParserMode.OLLAMA) {
+            // Local Ollama — preferred when APP_ENV=local and OLLAMA_URL is set
+            this.ollamaParser   = new OllamaPromptParser();
+            this.cloudLlmParser = null;
+            this.parser         = this.ollamaParser;
+            LOG.info("Prompt parser: Ollama at " + this.ollamaParser.getBaseUrl()
+                    + " model=" + this.ollamaParser.getModel()
+                    + " profile=" + runtimeProfile(env)
+                    + " (fallback: deterministic)");
         } else {
             // Fully deterministic — no LLM required
             this.ollamaParser   = null;
             this.cloudLlmParser = null;
             this.parser         = new NaturalLanguagePromptParser();
-            LOG.info("Prompt parser: deterministic (set OLLAMA_URL or LLM_API_KEY to enable LLM mode)");
+            LOG.info("Prompt parser: deterministic (set APP_ENV=local with OLLAMA_URL for local Ollama, or APP_ENV=production with LLM_API_KEY for Groq/cloud)");
         }
 
         registerContexts();
+    }
+
+    static PromptParserMode selectPromptParser(Map<String, String> env) {
+        boolean hasCloud  = hasText(env.get(CloudLlmPromptParser.ENV_LLM_API_KEY));
+        boolean hasOllama = hasText(env.get(OllamaPromptParser.ENV_OLLAMA_URL));
+        String profile    = runtimeProfile(env);
+
+        if (isLocalProfile(profile)) {
+            if (hasOllama) return PromptParserMode.OLLAMA;
+            if (hasCloud)  return PromptParserMode.CLOUD;
+            return PromptParserMode.DETERMINISTIC;
+        }
+        if (isProductionProfile(profile)) {
+            if (hasCloud)  return PromptParserMode.CLOUD;
+            if (hasOllama) return PromptParserMode.OLLAMA;
+            return PromptParserMode.DETERMINISTIC;
+        }
+        if (hasCloud)  return PromptParserMode.CLOUD;
+        if (hasOllama) return PromptParserMode.OLLAMA;
+        return PromptParserMode.DETERMINISTIC;
+    }
+
+    static String runtimeProfile(Map<String, String> env) {
+        String explicit = trimToNull(env.get(ENV_RUNTIME_PROFILE));
+        if (explicit != null) {
+            return explicit.toLowerCase(Locale.ROOT);
+        }
+        String appEnv = trimToNull(env.get(ENV_APP_ENV));
+        if (appEnv != null) {
+            return appEnv.toLowerCase(Locale.ROOT);
+        }
+        return "auto";
+    }
+
+    private static boolean isLocalProfile(String profile) {
+        return "local".equals(profile) || "dev".equals(profile) || "development".equals(profile);
+    }
+
+    private static boolean isProductionProfile(String profile) {
+        return "prod".equals(profile) || "production".equals(profile);
+    }
+
+    private static boolean hasText(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private static String trimToNull(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    enum PromptParserMode {
+        OLLAMA,
+        CLOUD,
+        DETERMINISTIC
     }
 
     public void start()  { server.start(); }

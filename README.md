@@ -117,8 +117,12 @@ Create an API for Category with:
 ### Prompt intelligence mode
 
 - The default parser is deterministic and local (rule-based), keeping runs fast and reproducible.
-- `docker compose` always sets `OLLAMA_URL` — if Ollama is not running the server falls back to deterministic parsing automatically. No configuration required.
-- To enable free-form prompt support locally, start with `--profile llm` (see Self-host section above) and pull the model once.
+- Runtime selection is environment-based:
+- `APP_ENV=local` prefers `OLLAMA_URL` first, then `LLM_API_KEY`, then deterministic.
+- `APP_ENV=production` prefers `LLM_API_KEY` first, then `OLLAMA_URL`, then deterministic.
+- If `APP_ENV` is unset, the fallback order is `LLM_API_KEY` → `OLLAMA_URL` → deterministic.
+- For local Docker runs, `docker compose` defaults `APP_ENV=local` and points `OLLAMA_URL` at the local Ollama sidecar.
+- To enable free-form prompt support locally, start with `--profile llm` and pull the model once.
 - The UI badge always reflects the live state: **"LLM active"**, **"LLM offline"**, or no badge (deterministic only).
 
 ---
@@ -158,7 +162,7 @@ Four options — with or without LLM:
 # A) Run the published image (deterministic parser — no LLM, no extra storage needed)
 docker run -p 8080:8080 ghcr.io/rrezartprebreza/rest-api-generator:latest
 
-# B) Run with Ollama for free-form prompt support (~2 GB disk for the model)
+# B) Run locally with Ollama for free-form prompt support (~2 GB disk for the model)
 docker compose --profile llm up
 docker exec rest-api-generator-ollama-1 ollama pull llama3.2
 
@@ -166,13 +170,21 @@ docker exec rest-api-generator-ollama-1 ollama pull llama3.2
 docker build -t rest-api-generator:local .
 docker run -p 8080:8080 rest-api-generator:local
 
-# D) Use docker compose — rebuilds from source (for the generator, not your generated app)
+# D) Run for production with Groq
+docker run -p 8080:8080 \
+  -e APP_ENV=production \
+  -e LLM_API_KEY=your-groq-key \
+  ghcr.io/rrezartprebreza/rest-api-generator:latest
+
+# E) Use docker compose — rebuilds from source (for the generator, not your generated app)
 docker compose up --build
 ```
 
 The Web UI is served at **http://localhost:8080** — share this URL with your team.
 
-The UI shows a status badge: **"LLM active"** when Ollama is reachable, **"LLM offline"** when it is not (generation still works via the deterministic parser). Running without `--profile llm` always falls back to deterministic mode automatically.
+For local development, use `APP_ENV=local` with Ollama. For deployed/production environments, set `APP_ENV=production` and `LLM_API_KEY` so Groq is preferred automatically.
+
+The UI shows a status badge: **"LLM active"** when the selected provider is reachable and **"LLM offline"** when it is not. If the active provider is unavailable, generation falls back automatically.
 
 ---
 
