@@ -178,8 +178,20 @@ public final class RestApiGeneratorServer implements AutoCloseable {
             try {
                 spec = mapper.readValue(requestBody, ApiSpecification.class);
             } catch (JsonProcessingException e) {
-                respond(exchange, 400, jsonError("INVALID_SPEC", "invalid spec payload: " + sanitize(e.getMessage())), "application/json");
-                return;
+                // Fallback: try parsing as a prompt instead of a spec
+                try {
+                    var promptJson = mapper.readTree(requestBody);
+                    if (promptJson.has("prompt") && !promptJson.has("projectName")) {
+                        String prompt = promptJson.get("prompt").asText();
+                        LOG.info("Detected prompt-only payload; auto-parsing: " + (prompt.length() > 50 ? prompt.substring(0, 50) + "..." : prompt));
+                        spec = parser.parse(prompt, config);
+                    } else {
+                        throw e;
+                    }
+                } catch (Exception fallbackErr) {
+                    respond(exchange, 400, jsonError("INVALID_SPEC", "invalid spec payload: " + sanitize(e.getMessage())), "application/json");
+                    return;
+                }
             }
             try {
                 ConfidenceResponse confidence = evaluateConfidence(spec);
