@@ -3,23 +3,27 @@
 # ── Quick start (no LLM, deterministic parser):
 #   docker compose up
 #
-# ── With Ollama LLM (recommended — free-form prompts):
+# ── With local Ollama LLM (default local preference):
 #   docker compose --profile llm up
 #
 #   Then pull a model (choose one):
 #     docker exec rest-api-generator-ollama-1 ollama pull qwen2:7b          # default, fast, 4 GB
 #     docker exec rest-api-generator-ollama-1 ollama pull llama3.2          # good alternative, 2 GB
 #     docker exec rest-api-generator-ollama-1 ollama pull mistral            # solid, 4 GB
-#     docker exec rest-api-generator-ollama-1 ollama pull codellama          # code-focused, 4 GB
 #
-# ── Switching models without rebuilding:
-#   OLLAMA_MODEL=llama3.2 docker compose --profile llm up
+# ── With Groq (production cloud LLM — free tier available):
+#   APP_ENV=production LLM_API_KEY=<your-groq-key> docker compose up
+#   Get your free key at: https://console.groq.com
 #
-# ── GPU acceleration (if you have NVIDIA GPU):
-#   Uncomment the `deploy` block in the ollama service below.
+# ── With OpenRouter (or any OpenAI-compatible provider):
+#   APP_ENV=production LLM_API_KEY=<key> LLM_BASE_URL=https://openrouter.ai/api/v1 docker compose up
+#
+# ── Runtime policy:
+#   APP_ENV=local       => Ollama first, then Groq/cloud, then deterministic
+#   APP_ENV=production  => Groq/cloud first, then Ollama, then deterministic
+#   APP_ENV unset       => Groq/cloud first, then Ollama, then deterministic
 #
 # Either way, open http://localhost:8080
-# The UI shows a badge: "LLM active" or "LLM offline" and always falls back gracefully.
 
 services:
   rest-api-generator:
@@ -28,12 +32,20 @@ services:
       - "8080:8080"
     environment:
       - JAVA_OPTS=-Xmx256m
-      # Points at the optional ollama sidecar when --profile llm is used.
-      # If Ollama is not running the server falls back to deterministic parsing automatically.
-      - OLLAMA_URL=http://ollama:11434
-      # Override with: OLLAMA_MODEL=llama3.2 docker compose --profile llm up
+      - APP_ENV=${APP_ENV:-local}
+      # ── Production / Cloud LLM (Groq by default) ─────────────────────────
+      # Set APP_ENV=production and LLM_API_KEY to prefer Groq/cloud.
+      # Free key: https://console.groq.com
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      # Optional: override provider URL (default: https://api.groq.com/openai/v1)
+      - LLM_BASE_URL=${LLM_BASE_URL:-}
+      # Optional: override model (default: llama-3.3-70b-versatile)
+      - LLM_MODEL=${LLM_MODEL:-}
+      # ── Local Ollama LLM ──────────────────────────────────────────────────
+      # docker compose is primarily for local runs, so default to the sidecar URL.
+      # Start the sidecar with: docker compose --profile llm up
+      - OLLAMA_URL=${OLLAMA_URL:-http://ollama:11434}
       - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2:7b}
-      # Increase if your machine is slow or model is large (e.g. 180 for 9B+ models)
       - OLLAMA_TIMEOUT_SECONDS=${OLLAMA_TIMEOUT_SECONDS:-90}
     restart: unless-stopped
     healthcheck:
@@ -44,7 +56,7 @@ services:
 
   # ── Optional Ollama sidecar ───────────────────────────────────────────────
   # Only starts when you run: docker compose --profile llm up
-  # Model data is persisted in the ollama-data volume between restarts.
+  # The main service already points at http://ollama:11434 by default.
   ollama:
     image: ollama/ollama:latest
     profiles: ["llm"]
