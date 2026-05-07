@@ -8,5 +8,5 @@ import java.util.List;
 ${relationImports}
 
 @Repository
-public interface ${className} extends JpaRepository<${entityName}, Long>, JpaSpecificationExecutor<${entityName}> {
+public interface ${className} extends JpaRepository<${entityName}, ${idType}>, JpaSpecificationExecutor<${entityName}> {
 ${relationMethods}}

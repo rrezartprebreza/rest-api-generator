@@ -6,8 +6,10 @@ import io.restapigen.core.plugin.PluginContext;
 import io.restapigen.domain.ApiSpecification;
 import io.restapigen.domain.EntityDefinition;
 import io.restapigen.domain.FieldSpec;
+import io.restapigen.domain.RelationshipSpec;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,27 +33,39 @@ public final class DtoGeneratorPlugin implements GeneratorPlugin {
         String javaBase = "src/main/java/" + context.basePackagePath();
         String dtoSuffix = context.config().standards().naming().dtoSuffix();
         boolean lombokModels = context.config().features().lombokModels();
+        Map<String, String> idTypeByEntity = idTypeByEntity(specification);
         for (EntityDefinition definition : specification.entities) {
             String className = definition.entity.name + dtoSuffix;
             StringBuilder body = new StringBuilder();
-            Set<String> imports = TemplateSupport.collectImports(definition.entity.fields);
+            List<FieldSpec> dtoFields = dtoFields(definition, idTypeByEntity);
+            Set<String> imports = TemplateSupport.collectImports(dtoFields);
+            TemplateSupport.addTypeImport(imports, definition.entity.idType);
+            for (FieldSpec field : dtoFields) {
+                if (!field.enumValues.isEmpty()) {
+                    imports.add(basePackage + ".entity." + field.type);
+                }
+            }
             if (lombokModels) {
                 imports.add("lombok.AllArgsConstructor");
                 imports.add("lombok.Getter");
                 imports.add("lombok.NoArgsConstructor");
                 imports.add("lombok.Setter");
             }
+            body.append("    private ").append(definition.entity.idType).append(" id;\n\n");
             for (FieldSpec field : definition.entity.fields) {
                 for (String validation : field.validation) {
                     body.append("    @").append(validationToAnnotation(validation)).append("\n");
                 }
                 body.append("    private ").append(field.type).append(" ").append(field.name).append(";\n\n");
             }
+            for (FieldSpec field : relationshipIdFields(definition.relationships, idTypeByEntity)) {
+                body.append("    private ").append(field.type).append(" ").append(field.name).append(";\n\n");
+            }
             if (!lombokModels) {
                 body.append(TemplateSupport.noArgConstructorBlock(className));
-                body.append(TemplateSupport.constructorBlock(className, definition.entity.fields));
-                body.append(TemplateSupport.gettersBlock(definition.entity.fields));
-                body.append(TemplateSupport.settersBlock(definition.entity.fields));
+                body.append(TemplateSupport.constructorBlock(className, dtoFields));
+                body.append(TemplateSupport.gettersBlock(dtoFields));
+                body.append(TemplateSupport.settersBlock(dtoFields));
             }
             String content = context.templates().render(
                     context.templatePack().templatePath("dto.java.tpl"),
@@ -68,6 +82,43 @@ public final class DtoGeneratorPlugin implements GeneratorPlugin {
             out.add(new GeneratedFile(javaBase + "/dto/" + className + ".java", content));
         }
         return out;
+    }
+
+    private Map<String, String> idTypeByEntity(ApiSpecification specification) {
+        Map<String, String> idTypes = new HashMap<>();
+        for (EntityDefinition definition : specification.entities) {
+            idTypes.put(definition.entity.name, definition.entity.idType);
+        }
+        return idTypes;
+    }
+
+    private List<FieldSpec> dtoFields(EntityDefinition definition, Map<String, String> idTypeByEntity) {
+        List<FieldSpec> fields = new ArrayList<>();
+        fields.add(new FieldSpec("id", definition.entity.idType, List.of(), true, true, null, null, null, false, List.of(), null, null));
+        fields.addAll(definition.entity.fields);
+        fields.addAll(relationshipIdFields(definition.relationships, idTypeByEntity));
+        return fields;
+    }
+
+    private List<FieldSpec> relationshipIdFields(List<RelationshipSpec> relationships, Map<String, String> idTypeByEntity) {
+        List<FieldSpec> fields = new ArrayList<>();
+        for (RelationshipSpec relationship : relationships) {
+            String targetIdType = idTypeByEntity.getOrDefault(relationship.target, "Long");
+            String fieldName = switch (relationship.type) {
+                case "ManyToOne", "OneToOne" -> relationship.fieldName + "Id";
+                case "OneToMany", "ManyToMany" -> relationship.fieldName + "Ids";
+                default -> null;
+            };
+            if (fieldName == null) {
+                continue;
+            }
+            String fieldType = switch (relationship.type) {
+                case "OneToMany", "ManyToMany" -> "List<" + targetIdType + ">";
+                default -> targetIdType;
+            };
+            fields.add(new FieldSpec(fieldName, fieldType, List.of(), false, true, null, null, null, false, List.of(), null, null));
+        }
+        return fields;
     }
 
     private String validationToAnnotation(String token) {

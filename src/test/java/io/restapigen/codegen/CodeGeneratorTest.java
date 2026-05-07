@@ -376,9 +376,12 @@ class CodeGeneratorTest {
         assertTrue(entity.contains("private ProductStatus status;"));
 
         assertTrue(dto != null);
+        assertTrue(dto.contains("import com.example.generated.entity.ProductStatus;"),
+                () -> "DTO enum fields must import the enum generated in the entity package; got:\n" + dto);
         assertTrue(dto.contains("import java.time.LocalDateTime;"));
         assertTrue(dto.contains("import java.util.List;"));
         assertTrue(dto.contains("import java.util.Map;"));
+        assertTrue(dto.contains("private ProductStatus status;"));
         assertTrue(dto.contains("private Map<String,Object> metadata;"));
         assertTrue(dto.contains("private List<String> tags;"));
 
@@ -668,6 +671,220 @@ class CodeGeneratorTest {
         int idIgnoreCount = mapper.split("@Mapping\\(target = \"id\", ignore = true\\)", -1).length - 1;
         assertTrue(idIgnoreCount >= 2,
                 () -> "Mapper must @Mapping(target=\"id\",ignore=true) toEntity and updateEntityFromDto; got:\n" + mapper);
+    }
+
+    @Test
+    void migrationsMatchGeneratedJpaModel_regression() throws IOException {
+        // Bugs: generated Flyway SQL used H2-incompatible identity syntax,
+        // omitted audit columns required by generated entities, used camelCase
+        // field columns, and emitted many-to-many join tables that did not
+        // match the generated @JoinTable mapping.
+        ApiSpecification spec = new ApiSpecification(
+                "shop-api",
+                "com.example.generated",
+                List.of(
+                        new EntityDefinition(
+                                new EntitySpec("Product", "products", "Long", List.of(
+                                        new FieldSpec("orderNumber", "String", List.of(), false, false, null, null, null, false, List.of(), null, null)
+                                )),
+                                new ApiSpec("/api/products", true, true, true),
+                                List.of(new RelationshipSpec("ManyToMany", "Tag", "tagList"))
+                        ),
+                        new EntityDefinition(
+                                new EntitySpec("Tag", "tags", "Long", List.of()),
+                                new ApiSpec("/api/tags", true, true, true),
+                                List.of()
+                        )
+                ),
+                List.of()
+        );
+
+        byte[] zip = new CodeGenerator().generateZip(spec);
+        Map<String, String> zipFiles = readZipFiles(zip);
+        String firstMigration = zipFiles.get("src/main/resources/db/migration/V1__create_tags_table.sql");
+        String productMigration = zipFiles.get("src/main/resources/db/migration/V2__create_products_table.sql");
+
+        assertTrue(firstMigration != null,
+                () -> "Independent target table must be created before many-to-many source table; files: " + zipFiles.keySet());
+        assertTrue(productMigration != null,
+                () -> "Product migration must be emitted after Tag migration; files: " + zipFiles.keySet());
+        assertTrue(productMigration.contains("id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY"),
+                () -> "Identity syntax must compile on H2 and PostgreSQL; got:\n" + productMigration);
+        assertTrue(productMigration.contains("created_at TIMESTAMP NOT NULL"));
+        assertTrue(productMigration.contains("updated_at TIMESTAMP"));
+        assertTrue(productMigration.contains("order_number VARCHAR(255) NOT NULL"),
+                () -> "Migration columns must use Spring's snake_case physical naming; got:\n" + productMigration);
+        assertFalse(productMigration.contains("orderNumber VARCHAR"),
+                () -> "Migration must not use camelCase physical columns; got:\n" + productMigration);
+        assertTrue(productMigration.contains("CREATE TABLE product_tag"));
+        assertTrue(productMigration.contains("product_id BIGINT NOT NULL"));
+        assertTrue(productMigration.contains("tag_id BIGINT NOT NULL"));
+        assertFalse(productMigration.contains("products_tags"));
+        assertFalse(productMigration.contains("products_id"));
+        assertFalse(productMigration.contains("tags_id"));
+    }
+
+    @Test
+    void generatedUnitTestsDoNotCallProtectedModelConstructors_regression() throws IOException {
+        // Bug: generated service tests live outside the entity/dto packages
+        // but instantiated models with protected no-arg constructors.
+        ApiSpecification spec = new ApiSpecification(
+                "products-api",
+                "com.example.generated",
+                List.of(new EntityDefinition(
+                        new EntitySpec("Product", "products", "Long", List.of(
+                                new FieldSpec("name", "String", List.of(), true, false, null, null, null, false, List.of(), null, null)
+                        )),
+                        new ApiSpec("/api/products", true, true, true),
+                        List.of()
+                )),
+                List.of()
+        );
+
+        byte[] zip = new CodeGenerator().generateZip(spec);
+        Map<String, String> zipFiles = readZipFiles(zip);
+        String test = zipFiles.get("src/test/java/com/example/generated/service/ProductServiceTest.java");
+
+        assertTrue(test != null);
+        assertTrue(test.contains("entity = mock(Product.class);"),
+                () -> "Service test must mock Product instead of calling its protected constructor; got:\n" + test);
+        assertTrue(test.contains("dto    = mock(ProductDTO.class);"),
+                () -> "Service test must mock ProductDTO instead of calling its protected constructor; got:\n" + test);
+        assertFalse(test.contains("new Product()"),
+                () -> "Service test must not call protected entity constructor; got:\n" + test);
+        assertFalse(test.contains("new ProductDTO()"),
+                () -> "Service test must not call protected DTO constructor; got:\n" + test);
+    }
+
+    @Test
+    void relationshipDtosExposeIdsAndServicesResolveOwningSideRelationships_regression() throws IOException {
+        ApiSpecification spec = new ApiSpecification(
+                "shop-api",
+                "com.example.generated",
+                List.of(
+                        new EntityDefinition(
+                                new EntitySpec("Category", "categories", "Long", List.of()),
+                                new ApiSpec("/api/categories", true, true, true),
+                                List.of()
+                        ),
+                        new EntityDefinition(
+                                new EntitySpec("Tag", "tags", "Long", List.of()),
+                                new ApiSpec("/api/tags", true, true, true),
+                                List.of()
+                        ),
+                        new EntityDefinition(
+                                new EntitySpec("Product", "products", "Long", List.of(
+                                        new FieldSpec("name", "String", List.of(), false, false, null, null, null, false, List.of(), null, null)
+                                )),
+                                new ApiSpec("/api/products", true, true, true),
+                                List.of(
+                                        new RelationshipSpec("ManyToOne", "Category", "category"),
+                                        new RelationshipSpec("ManyToMany", "Tag", "tagList")
+                                )
+                        )
+                ),
+                List.of()
+        );
+
+        byte[] zip = new CodeGenerator().generateZip(spec);
+        Map<String, String> zipFiles = readZipFiles(zip);
+        String dto = zipFiles.get("src/main/java/com/example/generated/dto/ProductDTO.java");
+        String entity = zipFiles.get("src/main/java/com/example/generated/entity/Product.java");
+        String mapper = zipFiles.get("src/main/java/com/example/generated/mapper/ProductMapper.java");
+        String service = zipFiles.get("src/main/java/com/example/generated/service/ProductService.java");
+        String test = zipFiles.get("src/test/java/com/example/generated/service/ProductServiceTest.java");
+
+        assertTrue(dto != null);
+        assertTrue(dto.contains("private Long id;"));
+        assertTrue(dto.contains("private Long categoryId;"));
+        assertTrue(dto.contains("private List<Long> tagListIds;"));
+
+        assertTrue(entity != null);
+        assertTrue(entity.contains("public Category getCategory()"));
+        assertTrue(entity.contains("public void setCategory(Category category)"));
+        assertTrue(entity.contains("public List<Tag> getTagList()"));
+        assertTrue(entity.contains("public void setTagList(List<Tag> tagList)"));
+
+        assertTrue(mapper != null);
+        assertTrue(mapper.contains("@Mapping(target = \"category\", ignore = true)"));
+        assertTrue(mapper.contains("@Mapping(target = \"tagList\", ignore = true)"));
+        assertTrue(mapper.contains("@Mapping(target = \"categoryId\", source = \"category.id\")"));
+        assertTrue(mapper.contains("@Mapping(target = \"tagListIds\", expression = \"java(mapTagListIds(entity.getTagList()))\")"));
+
+        assertTrue(service != null);
+        assertTrue(service.contains("private final CategoryRepository categoryRepository;"));
+        assertTrue(service.contains("private final TagRepository tagRepository;"));
+        assertTrue(service.contains("categoryRepository.findById(dto.getCategoryId())"));
+        assertTrue(service.contains("tagRepository.findAllById(dto.getTagListIds())"));
+        assertTrue(service.contains("entity.setCategory(category);"));
+        assertTrue(service.contains("entity.setTagList(tagList);"));
+
+        assertTrue(test != null);
+        assertTrue(test.contains("private CategoryRepository categoryRepository;"));
+        assertTrue(test.contains("private TagRepository tagRepository;"));
+        assertTrue(test.contains("lenient().when(dto.getCategoryId()).thenReturn(null);"));
+        assertTrue(test.contains("lenient().when(dto.getTagListIds()).thenReturn(null);"));
+    }
+
+    @Test
+    void nonLongEntityIdsPropagateAcrossGeneratedLayers_regression() throws IOException {
+        ApiSpecification spec = new ApiSpecification(
+                "accounts-api",
+                "com.example.generated",
+                List.of(new EntityDefinition(
+                        new EntitySpec("Account", "accounts", "UUID", List.of(
+                                new FieldSpec("name", "String", List.of(), false, false, null, null, null, false, List.of(), null, null)
+                        )),
+                        new ApiSpec("/api/accounts", true, true, true),
+                        List.of()
+                )),
+                List.of()
+        );
+
+        byte[] zip = new CodeGenerator().generateZip(spec);
+        Map<String, String> zipFiles = readZipFiles(zip);
+        String dto = zipFiles.get("src/main/java/com/example/generated/dto/AccountDTO.java");
+        String entity = zipFiles.get("src/main/java/com/example/generated/entity/Account.java");
+        String repository = zipFiles.get("src/main/java/com/example/generated/repository/AccountRepository.java");
+        String service = zipFiles.get("src/main/java/com/example/generated/service/AccountService.java");
+        String controller = zipFiles.get("src/main/java/com/example/generated/controller/AccountController.java");
+        String test = zipFiles.get("src/test/java/com/example/generated/service/AccountServiceTest.java");
+        String migration = zipFiles.get("src/main/resources/db/migration/V1__create_accounts_table.sql");
+
+        assertTrue(dto != null);
+        assertTrue(dto.contains("import java.util.UUID;"));
+        assertTrue(dto.contains("private UUID id;"));
+
+        assertTrue(entity != null);
+        assertTrue(entity.contains("import java.util.UUID;"));
+        assertTrue(entity.contains("@GeneratedValue(strategy = GenerationType.UUID)"));
+        assertTrue(entity.contains("private UUID id;"));
+
+        assertTrue(repository != null);
+        assertTrue(repository.contains("import java.util.UUID;"));
+        assertTrue(repository.contains("extends JpaRepository<Account, UUID>"));
+
+        assertTrue(service != null);
+        assertTrue(service.contains("import java.util.UUID;"));
+        assertTrue(service.contains("public AccountDTO findById(UUID id)"));
+        assertTrue(service.contains("public AccountDTO update(UUID id, AccountDTO dto)"));
+        assertTrue(service.contains("public void delete(UUID id)"));
+
+        assertTrue(controller != null);
+        assertTrue(controller.contains("import java.util.UUID;"));
+        assertTrue(controller.contains("findById(@PathVariable UUID id)"));
+        assertTrue(controller.contains("update(@PathVariable UUID id"));
+        assertTrue(controller.contains("delete(@PathVariable UUID id)"));
+
+        assertTrue(test != null);
+        assertTrue(test.contains("import java.util.UUID;"));
+        assertTrue(test.contains("private UUID existingId;"));
+        assertTrue(test.contains("UUID.fromString(\"00000000-0000-0000-0000-000000000001\")"));
+
+        assertTrue(migration != null);
+        assertTrue(migration.contains("id UUID PRIMARY KEY"));
+        assertFalse(migration.contains("id BIGINT"));
+        assertFalse(migration.contains("GENERATED ALWAYS AS IDENTITY"));
     }
 
     private String readAll(ZipInputStream zis) throws IOException {

@@ -8,8 +8,11 @@ import io.restapigen.domain.EntityDefinition;
 import io.restapigen.domain.RelationshipSpec;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public final class RepositoryGeneratorPlugin implements GeneratorPlugin {
@@ -23,6 +26,7 @@ public final class RepositoryGeneratorPlugin implements GeneratorPlugin {
         String javaBase     = "src/main/java/" + context.basePackagePath();
         String suffix       = context.config().standards().naming().repositorySuffix();
         String entitySuffix = context.config().standards().naming().entitySuffix();
+        Map<String, String> idTypeByEntity = idTypeByEntity(specification);
 
         for (EntityDefinition definition : specification.entities) {
             String entityName  = definition.entity.name;
@@ -30,8 +34,8 @@ public final class RepositoryGeneratorPlugin implements GeneratorPlugin {
             String className   = entityName + suffix;
 
             // Build extra imports and query methods for relationships
-            String relationImports  = buildRelationImports(basePackage, entitySuffix, definition.relationships);
-            String relationMethods  = buildRelationMethods(entityClass, entitySuffix, definition.relationships);
+            String relationImports  = buildRelationImports(basePackage, entitySuffix, definition, idTypeByEntity);
+            String relationMethods  = buildRelationMethods(entityClass, entitySuffix, definition.relationships, idTypeByEntity);
 
             String content = context.templates().render(
                     context.templatePack().templatePath("repository.java.tpl"),
@@ -39,6 +43,7 @@ public final class RepositoryGeneratorPlugin implements GeneratorPlugin {
                             Map.entry("basePackage",      basePackage),
                             Map.entry("entityName",       entityClass),
                             Map.entry("className",        className),
+                            Map.entry("idType",           definition.entity.idType),
                             Map.entry("relationImports",  relationImports),
                             Map.entry("relationMethods",  relationMethods)
                     )
@@ -53,11 +58,21 @@ public final class RepositoryGeneratorPlugin implements GeneratorPlugin {
      * ManyToMany is excluded — those are navigated via the owning entity, not queried by FK.
      */
     private String buildRelationImports(String basePackage, String entitySuffix,
-                                        List<RelationshipSpec> relationships) {
-        return relationships.stream()
+                                        EntityDefinition definition,
+                                        Map<String, String> idTypeByEntity) {
+        Set<String> imports = new LinkedHashSet<>();
+        TemplateSupport.addTypeImport(imports, definition.entity.idType);
+        definition.relationships.stream()
                 .filter(r -> "ManyToOne".equals(r.type) || "OneToOne".equals(r.type))
                 .map(r -> "import " + basePackage + ".entity." + r.target + entitySuffix + ";")
                 .distinct()
+                .forEach(imports::add);
+        definition.relationships.stream()
+                .filter(r -> "ManyToOne".equals(r.type) || "OneToOne".equals(r.type))
+                .map(r -> idTypeByEntity.getOrDefault(r.target, "Long"))
+                .forEach(type -> TemplateSupport.addTypeImport(imports, type));
+        return imports.stream()
+                .map(value -> value.startsWith("import ") ? value : "import " + value + ";")
                 .collect(Collectors.joining("\n"));
     }
 
@@ -69,7 +84,8 @@ public final class RepositoryGeneratorPlugin implements GeneratorPlugin {
      * OneToMany is skipped — the parent entity is queried from the child side.
      */
     private String buildRelationMethods(String entityClass, String entitySuffix,
-                                        List<RelationshipSpec> relationships) {
+                                        List<RelationshipSpec> relationships,
+                                        Map<String, String> idTypeByEntity) {
         StringBuilder sb = new StringBuilder();
         for (RelationshipSpec rel : relationships) {
             if (!"ManyToOne".equals(rel.type) && !"OneToOne".equals(rel.type)) continue;
@@ -77,6 +93,7 @@ public final class RepositoryGeneratorPlugin implements GeneratorPlugin {
             String relEntity    = rel.target + entitySuffix;               // e.g. User (no suffix usually)
             String fieldName    = rel.fieldName;                            // e.g. "user"
             String capitalField = capitalize(fieldName);                    // e.g. "User"
+            String targetIdType = idTypeByEntity.getOrDefault(rel.target, "Long");
 
             sb.append("\n")
               .append("    /** Find all ").append(entityClass)
@@ -86,7 +103,7 @@ public final class RepositoryGeneratorPlugin implements GeneratorPlugin {
               .append("\n")
               .append("    /** Find by ").append(rel.target).append(" id — avoids loading the parent object. */\n")
               .append("    List<").append(entityClass).append("> findBy").append(capitalField)
-              .append("Id(Long ").append(fieldName).append("Id);\n")
+              .append("Id(").append(targetIdType).append(" ").append(fieldName).append("Id);\n")
               .append("\n")
               .append("    /** Paginated version for large result sets. */\n")
               .append("    org.springframework.data.domain.Page<").append(entityClass)
@@ -95,6 +112,14 @@ public final class RepositoryGeneratorPlugin implements GeneratorPlugin {
               .append(", org.springframework.data.domain.Pageable pageable);\n");
         }
         return sb.toString();
+    }
+
+    private Map<String, String> idTypeByEntity(ApiSpecification specification) {
+        Map<String, String> idTypes = new HashMap<>();
+        for (EntityDefinition definition : specification.entities) {
+            idTypes.put(definition.entity.name, definition.entity.idType);
+        }
+        return idTypes;
     }
 
     private static String capitalize(String s) {

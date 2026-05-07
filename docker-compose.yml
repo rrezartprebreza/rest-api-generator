@@ -3,7 +3,7 @@
 # ── Quick start (no LLM, deterministic parser):
 #   docker compose up
 #
-# ── With local Ollama LLM (default local preference):
+# ── With local Ollama LLM (recommended for local dev):
 #   docker compose --profile llm up
 #
 #   Then pull a model (choose one):
@@ -12,16 +12,13 @@
 #     docker exec rest-api-generator-ollama-1 ollama pull mistral            # solid, 4 GB
 #
 # ── With Groq (production cloud LLM — free tier available):
-#   APP_ENV=production LLM_API_KEY=<your-groq-key> docker compose up
+#   LLM_API_KEY=<your-groq-key> docker compose up
 #   Get your free key at: https://console.groq.com
 #
 # ── With OpenRouter (or any OpenAI-compatible provider):
-#   APP_ENV=production LLM_API_KEY=<key> LLM_BASE_URL=https://openrouter.ai/api/v1 docker compose up
+#   LLM_API_KEY=<key> LLM_BASE_URL=https://openrouter.ai/api/v1 docker compose up
 #
-# ── Runtime policy:
-#   APP_ENV=local       => Ollama first, then Groq/cloud, then deterministic
-#   APP_ENV=production  => Groq/cloud first, then Ollama, then deterministic
-#   APP_ENV unset       => Groq/cloud first, then Ollama, then deterministic
+# ── Parser priority: LLM_API_KEY (Groq/cloud) > OLLAMA_URL > deterministic
 #
 # Either way, open http://localhost:8080
 
@@ -32,19 +29,18 @@ services:
       - "8080:8080"
     environment:
       - JAVA_OPTS=-Xmx256m
-      - APP_ENV=${APP_ENV:-local}
       # ── Production / Cloud LLM (Groq by default) ─────────────────────────
-      # Set APP_ENV=production and LLM_API_KEY to prefer Groq/cloud.
+      # Set LLM_API_KEY to enable Groq. LLM_API_KEY takes priority over OLLAMA_URL.
       # Free key: https://console.groq.com
       - LLM_API_KEY=${LLM_API_KEY:-}
       # Optional: override provider URL (default: https://api.groq.com/openai/v1)
       - LLM_BASE_URL=${LLM_BASE_URL:-}
       # Optional: override model (default: llama-3.3-70b-versatile)
       - LLM_MODEL=${LLM_MODEL:-}
-      # ── Local Ollama LLM ──────────────────────────────────────────────────
-      # docker compose is primarily for local runs, so default to the sidecar URL.
-      # Start the sidecar with: docker compose --profile llm up
-      - OLLAMA_URL=${OLLAMA_URL:-http://ollama:11434}
+      # ── Local Ollama LLM (set by --profile llm via override) ─────────────
+      # DO NOT hardcode here — left empty so local-only setups don't try Ollama.
+      # Set automatically when you run: docker compose --profile llm up
+      - OLLAMA_URL=${OLLAMA_URL:-}
       - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2:7b}
       - OLLAMA_TIMEOUT_SECONDS=${OLLAMA_TIMEOUT_SECONDS:-90}
     restart: unless-stopped
@@ -56,7 +52,7 @@ services:
 
   # ── Optional Ollama sidecar ───────────────────────────────────────────────
   # Only starts when you run: docker compose --profile llm up
-  # The main service already points at http://ollama:11434 by default.
+  # Also sets OLLAMA_URL on the main service via the llm profile override below.
   ollama:
     image: ollama/ollama:latest
     profiles: ["llm"]

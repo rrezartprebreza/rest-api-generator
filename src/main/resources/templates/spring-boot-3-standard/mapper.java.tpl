@@ -2,6 +2,7 @@ package ${basePackage}.mapper;
 
 import ${basePackage}.dto.${dtoClass};
 import ${basePackage}.entity.${entityName};
+${extraImports}
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
@@ -12,12 +13,16 @@ public interface ${className} {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+${toEntityRelationshipMappings}
     ${entityName} toEntity(${dtoClass} dto);
 
+${toDtoRelationshipMappings}
     ${dtoClass} toDto(${entityName} entity);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+${toEntityRelationshipMappings}
     void updateEntityFromDto(${dtoClass} dto, @MappingTarget ${entityName} entity);
+${mapperHelperMethods}
 }

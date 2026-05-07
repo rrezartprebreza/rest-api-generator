@@ -8,8 +8,11 @@ import io.restapigen.domain.EntityDefinition;
 import io.restapigen.domain.RelationshipSpec;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 public final class ControllerGeneratorPlugin implements GeneratorPlugin {
     @Override public String getName()    { return "controller-generator"; }
@@ -28,6 +31,7 @@ public final class ControllerGeneratorPlugin implements GeneratorPlugin {
         String repositorySuffix  = context.config().standards().naming().repositorySuffix();
         String dtoSuffix         = context.config().standards().naming().dtoSuffix();
         boolean useServiceLayer  = context.config().standards().layering().includeServiceLayer();
+        Map<String, String> idTypeByEntity = idTypeByEntity(specification);
 
         for (EntityDefinition definition : specification.entities) {
             String entityName          = definition.entity.name;
@@ -43,8 +47,9 @@ public final class ControllerGeneratorPlugin implements GeneratorPlugin {
 
             // Relationship-query endpoints  e.g. GET /api/orders/by-user/{userId}
             String relationEndpoints = useServiceLayer
-                    ? buildRelationEndpoints(dtoClass, definition.relationships)
+                    ? buildRelationEndpoints(dtoClass, definition.relationships, idTypeByEntity)
                     : "";
+            String idTypeImport = idTypeImport(definition, idTypeByEntity);
 
             // Custom endpoint stubs from "include login, logout, register" DSL
             String customEndpointsBlock = buildCustomEndpoints(definition.api.customEndpoints);
@@ -56,6 +61,8 @@ public final class ControllerGeneratorPlugin implements GeneratorPlugin {
                             Map.entry("entityName",            entityName),
                             Map.entry("dtoClass",              dtoClass),
                             Map.entry("className",             className),
+                            Map.entry("idType",                definition.entity.idType),
+                            Map.entry("idTypeImport",          idTypeImport),
                             Map.entry("resourcePath",          definition.api.resourcePath),
                             Map.entry("collaboratorImport",    collaboratorPackage),
                             Map.entry("collaboratorClass",     collaboratorClass),
@@ -77,7 +84,8 @@ public final class ControllerGeneratorPlugin implements GeneratorPlugin {
      *   GET /api/orders/by-user/{userId}     → List<OrderDTO>
      *   GET /api/orders/by-category/{categoryId} → List<OrderDTO>
      */
-    private String buildRelationEndpoints(String dtoClass, List<RelationshipSpec> relationships) {
+    private String buildRelationEndpoints(String dtoClass, List<RelationshipSpec> relationships,
+                                          Map<String, String> idTypeByEntity) {
         StringBuilder sb = new StringBuilder();
         for (RelationshipSpec rel : relationships) {
             if (!"ManyToOne".equals(rel.type) && !"OneToOne".equals(rel.type)) continue;
@@ -85,6 +93,7 @@ public final class ControllerGeneratorPlugin implements GeneratorPlugin {
             String fieldName    = rel.fieldName;                     // "user"
             String capitalField = capitalize(fieldName);             // "User"
             String kebabField   = toKebab(fieldName);               // "user"
+            String targetIdType = idTypeByEntity.getOrDefault(rel.target, "Long");
 
             sb.append("\n")
               .append("    /**\n")
@@ -94,11 +103,31 @@ public final class ControllerGeneratorPlugin implements GeneratorPlugin {
               .append("     */\n")
               .append("    @GetMapping(\"/by-").append(kebabField).append("/{").append(fieldName).append("Id}\")\n")
               .append("    public java.util.List<").append(dtoClass).append("> findBy").append(capitalField)
-              .append("Id(@PathVariable Long ").append(fieldName).append("Id) {\n")
+              .append("Id(@PathVariable ").append(targetIdType).append(" ").append(fieldName).append("Id) {\n")
               .append("        return collaborator.findBy").append(capitalField).append("Id(").append(fieldName).append("Id);\n")
               .append("    }\n");
         }
         return sb.toString();
+    }
+
+    private String idTypeImport(EntityDefinition definition, Map<String, String> idTypeByEntity) {
+        Set<String> imports = new LinkedHashSet<>();
+        TemplateSupport.addTypeImport(imports, definition.entity.idType);
+        definition.relationships.stream()
+                .filter(r -> "ManyToOne".equals(r.type) || "OneToOne".equals(r.type))
+                .map(r -> idTypeByEntity.getOrDefault(r.target, "Long"))
+                .forEach(type -> TemplateSupport.addTypeImport(imports, type));
+        return imports.stream()
+                .map(value -> "import " + value + ";")
+                .collect(Collectors.joining("\n"));
+    }
+
+    private Map<String, String> idTypeByEntity(ApiSpecification specification) {
+        Map<String, String> idTypes = new HashMap<>();
+        for (EntityDefinition definition : specification.entities) {
+            idTypes.put(definition.entity.name, definition.entity.idType);
+        }
+        return idTypes;
     }
 
     private static String capitalize(String s) {
