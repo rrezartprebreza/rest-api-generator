@@ -72,3 +72,7 @@ replay_pid*
 spec.json
 scaffold/
 scaffold.zip
+
+# JetBrains Junie AI agent directory
+.junie/
+

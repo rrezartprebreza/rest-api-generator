@@ -71,12 +71,22 @@ final class TemplateSupport {
     static Set<String> collectImports(List<FieldSpec> fields) {
         Set<String> imports = new LinkedHashSet<>();
         for (FieldSpec field : fields) {
-            String target = TYPE_IMPORTS.get(rawType(field.type));
-            if (target != null) {
-                imports.add(target);
-            }
+            addTypeImport(imports, field.type);
         }
         return imports;
+    }
+
+    static void addTypeImport(Set<String> imports, String type) {
+        String target = TYPE_IMPORTS.get(rawType(type));
+        if (target != null) {
+            imports.add(target);
+        }
+        if (type != null && type.contains("<") && type.endsWith(">")) {
+            String innerTypes = type.substring(type.indexOf('<') + 1, type.length() - 1);
+            for (String innerType : innerTypes.split(",")) {
+                addTypeImport(imports, innerType.trim());
+            }
+        }
     }
 
     static String fieldsBlock(List<FieldSpec> fields) {
@@ -98,8 +108,13 @@ final class TemplateSupport {
     }
 
     static String idFieldBlock(String idType) {
+        String generation = switch (idType) {
+            case "UUID" -> "    @GeneratedValue(strategy = GenerationType.UUID)\n";
+            case "String" -> "";
+            default -> "    @GeneratedValue(strategy = GenerationType.IDENTITY)\n";
+        };
         return "    @Id\n"
-                + "    @GeneratedValue(strategy = GenerationType.IDENTITY)\n"
+                + generation
                 + "    private " + idType + " id;\n\n";
     }
 
@@ -149,6 +164,29 @@ final class TemplateSupport {
                 + "    }\n\n"
                 + gettersBlock(fields)
                 + settersBlock(fields);
+    }
+
+    static String relationshipAccessorsBlock(List<RelationshipSpec> relationships) {
+        StringBuilder out = new StringBuilder();
+        for (RelationshipSpec relationship : relationships) {
+            String type = switch (relationship.type) {
+                case "OneToMany", "ManyToMany" -> "List<" + relationship.target + ">";
+                case "ManyToOne", "OneToOne" -> relationship.target;
+                default -> null;
+            };
+            if (type == null) {
+                continue;
+            }
+            String capitalized = capitalize(relationship.fieldName);
+            out.append("    public ").append(type).append(" get").append(capitalized).append("() {\n")
+                    .append("        return ").append(relationship.fieldName).append(";\n")
+                    .append("    }\n\n")
+                    .append("    public void set").append(capitalized).append("(")
+                    .append(type).append(" ").append(relationship.fieldName).append(") {\n")
+                    .append("        this.").append(relationship.fieldName).append(" = ").append(relationship.fieldName).append(";\n")
+                    .append("    }\n\n");
+        }
+        return out.toString();
     }
 
     static String noArgConstructorBlock(String className) {

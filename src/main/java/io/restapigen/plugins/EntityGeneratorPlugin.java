@@ -38,6 +38,7 @@ public final class EntityGeneratorPlugin implements GeneratorPlugin {
                     .collect(Collectors.toList());
 
             Set<String> imports = TemplateSupport.collectEntityImports(entityFields, definition.relationships);
+            TemplateSupport.addTypeImport(imports, definition.entity.idType);
 
             if (auditing) {
                 imports.add("org.springframework.data.annotation.CreatedDate");
@@ -56,6 +57,7 @@ public final class EntityGeneratorPlugin implements GeneratorPlugin {
             String classAnnotations = buildClassAnnotations(lombokModels, auditing);
             // Audit getters/setters (not needed when Lombok @Getter/@Setter is active)
             String auditAccessors = (!lombokModels && auditing) ? buildAuditAccessors() : "";
+            String relationshipAccessors = lombokModels ? "" : TemplateSupport.relationshipAccessorsBlock(definition.relationships);
 
             String content = context.templates().render(
                     context.templatePack().templatePath("entity.java.tpl"),
@@ -72,7 +74,7 @@ public final class EntityGeneratorPlugin implements GeneratorPlugin {
                             Map.entry("classAnnotations",     classAnnotations),
                             Map.entry("noArgConstructorBlock",TemplateSupport.noArgConstructorBlock(className)),
                             Map.entry("constructorBlock",     TemplateSupport.constructorBlock(className, entityFields)),
-                            Map.entry("gettersBlock",         lombokModels ? "" : TemplateSupport.entityGettersBlock(definition.entity.idType, entityFields) + auditAccessors)
+                            Map.entry("gettersBlock",         lombokModels ? "" : TemplateSupport.entityGettersBlock(definition.entity.idType, entityFields) + auditAccessors + relationshipAccessors)
                     )
             );
             out.add(new GeneratedFile(javaBase + "/entity/" + className + ".java", content));

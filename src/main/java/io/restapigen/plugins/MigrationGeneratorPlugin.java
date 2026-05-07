@@ -35,11 +35,11 @@ public final class MigrationGeneratorPlugin implements GeneratorPlugin {
         List<GeneratedFile> out = new ArrayList<>();
         Map<String, String> tableByEntity = buildTableMap(specification);
         int version = 1;
-        for (EntityDefinition definition : specification.entities) {
+        for (EntityDefinition definition : sortedByRelationshipDependencies(specification.entities)) {
             String fileName = migrationFilePath(tool, version, definition.entity.table);
             String content = switch (tool) {
                 case "liquibase" -> liquibaseForEntity(definition, tableByEntity, version);
-                default -> sqlForEntity(definition, tableByEntity, version);
+                default -> sqlForEntity(definition, tableByEntity, context, version);
             };
             out.add(new GeneratedFile(fileName, content));
             version++;
@@ -62,15 +62,26 @@ public final class MigrationGeneratorPlugin implements GeneratorPlugin {
         return map;
     }
 
-    private String sqlForEntity(EntityDefinition definition, Map<String, String> tableByEntity, int version) {
+    private String sqlForEntity(EntityDefinition definition, Map<String, String> tableByEntity, PluginContext context, int version) {
         StringBuilder out = new StringBuilder();
         out.append("-- V").append(version).append(" create ").append(definition.entity.table).append('\n');
         out.append("CREATE TABLE ").append(definition.entity.table).append(" (\n");
         List<String> columns = new ArrayList<>();
-        columns.add("id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY");
+        columns.add(idColumn(definition.entity.idType));
+        boolean auditing = context.config().features().auditing();
+        if (auditing) {
+            columns.add("created_at TIMESTAMP NOT NULL");
+            columns.add("updated_at TIMESTAMP");
+        }
         for (FieldSpec field : definition.entity.fields) {
+            if ("id".equals(field.name)) {
+                continue;
+            }
+            if (auditing && ("createdAt".equals(field.name) || "updatedAt".equals(field.name))) {
+                continue;
+            }
             StringBuilder fieldColumn = new StringBuilder();
-            fieldColumn.append(field.name).append(" ").append(toSqlType(field.type));
+            fieldColumn.append(toSnakeCase(field.name)).append(" ").append(toSqlType(field.type));
             if (!field.nullable) {
                 fieldColumn.append(" NOT NULL");
             }
@@ -116,7 +127,7 @@ public final class MigrationGeneratorPlugin implements GeneratorPlugin {
                 .append("            </column>\n");
 
         for (FieldSpec field : definition.entity.fields) {
-            out.append("            <column name=\"").append(field.name).append("\" type=\"").append(toSqlType(field.type)).append("\">\n")
+            out.append("            <column name=\"").append(toSnakeCase(field.name)).append("\" type=\"").append(toSqlType(field.type)).append("\">\n")
                     .append("                <constraints nullable=\"").append(field.nullable).append("\" unique=\"").append(field.unique).append("\"/>\n")
                     .append("            </column>\n");
         }
@@ -156,14 +167,61 @@ public final class MigrationGeneratorPlugin implements GeneratorPlugin {
     private String joinTableSql(EntityDefinition source, RelationshipSpec relationship, Map<String, String> tableByEntity) {
         String sourceTable = source.entity.table;
         String targetTable = tableByEntity.get(relationship.target);
-        String joinTable = sourceTable + "_" + targetTable;
+        String joinTable = toSnakeCase(source.entity.name) + "_" + toSnakeCase(relationship.target);
+        String sourceColumn = toSnakeCase(source.entity.name) + "_id";
+        String targetColumn = toSnakeCase(relationship.target) + "_id";
         return "CREATE TABLE " + joinTable + " (\n"
-                + "    " + sourceTable + "_id BIGINT NOT NULL,\n"
-                + "    " + targetTable + "_id BIGINT NOT NULL,\n"
-                + "    PRIMARY KEY (" + sourceTable + "_id, " + targetTable + "_id),\n"
-                + "    FOREIGN KEY (" + sourceTable + "_id) REFERENCES " + sourceTable + "(id),\n"
-                + "    FOREIGN KEY (" + targetTable + "_id) REFERENCES " + targetTable + "(id)\n"
+                + "    " + sourceColumn + " BIGINT NOT NULL,\n"
+                + "    " + targetColumn + " BIGINT NOT NULL,\n"
+                + "    PRIMARY KEY (" + sourceColumn + ", " + targetColumn + "),\n"
+                + "    FOREIGN KEY (" + sourceColumn + ") REFERENCES " + sourceTable + "(id),\n"
+                + "    FOREIGN KEY (" + targetColumn + ") REFERENCES " + targetTable + "(id)\n"
                 + ");\n\n";
+    }
+
+    private List<EntityDefinition> sortedByRelationshipDependencies(List<EntityDefinition> definitions) {
+        List<EntityDefinition> remaining = new ArrayList<>(definitions);
+        List<EntityDefinition> sorted = new ArrayList<>();
+        while (!remaining.isEmpty()) {
+            boolean progressed = false;
+            for (int i = 0; i < remaining.size(); i++) {
+                EntityDefinition candidate = remaining.get(i);
+                if (dependenciesSatisfied(candidate, remaining)) {
+                    sorted.add(candidate);
+                    remaining.remove(i);
+                    i--;
+                    progressed = true;
+                }
+            }
+            if (!progressed) {
+                sorted.addAll(remaining);
+                break;
+            }
+        }
+        return sorted;
+    }
+
+    private boolean dependenciesSatisfied(EntityDefinition candidate, List<EntityDefinition> remaining) {
+        for (RelationshipSpec relationship : candidate.relationships) {
+            if (!requiresTargetTableFirst(relationship)) {
+                continue;
+            }
+            if (candidate.entity.name.equals(relationship.target)) {
+                continue;
+            }
+            boolean targetStillRemaining = remaining.stream()
+                    .anyMatch(definition -> definition.entity.name.equals(relationship.target));
+            if (targetStillRemaining) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean requiresTargetTableFirst(RelationshipSpec relationship) {
+        return "ManyToOne".equals(relationship.type)
+                || "OneToOne".equals(relationship.type)
+                || "ManyToMany".equals(relationship.type);
     }
 
     private String toSqlType(String javaType) {
@@ -179,11 +237,29 @@ public final class MigrationGeneratorPlugin implements GeneratorPlugin {
         return switch (javaType) {
             case "Long" -> "BIGINT";
             case "Integer" -> "INTEGER";
+            case "UUID" -> "UUID";
             case "Boolean" -> "BOOLEAN";
             case "BigDecimal" -> "DECIMAL(19,2)";
             case "LocalDate" -> "DATE";
             case "LocalDateTime" -> "TIMESTAMP";
             default -> "VARCHAR(255)";
         };
+    }
+
+    private String idColumn(String idType) {
+        String sqlType = toSqlType(idType);
+        return switch (idType) {
+            case "UUID", "String" -> "id " + sqlType + " PRIMARY KEY";
+            default -> "id " + sqlType + " GENERATED ALWAYS AS IDENTITY PRIMARY KEY";
+        };
+    }
+
+    private String toSnakeCase(String input) {
+        if (input == null || input.isBlank()) {
+            return input;
+        }
+        return input
+                .replaceAll("([a-z])([A-Z])", "$1_$2")
+                .toLowerCase(Locale.ROOT);
     }
 }

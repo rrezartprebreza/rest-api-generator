@@ -25,10 +25,12 @@ public class ${className} {
 
     private final ${repositoryClass} repository;
     private final ${mapperClass} mapper;
+${relatedRepositoryFields}
 
-    public ${className}(${repositoryClass} repository, ${mapperClass} mapper) {
+    public ${className}(${repositoryClass} repository, ${mapperClass} mapper${relatedRepositoryConstructorParams}) {
         this.repository = repository;
         this.mapper = mapper;
+${relatedRepositoryAssignments}
     }
 
     public Page<${dtoClass}> findAll(int page, int size, String sortBy, String sortDir, String filter) {
@@ -43,30 +45,33 @@ public class ${className} {
     @Transactional
     public ${dtoClass} create(${dtoClass} dto) {
         ${entityClass} entity = mapper.toEntity(dto);
+${applyRelationshipsCall}
         return mapper.toDto(repository.save(entity));
     }
 
-    public ${dtoClass} findById(Long id) {
+    public ${dtoClass} findById(${idType} id) {
         return repository.findById(id)
                 .map(mapper::toDto)
                 .orElseThrow(() -> new ResourceNotFoundException("${entityName}", "id", id));
     }
 
     @Transactional
-    public ${dtoClass} update(Long id, ${dtoClass} dto) {
+    public ${dtoClass} update(${idType} id, ${dtoClass} dto) {
         ${entityClass} entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("${entityName}", "id", id));
         mapper.updateEntityFromDto(dto, entity);
+${applyRelationshipsCall}
         return mapper.toDto(repository.save(entity));
     }
 
     @Transactional
-    public void delete(Long id) {
+    public void delete(${idType} id) {
         ${entityClass} entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("${entityName}", "id", id));
         repository.delete(entity);
     }
 ${relationServiceMethods}
+${applyRelationshipsMethod}
     private Specification<${entityClass}> buildSpecification(String filter) {
         if (filter == null || filter.isBlank()) {
             return Specification.where(null);

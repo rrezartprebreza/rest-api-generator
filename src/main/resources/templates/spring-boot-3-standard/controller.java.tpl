@@ -2,6 +2,7 @@ package ${basePackage}.controller;
 
 import ${basePackage}.dto.${dtoClass};
 import ${collaboratorImport};
+${idTypeImport}
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -43,7 +44,7 @@ public class ${className} {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<${dtoClass}> findById(@PathVariable Long id) {
+    public ResponseEntity<${dtoClass}> findById(@PathVariable ${idType} id) {
         return ResponseEntity.ok(${findByIdCall});
     }
 
@@ -65,13 +66,13 @@ public class ${className} {
     }
 
     @PutMapping("/{id}")
-    public ${dtoClass} update(@PathVariable Long id, @Valid @RequestBody ${dtoClass} dto) {
+    public ${dtoClass} update(@PathVariable ${idType} id, @Valid @RequestBody ${dtoClass} dto) {
         return ${updateCall};
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
+    public void delete(@PathVariable ${idType} id) {
         ${deleteCall}
     }
 ${relationEndpoints}${customEndpointsBlock}}

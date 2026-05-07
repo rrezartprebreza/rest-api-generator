@@ -38,7 +38,7 @@ class ${className} {
 
     @Test
     void getById_returnsNotFound_forUnknownId() throws Exception {
-        mockMvc.perform(get("${resourcePath}/999999"))
+        mockMvc.perform(get("${resourcePath}/${missingIdPathValue}"))
                .andExpect(status().isNotFound());
     }
 }
