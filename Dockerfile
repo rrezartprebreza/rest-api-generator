@@ -5,7 +5,7 @@ COPY . .
 RUN gradle --no-daemon installDist -x test
 
 # ── Stage 2: runtime ──────────────────────────────────────────────────────────
-FROM eclipse-temurin:17-jre-jammy
+FROM eclipse-temurin:25-jre-jammy
 LABEL org.opencontainers.image.title="REST API Generator" \
       org.opencontainers.image.description="Generate production-ready Spring Boot APIs from plain English" \
       org.opencontainers.image.source="https://github.com/rrezartprebreza/rest-api-generator"
