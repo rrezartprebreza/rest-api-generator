@@ -81,8 +81,8 @@ cd rest-api-generator
 # Generate ZIP directly
 ./gradlew run --args="generate-zip --file examples/prompts/ecommerce.txt --out scaffold.zip"
 
-# Unzip and run
-unzip scaffold.zip -d my-api && cd my-api && ./gradlew bootRun
+# Unzip and run with Docker (no local Gradle installation required)
+unzip scaffold.zip -d my-api && cd my-api && docker compose up --build
 ```
 
 ### Important: generator app vs generated app
@@ -186,6 +186,8 @@ For local development, use `APP_ENV=local` with Ollama. For deployed/production 
 
 The UI shows a status badge: **"LLM active"** when the selected provider is reachable and **"LLM offline"** when it is not. If the active provider is unavailable, generation falls back automatically.
 
+HTTP request bodies are limited to 1 MiB. Cross-origin browser access is disabled by default; set `CORS_ALLOWED_ORIGINS` to a comma-separated allowlist only when a separate trusted frontend needs API access.
+
 ---
 
 ## Configuration (`.rest-api-generator.yml`)
@@ -239,8 +241,8 @@ Every command supports `--help`.
 | Pack | Description |
 |---|---|
 | `spring-boot-3-standard` | Standard layered architecture (default) |
-| `microservices-pattern` | Microservice-ready structure |
-| `ddd-layered` | Domain-Driven Design layers |
+
+DDD and microservices packs remain on the roadmap and are not exposed as supported output until pack-specific templates and compile tests are available.
 
 ---
 

@@ -322,7 +322,7 @@ class CodeGeneratorTest {
                                 new FieldSpec("email", "String", List.of("NotBlank", "Email"), true, false, null, null, "email", false, List.of(), null, null),
                                 new FieldSpec("age", "Integer", List.of("Min:18", "Max:120"), false, false, 18, 120, null, false, List.of(), null, null),
                                 new FieldSpec("price", "BigDecimal", List.of("DecimalMin:0", "DecimalMax:500"), false, false, 0, 500, null, false, List.of(), null, null),
-                                new FieldSpec("status", "String", List.of("OneOf:ACTIVE|INACTIVE"), false, false, null, null, null, false, List.of("ACTIVE", "INACTIVE"), null, null)
+                                new FieldSpec("status", "UserStatus", List.of("OneOf:ACTIVE|INACTIVE"), false, false, null, null, null, false, List.of("ACTIVE", "INACTIVE"), null, null)
                         )),
                         new ApiSpec("/api/users", true, true, true),
                         List.of()
@@ -535,10 +535,7 @@ class CodeGeneratorTest {
     }
 
     @Test
-    void dockerfileUsesGradle76ForJava8_regression() throws IOException {
-        // Bug: DockerGeneratorPlugin produced `gradle:8.10-jdk8`, which does
-        // not exist on Docker Hub (Gradle 8.x requires JDK 11+). Java 8 must
-        // map to the last Gradle 7.x image that supports it.
+    void rejectsJava8ForSpringBoot3Generation() {
         ApiSpecification spec = new ApiSpecification(
                 "products-api",
                 "com.example.generated",
@@ -562,15 +559,10 @@ class CodeGeneratorTest {
                 java8Project, defaults.standards(), defaults.features(), defaults.plugins()
         );
 
-        byte[] zip = new CodeGenerator().generateZip(spec, config);
-        Map<String, String> zipFiles = readZipFiles(zip);
-        String dockerfile = zipFiles.get("Dockerfile");
-
-        assertTrue(dockerfile != null);
-        assertTrue(dockerfile.contains("FROM gradle:7.6-jdk8 AS builder"),
-                () -> "Java 8 must use gradle:7.6-jdk8; got:\n" + dockerfile);
-        assertFalse(dockerfile.contains("gradle:8.10-jdk8"),
-                () -> "gradle:8.10-jdk8 does not exist on Docker Hub; got:\n" + dockerfile);
+        org.junit.jupiter.api.Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> new CodeGenerator().generateZip(spec, config)
+        );
     }
 
     @Test

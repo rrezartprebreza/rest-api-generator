@@ -9,7 +9,6 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -18,6 +17,7 @@ concurrency:
 jobs:
   build-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -41,6 +41,18 @@ jobs:
           ./gradlew --no-daemon -q run --args="templates list"
           ./gradlew --no-daemon -q run --args="plugins list --config .rest-api-generator.yml"
 
+      - name: Validate JSON schemas
+        run: |
+          python -m json.tool schemas/api-specification.schema.json >/dev/null
+          python -m json.tool schemas/rest-api-generator-config.schema.json >/dev/null
+
+      - name: Build and test a generated project
+        run: |
+          mkdir -p build/generated-e2e/project
+          ./gradlew --no-daemon -q run --args="generate-zip --file examples/prompts/ecommerce.txt --out build/generated-e2e/scaffold.zip"
+          unzip -q build/generated-e2e/scaffold.zip -d build/generated-e2e/project
+          ./gradlew --no-daemon -p build/generated-e2e/project clean test
+
       - name: Upload test reports on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -54,6 +66,10 @@ jobs:
     needs: build-test
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Checkout

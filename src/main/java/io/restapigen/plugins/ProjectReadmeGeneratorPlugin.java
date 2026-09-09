@@ -25,6 +25,13 @@ public final class ProjectReadmeGeneratorPlugin implements GeneratorPlugin {
         StringBuilder out = new StringBuilder();
         out.append("# ").append(specification.projectName).append("\n\n");
         out.append("Generated REST API entries from ").append(specification.basePackage).append("\n\n");
+        out.append("## Run\n\n");
+        out.append("```bash\n");
+        out.append("docker compose up --build\n");
+        out.append("```\n\n");
+        out.append("For a local build without Docker, install Java ")
+                .append(context.config().project().javaVersion())
+                .append(" and Gradle, then run `gradle bootRun`.\n\n");
         for (EntityDefinition definition : specification.entities) {
             out.append("## ").append(definition.entity.name).append("\n");
             out.append("- Resource path: ").append(definition.api.resourcePath).append("\n");

@@ -21,6 +21,7 @@ public final class JsonSpecificationWriter {
 
         writeField(out, indent, "projectName", spec.projectName, true);
         writeField(out, indent, "basePackage", spec.basePackage, true);
+        writeField(out, indent, "securityHint", spec.securityHint, true);
 
         writeName(out, indent, "entities");
         writeArrayStart(out);
@@ -147,7 +148,9 @@ public final class JsonSpecificationWriter {
         writeField(out, indent, "resourcePath", api.resourcePath, true);
         writeField(out, indent, "crud", api.crud, true);
         writeField(out, indent, "pagination", api.pagination, true);
-        writeLastField(out, indent, "sorting", api.sorting);
+        writeField(out, indent, "sorting", api.sorting, true);
+        writeName(out, indent, "customEndpoints");
+        writeStringArray(out, indent, api.customEndpoints);
     }
 
     private static void writeFieldObject(StringBuilder out, Indent indent, FieldSpec field) {
@@ -219,11 +222,6 @@ public final class JsonSpecificationWriter {
             out.append(',');
         }
         indent.newline(out);
-    }
-
-    private static void writeLastField(StringBuilder out, Indent indent, String name, boolean value) {
-        writeName(out, indent, name);
-        out.append(value);
     }
 
     private static void writeNullableIntegerField(

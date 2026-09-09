@@ -10,11 +10,11 @@ This phase adds essential production features on top of the Phase 1 plugin found
   - enum/type compatibility checks
   - API path format checks
   - relationship target and type validation
-- Template pack selection is now real:
+- Template pack selection is validated:
   - config field `project.templatePack`
   - CLI override via `--template`
   - orchestrator uses selected pack
-  - fallback to `spring-boot-3-standard` when a template file is missing
+  - unsupported packs fail explicitly instead of silently producing standard output
 - Test generation upgrades:
   - unit tests and integration tests controlled by config
   - integration test template added (`integration-test.java.tpl`)
@@ -31,4 +31,4 @@ This phase adds essential production features on top of the Phase 1 plugin found
 ## Notes
 
 - Relationship validation now requires relationship targets to exist in the same specification.
-- Template packs `microservices-pattern` and `ddd-layered` currently use fallback templates unless pack-specific templates are added.
+- Template packs `microservices-pattern` and `ddd-layered` are roadmap items and are not advertised as supported until pack-specific templates are added.

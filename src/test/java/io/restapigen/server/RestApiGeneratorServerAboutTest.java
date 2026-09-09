@@ -11,6 +11,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RestApiGeneratorServerAboutTest {
@@ -208,5 +209,69 @@ class RestApiGeneratorServerAboutTest {
 
         assertEquals(200, status);
         assertTrue(body.contains("\"confidenceStatus\":\"pass\""));
+    }
+
+    @Test
+    void confidenceRejectsUnsupportedFieldType() throws IOException {
+        String invalidSpec = """
+                {
+                  "projectName": "demo-api",
+                  "basePackage": "com.example.generated",
+                  "entities": [{
+                    "entity": {
+                      "name": "Product",
+                      "table": "products",
+                      "idType": "Long",
+                      "fields": [{"name": "name", "type": "TotallyInvalidType", "validation": [], "unique": false, "nullable": false, "encrypted": false, "enumValues": []}]
+                    },
+                    "api": {"resourcePath": "/api/products", "crud": true, "pagination": true, "sorting": true},
+                    "relationships": []
+                  }],
+                  "suggestions": []
+                }
+                """;
+
+        HttpURLConnection conn = (HttpURLConnection) URI.create("http://localhost:" + port + "/generator/confidence").toURL().openConnection();
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Content-Type", "application/json");
+        conn.setDoOutput(true);
+        conn.getOutputStream().write(invalidSpec.getBytes(StandardCharsets.UTF_8));
+        int status = conn.getResponseCode();
+        String body = new String(conn.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        conn.disconnect();
+
+        assertEquals(200, status);
+        assertTrue(body.contains("\"confidenceStatus\":\"fail\""));
+        assertTrue(body.contains("Unsupported field type"));
+    }
+
+    @Test
+    void rejectsRequestBodiesLargerThanOneMebibyte() throws IOException {
+        byte[] payload = new byte[1_048_577];
+        java.util.Arrays.fill(payload, (byte) 'a');
+        HttpURLConnection conn = (HttpURLConnection) URI.create("http://localhost:" + port + "/generator/spec").toURL().openConnection();
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Content-Type", "text/plain");
+        conn.setDoOutput(true);
+        conn.setFixedLengthStreamingMode(payload.length);
+        conn.getOutputStream().write(payload);
+        int status = conn.getResponseCode();
+        String body = new String(conn.getErrorStream().readAllBytes(), StandardCharsets.UTF_8);
+        conn.disconnect();
+
+        assertEquals(413, status);
+        assertTrue(body.contains("PAYLOAD_TOO_LARGE"));
+    }
+
+    @Test
+    void doesNotAllowCrossOriginRequestsByDefault() throws IOException {
+        HttpURLConnection conn = (HttpURLConnection) URI.create("http://localhost:" + port + "/health").toURL().openConnection();
+        conn.setRequestProperty("Origin", "https://example.invalid");
+        int status = conn.getResponseCode();
+        String allowedOrigin = conn.getHeaderField("Access-Control-Allow-Origin");
+        conn.disconnect();
+
+        assertEquals(200, status);
+        assertNull(allowedOrigin);
     }
 }

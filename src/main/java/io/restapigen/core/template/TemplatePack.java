@@ -18,14 +18,10 @@ public record TemplatePack(String name) {
         if (availablePacks().contains(name)) {
             return new TemplatePack(name);
         }
-        return springBootStandard();
+        throw new IllegalArgumentException("Unsupported template pack: " + name);
     }
 
     public static List<String> availablePacks() {
-        return List.of(
-                "spring-boot-3-standard",
-                "microservices-pattern",
-                "ddd-layered"
-        );
+        return List.of("spring-boot-3-standard");
     }
 }

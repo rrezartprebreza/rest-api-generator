@@ -89,7 +89,7 @@ public final class MigrationGeneratorPlugin implements GeneratorPlugin {
                 fieldColumn.append(" UNIQUE");
             }
             if (field.defaultValue != null && !field.defaultValue.isBlank()) {
-                fieldColumn.append(" DEFAULT '").append(field.defaultValue).append("'");
+                fieldColumn.append(" DEFAULT '").append(field.defaultValue.replace("'", "''")).append("'");
             }
             columns.add(fieldColumn.toString());
         }

@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
@@ -30,11 +31,14 @@ public final class RestApiGeneratorServer implements AutoCloseable {
 
     private static final Logger LOG = Logger.getLogger(RestApiGeneratorServer.class.getName());
     private static final int DEFAULT_THREAD_POOL = 8;
+    private static final int MAX_REQUEST_BODY_BYTES = 1_048_576;
     private static final String APP_VERSION = loadAppVersion();
     static final String ENV_RUNTIME_PROFILE = "REST_API_GENERATOR_ENV";
     static final String ENV_APP_ENV = "APP_ENV";
+    static final String ENV_CORS_ALLOWED_ORIGINS = "CORS_ALLOWED_ORIGINS";
 
     private final HttpServer           server;
+    private final ExecutorService      executor;
     private final PromptParser         parser;
     private final OllamaPromptParser   ollamaParser;    // non-null when OLLAMA_URL is set
     private final CloudLlmPromptParser cloudLlmParser;  // non-null when LLM_API_KEY is set
@@ -51,7 +55,8 @@ public final class RestApiGeneratorServer implements AutoCloseable {
 
     public RestApiGeneratorServer(int port, GenerationConfig config) throws IOException {
         this.server        = HttpServer.create(new InetSocketAddress(port), 0);
-        this.server.setExecutor(Executors.newFixedThreadPool(DEFAULT_THREAD_POOL));
+        this.executor      = Executors.newFixedThreadPool(DEFAULT_THREAD_POOL);
+        this.server.setExecutor(executor);
         this.config        = config == null ? GenerationConfig.defaults() : config;
         this.mapper        = new ObjectMapper().findAndRegisterModules();
         this.codeGenerator = new CodeGenerator();
@@ -151,7 +156,10 @@ public final class RestApiGeneratorServer implements AutoCloseable {
     public void start()  { server.start(); }
 
     @Override
-    public void close()  { server.stop(0); }
+    public void close()  {
+        server.stop(0);
+        executor.shutdownNow();
+    }
 
     private void registerContexts() {
         server.createContext("/generator/spec", new SpecHandler());
@@ -165,7 +173,18 @@ public final class RestApiGeneratorServer implements AutoCloseable {
     // ── CORS helper ───────────────────────────────────────────────────────────
 
     private static void addCorsHeaders(HttpExchange exchange) {
-        exchange.getResponseHeaders().set("Access-Control-Allow-Origin",  "*");
+        String requestOrigin = exchange.getRequestHeaders().getFirst("Origin");
+        String configuredOrigins = System.getenv(ENV_CORS_ALLOWED_ORIGINS);
+        if (requestOrigin != null && configuredOrigins != null) {
+            boolean allowed = java.util.Arrays.stream(configuredOrigins.split(","))
+                    .map(String::trim)
+                    .anyMatch(origin -> "*".equals(origin) || requestOrigin.equals(origin));
+            if (allowed) {
+                exchange.getResponseHeaders().set("Access-Control-Allow-Origin",
+                        configuredOrigins.trim().equals("*") ? "*" : requestOrigin);
+                exchange.getResponseHeaders().set("Vary", "Origin");
+            }
+        }
         exchange.getResponseHeaders().set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
         exchange.getResponseHeaders().set("Access-Control-Allow-Headers", "Content-Type, Accept");
     }
@@ -191,7 +210,8 @@ public final class RestApiGeneratorServer implements AutoCloseable {
                 respond(exchange, 405, jsonError("METHOD_NOT_ALLOWED", "Only POST is supported"), "application/json");
                 return;
             }
-            String requestBody = readBody(exchange);
+            String requestBody = readBodyOrReject(exchange);
+            if (requestBody == null) return;
             String prompt = extractPrompt(requestBody);
             if (prompt.isBlank()) {
                 respond(exchange, 400, jsonError("MISSING_PROMPT", "Field 'prompt' is required and must not be blank"), "application/json");
@@ -234,7 +254,8 @@ public final class RestApiGeneratorServer implements AutoCloseable {
                 respond(exchange, 405, jsonError("METHOD_NOT_ALLOWED", "Only POST is supported"), "application/json");
                 return;
             }
-            String requestBody = readBody(exchange);
+            String requestBody = readBodyOrReject(exchange);
+            if (requestBody == null) return;
             if (requestBody.isEmpty()) {
                 respond(exchange, 400, jsonError("MISSING_SPEC", "Request body (API spec JSON) is required"), "application/json");
                 return;
@@ -288,7 +309,8 @@ public final class RestApiGeneratorServer implements AutoCloseable {
                 respond(exchange, 405, jsonError("METHOD_NOT_ALLOWED", "Only POST is supported"), "application/json");
                 return;
             }
-            String requestBody = readBody(exchange);
+            String requestBody = readBodyOrReject(exchange);
+            if (requestBody == null) return;
             if (requestBody.isEmpty()) {
                 respond(exchange, 400, jsonError("MISSING_SPEC", "Request body (API spec JSON) is required"), "application/json");
                 return;
@@ -408,14 +430,63 @@ public final class RestApiGeneratorServer implements AutoCloseable {
 
     // ── Utilities ─────────────────────────────────────────────────────────────
 
+    private String readBodyOrReject(HttpExchange exchange) throws IOException {
+        try {
+            return readBody(exchange);
+        } catch (RequestBodyTooLargeException e) {
+            respond(exchange, 413, jsonError("PAYLOAD_TOO_LARGE", e.getMessage()), "application/json");
+            return null;
+        }
+    }
+
     private static String readBody(HttpExchange exchange) throws IOException {
-        return new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8).trim();
+        String contentLength = exchange.getRequestHeaders().getFirst("Content-Length");
+        if (contentLength != null) {
+            try {
+                if (Long.parseLong(contentLength) > MAX_REQUEST_BODY_BYTES) {
+                    throw new RequestBodyTooLargeException();
+                }
+            } catch (NumberFormatException ignored) {
+                throw new RequestBodyTooLargeException();
+            }
+        }
+        byte[] payload = exchange.getRequestBody().readNBytes(MAX_REQUEST_BODY_BYTES + 1);
+        if (payload.length > MAX_REQUEST_BODY_BYTES) {
+            throw new RequestBodyTooLargeException();
+        }
+        return new String(payload, StandardCharsets.UTF_8).trim();
+    }
+
+    private static final class RequestBodyTooLargeException extends IOException {
+        RequestBodyTooLargeException() {
+            super("Request body must be 1 MiB or smaller");
+        }
     }
 
     private static String jsonError(String code, String message) {
-        // Simple JSON — avoids a dependency on ObjectMapper for error paths
-        String safeMessage = message == null ? "" : message.replace("\"", "'");
-        return "{\"code\":\"" + code + "\",\"message\":\"" + safeMessage + "\"}";
+        return "{\"code\":\"" + escapeJson(code) + "\",\"message\":\"" + escapeJson(message) + "\"}";
+    }
+
+    private static String escapeJson(String value) {
+        if (value == null) return "";
+        StringBuilder escaped = new StringBuilder(value.length());
+        for (int i = 0; i < value.length(); i++) {
+            char character = value.charAt(i);
+            switch (character) {
+                case '"' -> escaped.append("\\\"");
+                case '\\' -> escaped.append("\\\\");
+                case '\b' -> escaped.append("\\b");
+                case '\f' -> escaped.append("\\f");
+                case '\n' -> escaped.append("\\n");
+                case '\r' -> escaped.append("\\r");
+                case '\t' -> escaped.append("\\t");
+                default -> {
+                    if (character <= 0x1f) escaped.append(String.format("\\u%04x", (int) character));
+                    else escaped.append(character);
+                }
+            }
+        }
+        return escaped.toString();
     }
 
     private static String sanitize(String input) {

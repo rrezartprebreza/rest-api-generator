@@ -36,6 +36,7 @@ public final class GenerationOrchestrator {
 
     public List<GeneratedFile> generate(ApiSpecification specification, GenerationConfig config) {
         GenerationConfig effectiveConfig = effectiveConfig(specification, config);
+        validateSupportedConfiguration(effectiveConfig);
         ApiSpecification effectiveSpecification = effectiveSpecification(specification, effectiveConfig);
         validator.validate(effectiveSpecification);
         PluginContext context = new PluginContext(
@@ -56,7 +57,51 @@ public final class GenerationOrchestrator {
             plugin.validate(effectiveSpecification);
             generated.addAll(plugin.generate(effectiveSpecification, context));
         }
+        validateGeneratedFiles(generated);
         return generated;
+    }
+
+    private void validateSupportedConfiguration(GenerationConfig config) {
+        if (!"spring-boot-3-standard".equals(config.project().templatePack())) {
+            throw new IllegalArgumentException(
+                    "Template pack is not implemented yet: " + config.project().templatePack()
+            );
+        }
+        if (!Set.of("17", "21").contains(config.project().javaVersion())) {
+            throw new IllegalArgumentException("Spring Boot 3 generation supports Java 17 or 21");
+        }
+        if (!"layered".equalsIgnoreCase(config.standards().layering().architecture())
+                || !config.standards().layering().includeServiceLayer()
+                || !config.standards().layering().includeDtoMapper()) {
+            throw new IllegalArgumentException("Only layered generation with service and mapper layers is currently supported");
+        }
+        if (config.features().softDelete() || config.features().versioning() || config.features().caching()) {
+            throw new IllegalArgumentException("Soft delete, versioning and caching are not implemented yet");
+        }
+        if (config.standards().security().enabled()) {
+            throw new IllegalArgumentException("Security generation is not implemented yet");
+        }
+    }
+
+    private void validateGeneratedFiles(List<GeneratedFile> files) {
+        Set<String> paths = new java.util.HashSet<>();
+        for (GeneratedFile file : files) {
+            String path = file.path();
+            if (path == null || path.isBlank() || path.startsWith("/") || path.contains("\\") || path.indexOf('\0') >= 0) {
+                throw new IllegalArgumentException("Unsafe generated file path: " + path);
+            }
+            for (String segment : path.split("/", -1)) {
+                if (segment.isEmpty() || ".".equals(segment) || "..".equals(segment)) {
+                    throw new IllegalArgumentException("Unsafe generated file path: " + path);
+                }
+            }
+            if (!paths.add(path)) {
+                throw new IllegalArgumentException("Duplicate generated file path: " + path);
+            }
+            if (file.content() == null) {
+                throw new IllegalArgumentException("Generated file content is null: " + path);
+            }
+        }
     }
 
     private List<GeneratorPlugin> orderPlugins(List<GeneratorPlugin> selected) {
@@ -125,7 +170,8 @@ public final class GenerationOrchestrator {
                 config.project().name(),
                 config.project().basePackage(),
                 specification.entities,
-                specification.suggestions
+                specification.suggestions,
+                specification.securityHint
         );
     }
 }

@@ -635,7 +635,7 @@
 
 <span class="comment"># D) Run YOUR generated Spring Boot app</span>
 <span class="cmd-line">unzip scaffold.zip -d my-api &amp;&amp; cd my-api</span>
-<span class="cmd-line">./gradlew bootRun</span></pre>
+<span class="cmd-line">docker compose up --build</span></pre>
   </div>
 </section>
 
@@ -673,7 +673,7 @@ var HISTORY_KEY='rag.promptSpecHistory.v1',HISTORY_LIMIT=20,historyEntries=[];
 var GRAPH_LAYOUT_PREFIX='rag.graphLayout.v1';
 var graphRuntime={spec:null,reRender:null,zoom:null,fit:null,cleanup:null};
 var su=document.getElementById('serverUrl');
-function baseUrl(){var o=window.location.origin;return(!o||o==='null'||o.includes('localhost')||o.includes('127.0.0.1'))?'http://localhost:8080':o;}
+function baseUrl(){var o=window.location.origin;return(!o||o==='null')?'http://localhost:8080':o;}
 su.value=baseUrl();
 var examples={
   ecommerce:"e-commerce: Product, User, Order, Category, OrderItem\n\nProduct:\n- name (string, required)\n- description (string)\n- price (decimal, required, min 0)\n- stock (integer, min 0)\n- status (enum: DRAFT, ACTIVE, ARCHIVED)\n- belongs to Category\n\nCategory:\n- name (string, required, unique)\n- description (string)\n\nOrder:\n- totalAmount (decimal, min 0)\n- status (enum: PENDING, CONFIRMED, SHIPPED, DELIVERED)\n- belongs to User\n\nOrderItem:\n- quantity (integer, min 1)\n- unitPrice (decimal, min 0)\n- belongs to Order\n- belongs to Product\n\nUser:\n- email (valid email, required, unique)\n- firstName (string, required)\n- lastName (string, required)",
@@ -1255,7 +1255,7 @@ async function genZip(){
     zipBlob=await r.blob();clearInterval(iv);pf.style.width='100%';
     var a=document.createElement('a');a.href=URL.createObjectURL(zipBlob);
     var pn=specData.projectName||'scaffold';a.download=pn+'.zip';a.click();
-    setStatus(pn+'.zip downloaded ('+Math.round(zipBlob.size/1024)+' KB) — cd '+pn+' && ./gradlew bootRun','success');
+    setStatus(pn+'.zip downloaded ('+Math.round(zipBlob.size/1024)+' KB) — cd '+pn+' && docker compose up --build','success');
     setStep(3);document.getElementById('step3').classList.add('done');
   }catch(err){clearInterval(iv);pf.style.width='0%';setStatus(err.message,'error');}
   finally{btn.disabled=false;btn.classList.remove('loading');setTimeout(function(){pb.style.display='none';pf.style.width='0%';},1500);} 

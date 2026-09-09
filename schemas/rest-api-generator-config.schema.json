@@ -13,7 +13,7 @@
         "basePackage": {"type": "string", "pattern": "^[a-zA-Z_][a-zA-Z0-9_.]*$"},
         "springBootVersion": {"type": "string", "minLength": 1},
         "javaVersion": {"type": "string", "enum": ["17", "21"]},
-        "templatePack": {"type": "string", "enum": ["spring-boot-3-standard", "microservices-pattern", "ddd-layered"]}
+        "templatePack": {"type": "string", "enum": ["spring-boot-3-standard"]}
       },
       "required": ["name", "basePackage", "springBootVersion", "javaVersion", "templatePack"]
     },

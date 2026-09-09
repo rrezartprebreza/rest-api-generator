@@ -5,10 +5,12 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "projectName": {"type": "string", "minLength": 1},
-    "basePackage": {"type": "string", "pattern": "^[a-zA-Z_][a-zA-Z0-9_.]*$"},
+    "projectName": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"},
+    "basePackage": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)*$"},
+    "securityHint": {"type": "string", "enum": ["none", "jwt", "oauth2", "basic"]},
     "entities": {
       "type": "array",
+      "minItems": 1,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -18,7 +20,7 @@
             "additionalProperties": false,
             "properties": {
               "name": {"type": "string", "pattern": "^[A-Z][a-zA-Z0-9_]*$"},
-              "table": {"type": "string", "minLength": 1},
+              "table": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,62}$"},
               "idType": {"type": "string", "enum": ["Long", "UUID", "String"]},
               "fields": {
                 "type": "array",
@@ -27,8 +29,16 @@
                   "additionalProperties": false,
                   "properties": {
                     "name": {"type": "string", "pattern": "^[a-z][a-zA-Z0-9_]*$"},
-                    "type": {"type": "string"},
-                    "validation": {"type": "array", "items": {"type": "string"}},
+                    "type": {
+                      "anyOf": [
+                        {"enum": ["String", "Long", "Integer", "Boolean", "BigDecimal", "BigInteger", "Float", "Double", "LocalDate", "LocalDateTime", "Instant", "UUID", "Map<String,Object>", "List<String>", "List<Long>", "List<Integer>", "List<Boolean>", "List<BigDecimal>", "List<Float>", "List<Double>", "List<LocalDate>", "List<LocalDateTime>", "List<Instant>", "List<UUID>"]},
+                        {"type": "string", "pattern": "^[A-Z][A-Za-z0-9_]*$"}
+                      ]
+                    },
+                    "validation": {
+                      "type": "array",
+                      "items": {"type": "string", "pattern": "^(NotBlank|Email|Size:[0-9]+:[0-9]+|(Min|Max):-?[0-9]+|Decimal(Min|Max):-?[0-9]+(\\.[0-9]+)?|OneOf:[A-Za-z0-9_]+(\\|[A-Za-z0-9_]+)*)$"}
+                    },
                     "unique": {"type": "boolean"},
                     "nullable": {"type": "boolean"},
                     "min": {"type": ["integer", "null"]},
@@ -62,12 +72,17 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
-              "resourcePath": {"type": "string"},
+              "resourcePath": {"type": "string", "pattern": "^/(?:[A-Za-z0-9_-]+/?)*$"},
               "crud": {"type": "boolean"},
               "pagination": {"type": "boolean"},
-              "sorting": {"type": "boolean"}
+              "sorting": {"type": "boolean"},
+              "customEndpoints": {
+                "type": "array",
+                "items": {"type": "string", "pattern": "^[a-z][A-Za-z0-9_-]{0,63}$"},
+                "uniqueItems": true
+              }
             },
-            "required": ["resourcePath", "crud", "pagination", "sorting"]
+            "required": ["resourcePath", "crud", "pagination", "sorting", "customEndpoints"]
           },
           "relationships": {
             "type": "array",
@@ -91,5 +106,5 @@
       "items": {"type": "string"}
     }
   },
-  "required": ["projectName", "basePackage", "entities", "suggestions"]
+  "required": ["projectName", "basePackage", "securityHint", "entities", "suggestions"]
 }
