@@ -1,5 +1,5 @@
 # ── Stage 1: build ────────────────────────────────────────────────────────────
-FROM gradle:8.10-jdk17 AS builder
+FROM gradle:9.8-jdk17 AS builder
 WORKDIR /workspace
 COPY . .
 RUN gradle --no-daemon installDist -x test
